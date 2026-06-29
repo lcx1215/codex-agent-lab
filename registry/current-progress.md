@@ -1,6 +1,6 @@
 # Current Lab Progress
 
-Last updated: 2026-06-29 21:26 +0800
+Last updated: 2026-06-29 21:35 +0800
 
 ## Objective
 
@@ -43,6 +43,7 @@ Create a clean, isolated Desktop Codex agent lab for strict, long-horizon agent 
 - Capability Layer 1 is installed for project-level rules: `registry/CAPABILITY_LAYERS.md` tracks the upper-layer expansion plan, `docs/project-rule-template.md` defines reusable project-local `AGENTS.md` structure, `scripts/check-project-rules` validates the rule surfaces, and `scripts/new-workspace` now creates a local workspace `AGENTS.md`.
 - Capability Layer 2 is installed for workflow modes: `docs/workflow-modes.md` defines daily App, CLI diagnosis, OMX long-horizon, multi-agent review, and overnight checkpoint modes; `scripts/workflow-mode` prints each mode contract; `scripts/check-workflow-modes` validates the catalog; `registry/OMX_RETROSPECTIVE.md` records the evidence-based OMX usefulness assessment.
 - First bounded OMX execution proof completed in `workspaces/20260629_204008-omx-execution-proof`. `omx-api exec` produced required artifacts and App-side audit added `app-audit.md`. Verdict: mixed but useful; OMX proved bounded CLI artifact execution and auditability, but not team/tmux parallel throughput. A shell quoting incident accidentally invoked `omx-api` and is recorded as an execution risk. App-side audit removed the temporary `/tmp/benefit-matrix-check.txt`.
+- Team/tmux proof workspace `workspaces/20260629_210146-omx-team-tmux-proof` now records a second OMX proof. Official `omx-api team` still failed before useful worker execution (`worker_notify_failed`, missing pane `%1`, missing startup script evidence), but two direct tmux-launched `omx-api exec` workers completed and wrote `tmux-worker-1.md` and `tmux-worker-2.md`.
 - Sandbox boundaries are hardened: `docs/sandbox-boundaries.md` defines the local contract, `scripts/check-sandbox` verifies clean-home config, writable roots, tmp exclusion, symlink escapes, forbidden secret-like files, script portability, and directory permissions, and `scripts/check-lab` now invokes the sandbox gate.
 - Clean-home config now excludes system tmp directories; scripts and tests use lab-local `.tmp/` scratch space.
 - Async execution safety is covered by `scripts/check-async-execution`, which runs independent checks concurrently with per-task `TMPDIR` values and isolated Waterflow output directories. `docs/reasoning-speed-playbook.md` records how to reduce avoidable `gpt-5.5` + `xhigh` latency without lowering reasoning quality for hard decisions.
@@ -81,6 +82,7 @@ Create a clean, isolated Desktop Codex agent lab for strict, long-horizon agent 
 - Sandbox hardening checks passed: `scripts/check-sandbox`, `scripts/check-project-rules`, `scripts/check-secrets`, integrated `scripts/check-lab`, Bash syntax checks, `python3 -m unittest discover -s tests`, `scripts/waterflow-scan --root . --compare-last` with 89 paths and 0 findings, and `scripts/waterflow-verify` with 5 passed and 0 failed.
 - Async execution and speed-playbook checks passed: `scripts/check-async-execution` ran 7 concurrent checks with 7 passed, 0 failed, and 0 timed out; `scripts/check-project-rules` and `scripts/check-secrets` also passed after wiring the new speed and async surfaces; final `scripts/waterflow-scan --root . --compare-last` reported 92 paths, 0 findings, and 0 changed paths.
 - Bounded OMX execution proof checks passed with a mixed verdict: required workspace artifacts exist, `benefit-matrix.json` is valid with all required fields, App-side command checks passed, `scripts/check-sandbox`, `scripts/check-lab`, `scripts/check-secrets`, unit tests, `scripts/waterflow-scan --root . --compare-last` with 0 findings, and `scripts/waterflow-verify` with 5 passed and 0 failed.
+- Team/tmux proof 2 recorded a mixed result: direct tmux `omx-api exec` workers produced two reports with `EXIT:0`, while official `omx-api team` still failed before useful worker execution. No lab tmux sessions or lab OMX processes remained running after cleanup.
 - Async race hardening checks passed: `bash -n scripts/check-sandbox scripts/check-async-execution`, `scripts/check-sandbox`, `scripts/check-async-execution`, `scripts/check-project-rules`, `scripts/check-secrets`, `scripts/check-lab`, `python3 -m unittest discover -s tests`, `scripts/waterflow-verify`, and final `scripts/waterflow-scan --root . --compare-last`. Latest async run `20260629T132619Z-90643` passed 7/7 with 0 failed, 0 timed out, and no unexpected stderr; final Waterflow compare reported 92 paths, 0 findings, and 0 changed paths.
 
 ## Next Optional Check

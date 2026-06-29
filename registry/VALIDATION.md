@@ -1,6 +1,6 @@
 # Validation
 
-Last updated: 2026-06-29 21:26 +0800
+Last updated: 2026-06-29 21:35 +0800
 
 ## Completed Checks
 
@@ -372,6 +372,48 @@ Last updated: 2026-06-29 21:26 +0800
   - Command: `python3 -m unittest discover -s tests`
   - Result: pass
   - Evidence: `Ran 12 tests in 3.006s` and `OK`.
+  - Command: `scripts/waterflow-verify`
+  - Result: pass
+  - Evidence: validation runner reported 5 checks, 5 passed, 0 failed, 0 timed out, and max exit code 0.
+  - Command: `scripts/waterflow-scan --root . --compare-last`
+  - Result: pass
+  - Evidence: final Waterflow report summary is `finding_count: 0`, `node_count: 92`, `edge_count: 91`, and `path_count: 92`.
+  - Evidence: latest path diff reports `added_count: 0`, `changed_count: 0`, `removed_count: 0`, and `unchanged_count: 92`.
+
+- Team/tmux proof 2
+  - Command: direct tmux-launched `omx-api exec` worker 1
+  - Result: pass
+  - Evidence: `workspaces/20260629_210146-omx-team-tmux-proof/tmux-worker-1.md` was written with 36 lines.
+  - Evidence: `tmux-worker-1.log` ended with `EXIT:0`.
+  - Command: direct tmux-launched `omx-api exec` worker 2
+  - Result: pass
+  - Evidence: `workspaces/20260629_210146-omx-team-tmux-proof/tmux-worker-2.md` was written with 32 lines.
+  - Evidence: `tmux-worker-2.log` ended with `EXIT:0` for the direct worker run.
+  - Command: clean `omx-api team` launch
+  - Result: fail as useful blocker evidence
+  - Evidence: `team-clean-launch.log` recorded `worker_notify_failed...tmux_send_keys_failed...can't find pane: %1` and `LAUNCH_EXIT:1`.
+  - Evidence: `tmux-worker-2.md` summarized the missing startup-script evidence from `worker-debug.log`: `.omx/state/team/.../runtime/worker-1-startup.sh: No such file or directory`.
+  - Command: `tmux list-sessions`
+  - Result: pass
+  - Evidence: no lab tmux sessions remained after cleanup.
+  - Command: lab OMX process scan
+  - Result: pass
+  - Evidence: no `omx`, `codex-agent-lab`, or `team-runtime-repo` worker processes remained after cleanup.
+  - Command: `scripts/check-secrets`
+  - Result: pass
+  - Evidence: command reported `OK: no committable secrets or README-local user paths detected`.
+  - Command: custom redacted token scan over proof workspace and async outputs
+  - Result: pass
+  - Evidence: no GitHub, OpenAI-style, AWS, or private-key pattern matches were reported.
+  - Command: `scripts/check-project-rules`
+  - Result: pass
+  - Evidence: command reported `OK: project rule surfaces are valid`.
+  - Command: `scripts/check-lab`
+  - Result: pass
+  - Evidence: lab check reported 8 custom agents, 42 lab-local skills, Codex CLI found, and `OK: lab structure is valid`.
+  - Command: `python3 -m unittest discover -s tests`
+  - Result: pass
+  - Evidence: `Ran 12 tests in 3.235s` and `OK`.
   - Command: `scripts/waterflow-verify`
   - Result: pass
   - Evidence: validation runner reported 5 checks, 5 passed, 0 failed, 0 timed out, and max exit code 0.

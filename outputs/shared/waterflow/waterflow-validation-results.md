@@ -1,13 +1,13 @@
 # Waterflow Validation Results
 
-- Generated: `2026-06-29T13:24:51.699603+00:00`
+- Generated: `2026-06-29T13:36:29.417707+00:00`
 - Lab root: `/Users/liuchengxu/Desktop/codex-agent-lab`
 - Checks: `5`
 - Passed: `5`
 - Failed: `0`
 - Timed out: `0`
 - Max exit code: `0`
-- Duration seconds: `9.953`
+- Duration seconds: `8.236`
 
 ## Check 1: pass
 
@@ -15,7 +15,7 @@ command: `CODEX_HOME=/Users/liuchengxu/Desktop/codex-agent-lab/.codex-home codex
 risk: `P2`
 exit_code: `0`
 timed_out: `false`
-duration_seconds: `1.426`
+duration_seconds: `1.756`
 
 route_kinds:
 - `agent`
@@ -54,7 +54,7 @@ command: `CODEX_HOME=/Users/liuchengxu/Desktop/codex-agent-lab/.codex-home codex
 risk: `P2`
 exit_code: `0`
 timed_out: `false`
-duration_seconds: `1.063`
+duration_seconds: `0.856`
 
 route_kinds:
 - `skill`
@@ -107,7 +107,7 @@ command: `python3 -m unittest discover -s tests`
 risk: `P2`
 exit_code: `0`
 timed_out: `false`
-duration_seconds: `3.636`
+duration_seconds: `3.262`
 
 route_kinds:
 - `auditor-code`
@@ -142,7 +142,7 @@ stderr:
 ```text
 ............
 ----------------------------------------------------------------------
-Ran 12 tests in 3.309s
+Ran 12 tests in 3.016s
 
 OK
 ```
@@ -153,7 +153,7 @@ command: `scripts/check-lab`
 risk: `P2`
 exit_code: `0`
 timed_out: `false`
-duration_seconds: `3.647`
+duration_seconds: `2.195`
 
 route_kinds:
 - `agent`
@@ -200,7 +200,7 @@ command: `scripts/waterflow-scan --root /Users/liuchengxu/Desktop/codex-agent-la
 risk: `P2`
 exit_code: `0`
 timed_out: `false`
-duration_seconds: `0.179`
+duration_seconds: `0.167`
 
 route_kinds:
 - `agent`

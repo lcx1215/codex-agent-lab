@@ -1,6 +1,6 @@
 # OMX Retrospective
 
-Last updated: 2026-06-29 20:32 +0800
+Last updated: 2026-06-29 21:35 +0800
 
 ## Question
 
@@ -71,3 +71,33 @@ Limits observed:
 Updated conclusion:
 
 OMX has now proven modest execution-layer value for CLI-bounded artifact work. It has not yet proven enough value to route small App-sized edits through OMX by default, and it still needs a stricter long-running or team/tmux proof before claiming parallel execution benefit.
+
+## Proof 2: Team/Tmux And Parallel Exec Probe
+
+Date: 2026-06-29 21:35 +0800
+
+Workspace: `workspaces/20260629_210146-omx-team-tmux-proof`
+
+Result: mixed; useful blocker evidence.
+
+Evidence:
+
+- `team-clean-launch.log` shows `omx-api team` reached green-light activation and worker startup resolution, then failed with `worker_notify_failed...tmux_send_keys_failed...can't find pane: %1` and `LAUNCH_EXIT:1`.
+- `tmux-worker-1.md` and `tmux-worker-2.md` were produced by two direct tmux-launched `omx-api exec` workers against independent prompts.
+- `tmux-worker-1.log` and `tmux-worker-2.log` both ended with `EXIT:0` for those direct parallel exec workers.
+- Worker 2 recorded a separate startup-script blocker from `worker-debug.log`: `.omx/state/team/.../runtime/worker-1-startup.sh: No such file or directory`.
+
+Value observed:
+
+- Direct tmux parallel `omx-api exec` can produce independent, conflict-free worker artifacts in the lab workspace.
+- The reports sharpened the next hardening targets: pane preflight, atomic worker runtime setup, stage-specific status, and clearer worker contracts.
+
+Limits observed:
+
+- Official OMX team/tmux runtime still did not prove useful parallel team execution.
+- Green-light activation is not proof that worker prompts were delivered or artifacts were produced.
+- Runtime debug logs should stay transient unless deliberately summarized into durable proof artifacts.
+
+Updated conclusion:
+
+OMX remains useful for CLI-bounded artifact execution and App/CLI routing discipline. Direct tmux-parallel `omx-api exec` is promising for supervised parallel review, but official `omx team` still needs runtime hardening before this lab should treat it as a reliable multi-agent execution engine.
