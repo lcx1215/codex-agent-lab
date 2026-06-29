@@ -19,10 +19,18 @@ from waterflow.auditor import (
     write_outputs,
 )
 
+LAB_ROOT = Path(__file__).resolve().parents[1]
+TEST_TMP_ROOT = LAB_ROOT / ".tmp" / "tests"
+
+
+def lab_temp_dir(prefix: str) -> Path:
+    TEST_TMP_ROOT.mkdir(parents=True, exist_ok=True)
+    return Path(tempfile.mkdtemp(prefix=prefix, dir=TEST_TMP_ROOT))
+
 
 class WaterflowAuditorTests(unittest.TestCase):
     def make_lab(self) -> Path:
-        root = Path(tempfile.mkdtemp(prefix="waterflow-lab-"))
+        root = lab_temp_dir("waterflow-lab-")
         (root / ".codex" / "agents").mkdir(parents=True)
         (root / ".agents" / "skills" / "demo-skill").mkdir(parents=True)
         (root / "scripts").mkdir()

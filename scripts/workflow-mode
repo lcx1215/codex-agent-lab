@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+mode="${1:-list}"
+
+list_modes() {
+  cat <<'EOF'
+daily-app
+cli-diagnosis
+omx-long-horizon
+multi-agent-review
+overnight-checkpoint
+EOF
+}
+
+case "$mode" in
+  list|--list|-l)
+    list_modes
+    ;;
+  daily-app)
+    cat <<'EOF'
+mode: daily-app
+surface: Codex App
+omx_level: none by default; App-safe spine when complexity appears
+entry: open the project in Codex App and use the nearest AGENTS.md
+artifacts: changed files; optional App-lane notes when useful
+verification: targeted tests or local checks for changed behavior
+stop: change implemented, verified, and summarized
+EOF
+    ;;
+  cli-diagnosis)
+    cat <<'EOF'
+mode: cli-diagnosis
+surface: Terminal/API-relay
+omx_level: none by default
+entry: codex-api
+artifacts: command evidence; optional outputs/api-relay note for handoff
+verification: exact command output, exit code, or smoke test
+stop: diagnosis answered or next concrete action identified
+EOF
+    ;;
+  omx-long-horizon)
+    cat <<'EOF'
+mode: omx-long-horizon
+surface: Terminal/API-relay
+omx_level: CLI runtime
+entry: omx-api or ./scripts/start-api-relay
+artifacts: workspace brief, progress file, validation evidence, handoff notes
+verification: scripts/check-lab; task tests; waterflow scan/verify when applicable
+stop: checkpoints complete, evidence recorded, handoff ready
+EOF
+    ;;
+  multi-agent-review)
+    cat <<'EOF'
+mode: multi-agent-review
+surface: App first; OMX when durable coordination is useful
+omx_level: App-safe spine or CLI runtime
+entry: App-native subagents for bounded slices; omx-api for durable team/runtime work
+artifacts: agent briefs, results, integration notes, validation evidence
+verification: leader integrates findings, runs checks, records accepted/rejected recommendations
+stop: slices resolved, conflicts integrated, remaining risks explicit
+EOF
+    ;;
+  overnight-checkpoint)
+    cat <<'EOF'
+mode: overnight-checkpoint
+surface: Terminal/API-relay
+omx_level: CLI runtime
+entry: create/reuse workspaces/<task>, then launch omx-api
+artifacts: local AGENTS.md, brief.md, progress.md, validation file, final handoff
+verification: checkpointed commands plus final lab or project gate
+stop: next handoff states status, evidence, blockers, and exact next action
+EOF
+    ;;
+  *)
+    printf 'Unknown workflow mode: %s\n\nAvailable modes:\n' "$mode" >&2
+    list_modes >&2
+    exit 2
+    ;;
+esac

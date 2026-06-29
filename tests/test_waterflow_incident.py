@@ -4,10 +4,18 @@ from pathlib import Path
 
 from waterflow.incident import INCIDENT_EXPECTED_CODES, run_incident_suite
 
+LAB_ROOT = Path(__file__).resolve().parents[1]
+TEST_TMP_ROOT = LAB_ROOT / ".tmp" / "tests"
+
+
+def lab_temp_dir(prefix: str) -> Path:
+    TEST_TMP_ROOT.mkdir(parents=True, exist_ok=True)
+    return Path(tempfile.mkdtemp(prefix=prefix, dir=TEST_TMP_ROOT))
+
 
 class WaterflowIncidentTests(unittest.TestCase):
     def test_complex_incident_generates_codex_claude_handoff(self):
-        output_root = Path(tempfile.mkdtemp(prefix="waterflow-incident-"))
+        output_root = lab_temp_dir("waterflow-incident-")
 
         results = run_incident_suite(output_root, validation_timeout_seconds=1)
 

@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-06-29T12:15:14.311270+00:00",
+  "generated_at": "2026-06-29T13:27:59.469522+00:00",
   "lab_root": "/Users/liuchengxu/Desktop/codex-agent-lab",
-  "path_count": 78,
+  "path_count": 92,
   "paths": {
     ".": {
       "hash": "",
@@ -361,18 +361,46 @@
       "size": 1031
     },
     "AGENTS.md": {
-      "hash": "5c079d1af3953fc6dbd611591b3ec8e99099ff4716680c7276bb3e1de5d8ce37",
+      "hash": "bf7cdb4b1d4e97b16fd7b43616e842e6256a73eca172170416af756041eb5359",
       "id": "rules:AGENTS.md",
       "kind": "rules",
       "label": "AGENTS.md",
-      "size": 3885
+      "size": 6742
     },
     "README.md": {
-      "hash": "95e8850eb7601e501b8d54d0413704fcca98d61b96f1daac61e99fb82057ef63",
+      "hash": "b0fd92d242827e8284b859ed36178a622b0d796eadbba2eb45d66ef47e65e655",
       "id": "readme:README.md",
       "kind": "readme",
       "label": "README.md",
-      "size": 4844
+      "size": 6341
+    },
+    "docs/agent-lab-mission.md": {
+      "hash": "4e2750999d44fe4b7e75d96986370ce1c50d9f873b39482779ff001f4c8aaa10",
+      "id": "doc:docs/agent-lab-mission.md",
+      "kind": "doc",
+      "label": "agent-lab-mission.md",
+      "size": 2411
+    },
+    "docs/project-rule-template.md": {
+      "hash": "5bd4912eed36923e1b2c211986e056e1512dc4406884f6dd925760e49dccc204",
+      "id": "doc:docs/project-rule-template.md",
+      "kind": "doc",
+      "label": "project-rule-template.md",
+      "size": 2087
+    },
+    "docs/reasoning-speed-playbook.md": {
+      "hash": "b804419ce0fd1679e904b3584cf09bc63b880c8cc2312d5604237d9c7c079cc5",
+      "id": "doc:docs/reasoning-speed-playbook.md",
+      "kind": "doc",
+      "label": "reasoning-speed-playbook.md",
+      "size": 2835
+    },
+    "docs/sandbox-boundaries.md": {
+      "hash": "a2f72677886210a9fa0a9da1cb0b467a24c4266176c7ea3571d87c216046bac9",
+      "id": "doc:docs/sandbox-boundaries.md",
+      "kind": "doc",
+      "label": "sandbox-boundaries.md",
+      "size": 1822
     },
     "docs/waterflow-auditor-design.md": {
       "hash": "a51ba6b9102d2a5cf22b9a28ce2167e57e7d2cf7e92e21920bea2f83b463c374",
@@ -388,6 +416,13 @@
       "label": "waterflow-harness-philosophy.md",
       "size": 5125
     },
+    "docs/workflow-modes.md": {
+      "hash": "be193965ef7f2ff64ce077120c24f59a8dceabeed9086ffa69c851b357da35df",
+      "id": "doc:docs/workflow-modes.md",
+      "kind": "doc",
+      "label": "workflow-modes.md",
+      "size": 4186
+    },
     "registry/AGENT_REGISTRY.md": {
       "hash": "9347fc22d4f8cb21ad8c8f804765f0fd5f59d3179e2b0ff6ea6dd8318b9140b9",
       "id": "registry:registry/AGENT_REGISTRY.md",
@@ -395,40 +430,82 @@
       "label": "AGENT_REGISTRY.md",
       "size": 1294
     },
+    "registry/CAPABILITY_LAYERS.md": {
+      "hash": "1095c718d4ff6ab08279e1f164a23749db5bd0c68039d7951349d8481e9b7087",
+      "id": "registry:registry/CAPABILITY_LAYERS.md",
+      "kind": "registry",
+      "label": "CAPABILITY_LAYERS.md",
+      "size": 4528
+    },
+    "registry/OMX_RETROSPECTIVE.md": {
+      "hash": "d68a2a07cb17103eb6ede69fba5452a83effd60be688724062e19a65c95ea190",
+      "id": "registry:registry/OMX_RETROSPECTIVE.md",
+      "kind": "registry",
+      "label": "OMX_RETROSPECTIVE.md",
+      "size": 3683
+    },
     "registry/VALIDATION.md": {
-      "hash": "75101f6cab24c655ae1343a2c30cf9ce5ba12e1d9695f26e3b3659a661b5b81e",
+      "hash": "9a6f0d3e471065adf7401c2cd4e5b84aea49f216290e798f79795d0aa3679f89",
       "id": "registry:registry/VALIDATION.md",
       "kind": "registry",
       "label": "VALIDATION.md",
-      "size": 14321
+      "size": 27534
     },
     "registry/current-progress.md": {
-      "hash": "21c8550fd8de60114d2017c727c1c9ccd6b805c48ef648e4cc90007581fad8b9",
+      "hash": "00df2786e87c2a30a90488490d72fc7276c5aa668da50feae1eae7fc21737ea0",
       "id": "registry:registry/current-progress.md",
       "kind": "registry",
       "label": "current-progress.md",
-      "size": 6625
+      "size": 12215
+    },
+    "scripts/check-async-execution": {
+      "hash": "38986f72bcecdb411c9dd935c6b178b619266eaafcdab78c710fa5e2051ffb0d",
+      "id": "script:scripts/check-async-execution",
+      "kind": "script",
+      "label": "check-async-execution",
+      "size": 6569
     },
     "scripts/check-lab": {
-      "hash": "e20ddd4ef5afa9af0578e7c456b0bf514d11fc4fe184513548099156d73c0d07",
+      "hash": "46e715b393e6a125ab4f125a93637a2093dd33cf986e9500abd331a291d13dc3",
       "id": "script:scripts/check-lab",
       "kind": "script",
       "label": "check-lab",
-      "size": 2626
+      "size": 3300
+    },
+    "scripts/check-project-rules": {
+      "hash": "1a2d60a236d2ea83e6ae2c3ea479ec992848f96dc75d73b8b8eee7ce4d07cd2a",
+      "id": "script:scripts/check-project-rules",
+      "kind": "script",
+      "label": "check-project-rules",
+      "size": 3057
+    },
+    "scripts/check-sandbox": {
+      "hash": "d17cd292f3af7de53c21dc5971a57ab904f20644f7e80aa686bff6e1c589dddf",
+      "id": "script:scripts/check-sandbox",
+      "kind": "script",
+      "label": "check-sandbox",
+      "size": 4778
     },
     "scripts/check-secrets": {
-      "hash": "48aae689a7b0dcc96cceaa72d2ed9618e757e0372583df0a7f44e3539fe82a0f",
+      "hash": "9143b5250122cd4fd5806f35125e2ae23102b47a758a695598c40e0b6ca4d88c",
       "id": "script:scripts/check-secrets",
       "kind": "script",
       "label": "check-secrets",
-      "size": 1479
+      "size": 1492
+    },
+    "scripts/check-workflow-modes": {
+      "hash": "fb5798b869e50a9e9e7bb71f8b18bbbd68b41876e9048bf1e9047784a641f746",
+      "id": "script:scripts/check-workflow-modes",
+      "kind": "script",
+      "label": "check-workflow-modes",
+      "size": 1382
     },
     "scripts/new-workspace": {
-      "hash": "dbc5fdfdea4b807b9fd6f9ab7d8066b9ec1fcd4dd819642eaee23bd622c05cbd",
+      "hash": "3ae98612ce5d45c17a0d6966ffb651a8bacf5ddecdc754cb8477bf4ffc5a44e8",
       "id": "script:scripts/new-workspace",
       "kind": "script",
       "label": "new-workspace",
-      "size": 784
+      "size": 1714
     },
     "scripts/start-api-relay": {
       "hash": "0910b8c0d4fc046998bfbbfc2e4122c6dc4eb8029c339f692ad52d0cbf7faf8b",
@@ -486,26 +563,33 @@
       "label": "waterflow-verify",
       "size": 193
     },
+    "scripts/workflow-mode": {
+      "hash": "a70032fcef3473126ed995699fe0d92f3be37d1be8b70b35fdc6662a05ea15a5",
+      "id": "script:scripts/workflow-mode",
+      "kind": "script",
+      "label": "workflow-mode",
+      "size": 2370
+    },
     "tests/test_waterflow_auditor.py": {
-      "hash": "e2e7e2c8089713b9c0ebce27d8d275c909c3eb3dd9ed8eda89f758446d2c6392",
+      "hash": "de904a1141f905546fcdf85505e16cc288606cf8f23312dba80a52efdbf8c9bb",
       "id": "test:tests/test_waterflow_auditor.py",
       "kind": "test",
       "label": "test_waterflow_auditor.py",
-      "size": 12118
+      "size": 12355
     },
     "tests/test_waterflow_incident.py": {
-      "hash": "d0ea5c85af825d7c824fe9f68619500ccbdc2fe472e57f0c9cfab8522badef51",
+      "hash": "0651f04e37207216b662a18fac6e0a6b78fefdaa7dc1e070b883c61894e4dec8",
       "id": "test:tests/test_waterflow_incident.py",
       "kind": "test",
       "label": "test_waterflow_incident.py",
-      "size": 2446
+      "size": 2683
     },
     "tests/test_waterflow_stress.py": {
-      "hash": "0e9810d05c90b6134d5b9628665b833541873d39b234fa8d1d38265ccdad4d2d",
+      "hash": "e0edf12f3458d1b523b44ba4145a1abc9d2de84b21b51e4548d82dbf6cd042d7",
       "id": "test:tests/test_waterflow_stress.py",
       "kind": "test",
       "label": "test_waterflow_stress.py",
-      "size": 2205
+      "size": 2442
     },
     "waterflow/__init__.py": {
       "hash": "8be99dba6a6b73e79fa14bc43d7e6484cf55b59f324aac1155f5fd7953166c62",
@@ -547,6 +631,20 @@
       "id": "workspace-root:workspaces",
       "kind": "workspace-root",
       "label": "workspaces",
+      "size": 0
+    },
+    "workspaces/20260629_204008-omx-execution-proof": {
+      "hash": "",
+      "id": "workspace:workspaces/20260629_204008-omx-execution-proof",
+      "kind": "workspace",
+      "label": "20260629_204008-omx-execution-proof",
+      "size": 0
+    },
+    "workspaces/20260629_210146-omx-team-tmux-proof": {
+      "hash": "",
+      "id": "workspace:workspaces/20260629_210146-omx-team-tmux-proof",
+      "kind": "workspace",
+      "label": "20260629_210146-omx-team-tmux-proof",
       "size": 0
     }
   },

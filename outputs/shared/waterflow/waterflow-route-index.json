@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-29T12:15:14.311270+00:00",
+  "generated_at": "2026-06-29T13:27:59.469522+00:00",
   "lab_root": "/Users/liuchengxu/Desktop/codex-agent-lab",
   "risk_index": {
     "P2": [
@@ -53,8 +53,12 @@
       ".codex/agents/risk-reviewer.toml",
       ".codex/agents/verification-auditor.toml",
       ".codex/agents/waterflow-auditor.toml",
+      "scripts/check-async-execution",
       "scripts/check-lab",
+      "scripts/check-project-rules",
+      "scripts/check-sandbox",
       "scripts/check-secrets",
+      "scripts/check-workflow-modes",
       "scripts/new-workspace",
       "scripts/start-api-relay",
       "scripts/start-api-relay-plain",
@@ -64,6 +68,7 @@
       "scripts/waterflow-scan",
       "scripts/waterflow-stress",
       "scripts/waterflow-verify",
+      "scripts/workflow-mode",
       "tests/test_waterflow_auditor.py",
       "tests/test_waterflow_incident.py",
       "tests/test_waterflow_stress.py",
@@ -76,9 +81,16 @@
     "P3": [
       "AGENTS.md",
       "README.md",
+      "docs/agent-lab-mission.md",
+      "docs/project-rule-template.md",
+      "docs/reasoning-speed-playbook.md",
+      "docs/sandbox-boundaries.md",
       "docs/waterflow-auditor-design.md",
       "docs/waterflow-harness-philosophy.md",
+      "docs/workflow-modes.md",
       "registry/AGENT_REGISTRY.md",
+      "registry/CAPABILITY_LAYERS.md",
+      "registry/OMX_RETROSPECTIVE.md",
       "registry/VALIDATION.md",
       "registry/current-progress.md"
     ]
@@ -135,12 +147,17 @@
       "finding_codes": [],
       "kind": "documentation",
       "max_risk": "P3",
-      "path_count": 4,
+      "path_count": 9,
       "paths": [
         "AGENTS.md",
         "README.md",
+        "docs/agent-lab-mission.md",
+        "docs/project-rule-template.md",
+        "docs/reasoning-speed-playbook.md",
+        "docs/sandbox-boundaries.md",
         "docs/waterflow-auditor-design.md",
-        "docs/waterflow-harness-philosophy.md"
+        "docs/waterflow-harness-philosophy.md",
+        "docs/workflow-modes.md"
       ],
       "recommended_checks": [
         "scripts/waterflow-scan --root /Users/liuchengxu/Desktop/codex-agent-lab"
@@ -152,9 +169,11 @@
       "finding_codes": [],
       "kind": "registry",
       "max_risk": "P3",
-      "path_count": 3,
+      "path_count": 5,
       "paths": [
         "registry/AGENT_REGISTRY.md",
+        "registry/CAPABILITY_LAYERS.md",
+        "registry/OMX_RETROSPECTIVE.md",
         "registry/VALIDATION.md",
         "registry/current-progress.md"
       ],
@@ -168,10 +187,14 @@
       "finding_codes": [],
       "kind": "script",
       "max_risk": "P2",
-      "path_count": 11,
+      "path_count": 16,
       "paths": [
+        "scripts/check-async-execution",
         "scripts/check-lab",
+        "scripts/check-project-rules",
+        "scripts/check-sandbox",
         "scripts/check-secrets",
+        "scripts/check-workflow-modes",
         "scripts/new-workspace",
         "scripts/start-api-relay",
         "scripts/start-api-relay-plain",
@@ -180,7 +203,8 @@
         "scripts/waterflow-incident",
         "scripts/waterflow-scan",
         "scripts/waterflow-stress",
-        "scripts/waterflow-verify"
+        "scripts/waterflow-verify",
+        "scripts/workflow-mode"
       ],
       "recommended_checks": [
         "python3 -m unittest discover -s tests",
@@ -251,7 +275,7 @@
     "changed_path_count": 0,
     "finding_count": 0,
     "max_risk": "P2",
-    "path_count": 76,
+    "path_count": 88,
     "route_count": 6
   },
   "validation_command_index": {
@@ -328,10 +352,14 @@
     "python3 -m unittest discover -s tests": {
       "command": "python3 -m unittest discover -s tests",
       "max_risk": "P2",
-      "path_count": 19,
+      "path_count": 24,
       "paths": [
+        "scripts/check-async-execution",
         "scripts/check-lab",
+        "scripts/check-project-rules",
+        "scripts/check-sandbox",
         "scripts/check-secrets",
+        "scripts/check-workflow-modes",
         "scripts/new-workspace",
         "scripts/start-api-relay",
         "scripts/start-api-relay-plain",
@@ -341,6 +369,7 @@
         "scripts/waterflow-scan",
         "scripts/waterflow-stress",
         "scripts/waterflow-verify",
+        "scripts/workflow-mode",
         "tests/test_waterflow_auditor.py",
         "tests/test_waterflow_incident.py",
         "tests/test_waterflow_stress.py",
@@ -358,7 +387,7 @@
     "scripts/check-lab": {
       "command": "scripts/check-lab",
       "max_risk": "P2",
-      "path_count": 61,
+      "path_count": 66,
       "paths": [
         ".agents/skills/api-and-interface-design/SKILL.md",
         ".agents/skills/brainstorming/SKILL.md",
@@ -410,8 +439,12 @@
         ".codex/agents/risk-reviewer.toml",
         ".codex/agents/verification-auditor.toml",
         ".codex/agents/waterflow-auditor.toml",
+        "scripts/check-async-execution",
         "scripts/check-lab",
+        "scripts/check-project-rules",
+        "scripts/check-sandbox",
         "scripts/check-secrets",
+        "scripts/check-workflow-modes",
         "scripts/new-workspace",
         "scripts/start-api-relay",
         "scripts/start-api-relay-plain",
@@ -420,7 +453,8 @@
         "scripts/waterflow-incident",
         "scripts/waterflow-scan",
         "scripts/waterflow-stress",
-        "scripts/waterflow-verify"
+        "scripts/waterflow-verify",
+        "scripts/workflow-mode"
       ],
       "route_kinds": [
         "agent",
@@ -431,7 +465,7 @@
     "scripts/waterflow-scan --root /Users/liuchengxu/Desktop/codex-agent-lab": {
       "command": "scripts/waterflow-scan --root /Users/liuchengxu/Desktop/codex-agent-lab",
       "max_risk": "P2",
-      "path_count": 76,
+      "path_count": 88,
       "paths": [
         ".agents/skills/api-and-interface-design/SKILL.md",
         ".agents/skills/brainstorming/SKILL.md",
@@ -485,13 +519,24 @@
         ".codex/agents/waterflow-auditor.toml",
         "AGENTS.md",
         "README.md",
+        "docs/agent-lab-mission.md",
+        "docs/project-rule-template.md",
+        "docs/reasoning-speed-playbook.md",
+        "docs/sandbox-boundaries.md",
         "docs/waterflow-auditor-design.md",
         "docs/waterflow-harness-philosophy.md",
+        "docs/workflow-modes.md",
         "registry/AGENT_REGISTRY.md",
+        "registry/CAPABILITY_LAYERS.md",
+        "registry/OMX_RETROSPECTIVE.md",
         "registry/VALIDATION.md",
         "registry/current-progress.md",
+        "scripts/check-async-execution",
         "scripts/check-lab",
+        "scripts/check-project-rules",
+        "scripts/check-sandbox",
         "scripts/check-secrets",
+        "scripts/check-workflow-modes",
         "scripts/new-workspace",
         "scripts/start-api-relay",
         "scripts/start-api-relay-plain",
@@ -501,6 +546,7 @@
         "scripts/waterflow-scan",
         "scripts/waterflow-stress",
         "scripts/waterflow-verify",
+        "scripts/workflow-mode",
         "tests/test_waterflow_auditor.py",
         "tests/test_waterflow_incident.py",
         "tests/test_waterflow_stress.py",

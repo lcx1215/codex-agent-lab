@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "task": "20260629_204008-omx-execution-proof",
+  "generated_at": "2026-06-29 20:47:58 +0800",
+  "basis": {
+    "workspace": "workspaces/20260629_204008-omx-execution-proof",
+    "commands_passed": [
+      "scripts/check-workflow-modes",
+      "scripts/check-lab",
+      "scripts/workflow-mode omx-long-horizon"
+    ],
+    "runtime_boundary": "Executed from Codex App outside tmux with App-safe OMX spine; an accidental omx-api invocation failed before doing task work and is not counted as a successful CLI runtime proof."
+  },
+  "routing": {
+    "app_only": "Can inspect docs and run scripts, but routing discipline depends on the current agent remembering the lab conventions.",
+    "omx_assisted": "Mode contract names surface, OMX level, entry command, artifacts, verification path, and stop condition.",
+    "winner": "omx_assisted",
+    "evidence": [
+      "scripts/workflow-mode omx-long-horizon prints surface: Terminal/API-relay",
+      "scripts/workflow-mode omx-long-horizon prints omx_level: CLI runtime",
+      "scripts/check-workflow-modes exits 0"
+    ]
+  },
+  "auditability": {
+    "app_only": "Chat transcript can explain decisions but is weaker as a durable audit record.",
+    "omx_assisted": "Workspace artifacts capture report, validation commands, structured matrix, and progress handoff.",
+    "winner": "omx_assisted",
+    "evidence": [
+      "validation.md records exact commands and evidence snippets",
+      "progress.md records final handoff",
+      "benefit-matrix.json provides machine-readable comparison"
+    ]
+  },
+  "runtime_execution": {
+    "app_only": "Sufficient for this bounded read-only proof and local file generation.",
+    "omx_assisted": "Would add stronger durable runtime state if launched through omx-api or ./scripts/start-api-relay with an attached/compatible terminal surface.",
+    "winner": "tie_with_gap",
+    "gap": "This run validated the CLI-runtime contract but did not complete inside attached CLI OMX runtime.",
+    "evidence": [
+      "Current execution surface was Codex App outside tmux",
+      "Accidental omx-api invocation failed with no prompt/non-TTY before task execution",
+      "scripts/workflow-mode omx-long-horizon declares the intended CLI runtime entry"
+    ]
+  },
+  "parallelism": {
+    "app_only": "No independent parallel slice was necessary for the bounded script-and-artifact task.",
+    "omx_assisted": "Could help if future proof includes separate reviewers or longer-running checks, but was not needed here.",
+    "winner": "app_only_for_this_scope",
+    "evidence": [
+      "Required checks were short sequential commands",
+      "No multi-agent conflicts or long-running tasks were present"
+    ]
+  },
+  "handoff_quality": {
+    "app_only": "A final chat summary is useful but less restartable.",
+    "omx_assisted": "Progress, validation, report, and JSON matrix make App or CLI resume auditable.",
+    "winner": "omx_assisted",
+    "evidence": [
+      "brief.md required audit artifacts",
+      "progress.md updated with final status and next audit action"
+    ]
+  },
+  "net_value": {
+    "rating": "moderate_positive_with_runtime_gap",
+    "verdict": "OMX adds value mainly through explicit mode routing, durable artifacts, validation discipline, and handoff quality. For this bounded read-only task, actual runtime-execution value is not proven because the run did not complete inside attached CLI OMX runtime.",
+    "recommended_follow_up": "Run the same proof from omx-api or ./scripts/start-api-relay in an attached/compatible CLI surface when the task boundary permits its green-light and lane-guard side effects, then compare artifacts against this App-safe run."
+  }
+}

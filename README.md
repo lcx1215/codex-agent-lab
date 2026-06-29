@@ -2,6 +2,8 @@
 
 Clean, project-scoped environment for long-horizon Codex agent work.
 
+See `docs/agent-lab-mission.md` for the mission, quality bar, and promotion rules used to grow this environment.
+
 ## Paths
 
 - Lab root: this repository checkout
@@ -38,6 +40,30 @@ Check installation:
 
 ```bash
 ./scripts/check-lab
+```
+
+Check sandbox boundaries only:
+
+```bash
+./scripts/check-sandbox
+```
+
+Check async execution safety:
+
+```bash
+./scripts/check-async-execution
+```
+
+List workflow modes:
+
+```bash
+./scripts/workflow-mode list
+```
+
+Print a workflow mode contract:
+
+```bash
+./scripts/workflow-mode omx-long-horizon
 ```
 
 Run Waterflow Auditor:
@@ -96,6 +122,9 @@ Framework:
 - Global: `~/.codex/AGENTS.md`
 - Lab overlay: `AGENTS.md`
 - Lab operating notes: `README.md`
+- Lab mission and quality bar: `docs/agent-lab-mission.md`
+- Sandbox boundary contract: `docs/sandbox-boundaries.md`
+- Reasoning speed playbook: `docs/reasoning-speed-playbook.md`
 - Custom agents: `.codex/agents/*.toml`
 - Environment-specific skills: `.agents/skills/*/SKILL.md`
 - Durable progress and validation: `registry/`
@@ -110,6 +139,8 @@ Framework:
 - Waterflow incident handoffs: `outputs/shared/waterflow/incidents/*/codex-claude-handoff.md`
 - Waterflow harness philosophy: `docs/waterflow-harness-philosophy.md`
 - Waterflow path index and diff: `outputs/shared/waterflow/waterflow-path-index.json` and `outputs/shared/waterflow/waterflow-path-diff.json`
+- Workflow mode catalog: `docs/workflow-modes.md`
+- OMX retrospective: `registry/OMX_RETROSPECTIVE.md`
 
 Waterflow scans its own `waterflow/`, `tests/`, and `docs/` paths. Generated `outputs/` are evidence artifacts, not source waterways, so they are excluded from the graph to avoid constant self-diff noise.
 
@@ -121,6 +152,10 @@ For realistic failure rehearsal, use the incident harness. It creates an isolate
 
 Codex can use its normal global skills and plugins when they are available in the active lane. Skills specific to this lab or to a task inside it should live under `.agents/skills/`.
 
+## Workflow Modes
+
+Use `docs/workflow-modes.md` and `scripts/workflow-mode` to choose between daily App work, CLI diagnosis, OMX long-horizon execution, multi-agent review, and overnight checkpointed work. These modes are routing contracts; they do not override the global safety rules.
+
 ## Secret Safety
 
 Do not commit API keys, GitHub tokens, `.env` files, private keys, cookies, or auth/session files. Run this before committing:
@@ -130,6 +165,14 @@ Do not commit API keys, GitHub tokens, `.env` files, private keys, cookies, or a
 ```
 
 The repository also includes a GitHub Actions secret scan that blocks common GitHub, OpenAI, AWS, private-key, `.env`, and auth-file leaks.
+
+## Sandbox Safety
+
+The clean-home lane uses `workspace-write` scoped to this repository checkout. System temp directories are excluded; lab-local temporary files belong under `.tmp/`. Run `./scripts/check-sandbox` after changing sandbox config, symlinks, temporary-file behavior, or workspace boundaries.
+
+## Speed Strategy
+
+Use `docs/reasoning-speed-playbook.md` to keep `gpt-5.5` + `xhigh` for genuinely hard reasoning while moving lookup, validation, scans, and independent checks onto faster or parallel lanes.
 
 ## Boundaries
 

@@ -1,0 +1,179 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LAB_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$LAB_ROOT"
+
+exec python3 - "$LAB_ROOT" <<'PY'
+import asyncio
+import json
+import os
+import sys
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+
+LAB_ROOT = Path(sys.argv[1]).resolve()
+RUN_ID = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + f"-{os.getpid()}"
+TMP_ROOT = LAB_ROOT / ".tmp" / "async-execution" / RUN_ID
+OUT_ROOT = LAB_ROOT / "outputs" / "shared" / "async-execution" / RUN_ID
+MAX_OUTPUT_CHARS = 6000
+
+TASKS = [
+    {"name": "sandbox", "command": "./scripts/check-sandbox", "timeout": 60},
+    {"name": "secrets", "command": "./scripts/check-secrets", "timeout": 60},
+    {"name": "project-rules", "command": "./scripts/check-project-rules", "timeout": 60},
+    {"name": "workflow-modes", "command": "./scripts/check-workflow-modes", "timeout": 60},
+    {
+        "name": "unit-tests",
+        "command": "python3 -m unittest discover -s tests",
+        "timeout": 120,
+        "allow_stderr": True,
+    },
+    {
+        "name": "waterflow-scan-a",
+        "command": f"python3 -m waterflow.auditor --root . --output-dir {TMP_ROOT / 'waterflow-a'} --compare-last",
+        "timeout": 120,
+    },
+    {
+        "name": "waterflow-scan-b",
+        "command": f"python3 -m waterflow.auditor --root . --output-dir {TMP_ROOT / 'waterflow-b'}",
+        "timeout": 120,
+    },
+]
+
+
+def truncate(text: str) -> str:
+    if len(text) <= MAX_OUTPUT_CHARS:
+        return text
+    return text[:MAX_OUTPUT_CHARS] + "\n...<truncated>..."
+
+
+async def run_task(index: int, task: dict[str, object]) -> dict[str, object]:
+    name = str(task["name"])
+    task_tmp = TMP_ROOT / name
+    task_tmp.mkdir(parents=True, exist_ok=True)
+    env = os.environ.copy()
+    env["TMPDIR"] = str(task_tmp)
+    started = time.monotonic()
+    process = await asyncio.create_subprocess_shell(
+        str(task["command"]),
+        cwd=LAB_ROOT,
+        env=env,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    timed_out = False
+    try:
+        stdout_bytes, stderr_bytes = await asyncio.wait_for(
+            process.communicate(), timeout=int(task["timeout"])
+        )
+        exit_code = int(process.returncode or 0)
+    except asyncio.TimeoutError:
+        timed_out = True
+        process.kill()
+        stdout_bytes, stderr_bytes = await process.communicate()
+        exit_code = 124
+    stdout_text = stdout_bytes.decode("utf-8", errors="replace")
+    stderr_text = stderr_bytes.decode("utf-8", errors="replace")
+    allow_stderr = bool(task.get("allow_stderr", False))
+    failure_reasons = []
+    if timed_out:
+        failure_reasons.append("timed out")
+    if exit_code != 0:
+        failure_reasons.append(f"exit code {exit_code}")
+    if stderr_text.strip() and not allow_stderr:
+        failure_reasons.append("unexpected stderr")
+    return {
+        "index": index,
+        "name": name,
+        "command": str(task["command"]),
+        "exit_code": exit_code,
+        "passed": not failure_reasons,
+        "timed_out": timed_out,
+        "stderr_allowed": allow_stderr,
+        "failure_reasons": failure_reasons,
+        "duration_seconds": round(time.monotonic() - started, 3),
+        "tmpdir": str(task_tmp.relative_to(LAB_ROOT)),
+        "stdout": truncate(stdout_text),
+        "stderr": truncate(stderr_text),
+    }
+
+
+def markdown_report(results: dict[str, object]) -> str:
+    summary = results["summary"]
+    lines = [
+        "# Async Execution Check",
+        "",
+        f"- Generated: `{results['generated_at']}`",
+        f"- Run id: `{results['run_id']}`",
+        f"- Checks: `{summary['check_count']}`",
+        f"- Passed: `{summary['passed_count']}`",
+        f"- Failed: `{summary['failed_count']}`",
+        f"- Timed out: `{summary['timed_out_count']}`",
+        f"- Duration seconds: `{summary['duration_seconds']}`",
+        "",
+    ]
+    for check in results["checks"]:
+        status = "pass" if check["passed"] else "fail"
+        lines.extend(
+            [
+                f"## {check['index']}. {check['name']}: {status}",
+                "",
+                f"command: `{check['command']}`",
+                f"exit_code: `{check['exit_code']}`",
+                f"timed_out: `{str(check['timed_out']).lower()}`",
+                f"stderr_allowed: `{str(check['stderr_allowed']).lower()}`",
+                f"duration_seconds: `{check['duration_seconds']}`",
+                f"tmpdir: `{check['tmpdir']}`",
+                "",
+            ]
+        )
+        if check["failure_reasons"]:
+            reasons = ", ".join(check["failure_reasons"])
+            lines.extend([f"failure_reasons: `{reasons}`", ""])
+        if check["stdout"]:
+            lines.extend(["stdout:", "", "```text", check["stdout"].rstrip(), "```", ""])
+        if check["stderr"]:
+            lines.extend(["stderr:", "", "```text", check["stderr"].rstrip(), "```", ""])
+    return "\n".join(lines)
+
+
+async def main() -> int:
+    TMP_ROOT.mkdir(parents=True, exist_ok=True)
+    OUT_ROOT.mkdir(parents=True, exist_ok=True)
+    started = time.monotonic()
+    checks = await asyncio.gather(
+        *(run_task(index, task) for index, task in enumerate(TASKS, start=1))
+    )
+    failed_count = sum(1 for check in checks if not check["passed"])
+    results = {
+        "schema_version": 1,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "run_id": RUN_ID,
+        "lab_root": str(LAB_ROOT),
+        "summary": {
+            "check_count": len(checks),
+            "passed_count": len(checks) - failed_count,
+            "failed_count": failed_count,
+            "timed_out_count": sum(1 for check in checks if check["timed_out"]),
+            "duration_seconds": round(time.monotonic() - started, 3),
+        },
+        "checks": checks,
+    }
+    json_path = OUT_ROOT / "async-execution-results.json"
+    markdown_path = OUT_ROOT / "async-execution-results.md"
+    json_path.write_text(json.dumps(results, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    markdown_path.write_text(markdown_report(results), encoding="utf-8")
+    print(f"json: {json_path}")
+    print(f"markdown: {markdown_path}")
+    print(f"checks: {results['summary']['check_count']}")
+    print(f"passed: {results['summary']['passed_count']}")
+    print(f"failed: {results['summary']['failed_count']}")
+    print(f"timed_out: {results['summary']['timed_out_count']}")
+    return 0 if failed_count == 0 else 1
+
+
+raise SystemExit(asyncio.run(main()))
+PY

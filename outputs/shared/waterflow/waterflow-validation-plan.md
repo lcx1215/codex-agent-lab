@@ -1,6 +1,6 @@
 # Waterflow Validation Plan
 
-- Generated: `2026-06-29T12:15:14.311270+00:00`
+- Generated: `2026-06-29T13:27:59.469522+00:00`
 - Lab root: `/Users/liuchengxu/Desktop/codex-agent-lab`
 - Scope: `all`
 - Changed paths: `0`
@@ -64,8 +64,12 @@ Route kinds:
 - `script`
 
 Covered paths:
+- `scripts/check-async-execution`
 - `scripts/check-lab`
+- `scripts/check-project-rules`
+- `scripts/check-sandbox`
 - `scripts/check-secrets`
+- `scripts/check-workflow-modes`
 - `scripts/new-workspace`
 - `scripts/start-api-relay`
 - `scripts/start-api-relay-plain`
@@ -75,14 +79,13 @@ Covered paths:
 - `scripts/waterflow-scan`
 - `scripts/waterflow-stress`
 - `scripts/waterflow-verify`
+- `scripts/workflow-mode`
 - `tests/test_waterflow_auditor.py`
 - `tests/test_waterflow_incident.py`
 - `tests/test_waterflow_stress.py`
 - `waterflow/__init__.py`
-- `waterflow/auditor.py`
-- `waterflow/incident.py`
-- `waterflow/stress.py`
-- `waterflow/verify.py`
+
+...and 4 more paths.
 
 ## Check 4: P2
 
@@ -115,7 +118,7 @@ Covered paths:
 - `.agents/skills/idea-refine/SKILL.md`
 - `.agents/skills/incremental-implementation/SKILL.md`
 
-...and 41 more paths.
+...and 46 more paths.
 
 ## Check 5: P2
 
@@ -151,4 +154,4 @@ Covered paths:
 - `.agents/skills/idea-refine/SKILL.md`
 - `.agents/skills/incremental-implementation/SKILL.md`
 
-...and 56 more paths.
+...and 68 more paths.

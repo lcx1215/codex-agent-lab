@@ -9,10 +9,18 @@ from waterflow.stress import (
     run_stress_suite,
 )
 
+LAB_ROOT = Path(__file__).resolve().parents[1]
+TEST_TMP_ROOT = LAB_ROOT / ".tmp" / "tests"
+
+
+def lab_temp_dir(prefix: str) -> Path:
+    TEST_TMP_ROOT.mkdir(parents=True, exist_ok=True)
+    return Path(tempfile.mkdtemp(prefix=prefix, dir=TEST_TMP_ROOT))
+
 
 class WaterflowStressTests(unittest.TestCase):
     def test_stress_suite_detects_problem_families_and_validation_failures(self):
-        output_root = Path(tempfile.mkdtemp(prefix="waterflow-stress-"))
+        output_root = lab_temp_dir("waterflow-stress-")
 
         results = run_stress_suite(output_root, scale_paths=120, validation_timeout_seconds=1)
 

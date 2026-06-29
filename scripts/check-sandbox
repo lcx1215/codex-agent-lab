@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LAB_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+CONFIG="$LAB_ROOT/.codex-home/config.toml"
+
+fail() {
+  printf 'FAIL: %s\n' "$*" >&2
+  exit 1
+}
+
+realpath_py() {
+  python3 - "$1" <<'PY'
+import os
+import sys
+print(os.path.realpath(sys.argv[1]))
+PY
+}
+
+test -d "$LAB_ROOT" || fail "lab root missing"
+test -f "$CONFIG" || fail "clean-home config missing"
+
+LAB_REAL="$(realpath_py "$LAB_ROOT")"
+TMP_ROOT="$LAB_ROOT/.tmp/check-sandbox.$$"
+mkdir -p "$TMP_ROOT"
+trap 'rm -rf "$TMP_ROOT"' EXIT
+
+python3 - "$CONFIG" "$LAB_REAL" <<'PY'
+import os
+import sys
+import tomllib
+
+config_path, lab_root = sys.argv[1], sys.argv[2]
+with open(config_path, "rb") as handle:
+    config = tomllib.load(handle)
+
+errors = []
+
+def check(condition, message):
+    if not condition:
+        errors.append(message)
+
+check(config.get("sandbox_mode") == "workspace-write", "sandbox_mode must be workspace-write")
+check(config.get("approval_policy") == "never", "approval_policy must remain never")
+check(config.get("disable_response_storage") is True, "disable_response_storage must stay true")
+
+features = config.get("features", {})
+check(features.get("memories") is False, "features.memories must stay false")
+check(features.get("chronicle") is False, "features.chronicle must stay false")
+check(features.get("js_repl") is False, "features.js_repl must stay false")
+
+agents = config.get("agents", {})
+check(agents.get("max_depth") == 1, "agents.max_depth must stay 1")
+check(isinstance(agents.get("max_threads"), int) and agents["max_threads"] <= 6, "agents.max_threads must be <= 6")
+check(isinstance(agents.get("job_max_runtime_seconds"), int) and agents["job_max_runtime_seconds"] <= 3600, "agent jobs must be capped at <= 3600 seconds")
+
+sandbox = config.get("sandbox_workspace_write", {})
+roots = sandbox.get("writable_roots")
+normalized_roots = [os.path.realpath(os.path.expanduser(path)) for path in roots] if isinstance(roots, list) else []
+check(normalized_roots == [lab_root], "writable_roots must contain only the lab root")
+check(sandbox.get("exclude_tmpdir_env_var") is True, "TMPDIR must be excluded from writable roots")
+check(sandbox.get("exclude_slash_tmp") is True, "/tmp must be excluded from writable roots")
+check(isinstance(sandbox.get("network_access"), bool), "network_access must be explicit true/false")
+
+if errors:
+    for error in errors:
+        print(f"FAIL: {error}", file=sys.stderr)
+    raise SystemExit(1)
+PY
+
+if test -e "$LAB_ROOT/.codex-home/auth.json"; then
+  fail "clean home contains auth.json"
+fi
+
+if find "$LAB_ROOT" \
+  -path "$LAB_ROOT/.git" -prune -o \
+  -path "$LAB_ROOT/.tmp" -prune -o \
+  \( -name 'auth.json' -o -name '.env' -o -name '.env.*' -o -name '*.pem' -o -name '*.key' -o -name '*.p12' -o -name '*.pfx' -o -name '*.token' -o -name '*.secret' -o -name '*_token' -o -name '*_secret' \) \
+  -print >"$TMP_ROOT/forbidden-files" &&
+  test -s "$TMP_ROOT/forbidden-files"; then
+  cat "$TMP_ROOT/forbidden-files" >&2
+  fail "sandbox contains forbidden secret-like files"
+fi
+
+if find "$LAB_ROOT" \
+  -path "$LAB_ROOT/.git" -prune -o \
+  -path "$LAB_ROOT/.tmp" -prune -o \
+  -type l -print >"$TMP_ROOT/symlinks"; then
+  while IFS= read -r link_path; do
+    test -n "$link_path" || continue
+    target_real="$(realpath_py "$link_path")"
+    case "$link_path" in
+      "$LAB_ROOT/.codex-home/AGENTS.md")
+        expected="$(realpath_py "$HOME/.codex/AGENTS.md")"
+        test "$target_real" = "$expected" || fail "unexpected AGENTS.md symlink target: $link_path"
+        ;;
+      "$LAB_ROOT/.codex-home/agents")
+        expected="$LAB_REAL/.codex/agents"
+        test "$target_real" = "$expected" || fail "unexpected agents symlink target: $link_path"
+        ;;
+      "$LAB_ROOT/.codex-home/skills")
+        expected="$LAB_REAL/.agents/skills"
+        test "$target_real" = "$expected" || fail "unexpected skills symlink target: $link_path"
+        ;;
+      *)
+        case "$target_real" in
+          "$LAB_REAL"/*) ;;
+          *) fail "symlink escapes lab root: $link_path" ;;
+        esac
+        ;;
+    esac
+  done <"$TMP_ROOT/symlinks"
+fi
+
+local_user_path="/Users/${USER}"
+if rg -n -F "$local_user_path" "$LAB_ROOT/scripts" >"$TMP_ROOT/script-local-paths"; then
+  cat "$TMP_ROOT/script-local-paths" >&2
+  fail "scripts contain machine-local paths"
+fi
+
+for dir in "$LAB_ROOT/.codex-home" "$LAB_ROOT/.codex" "$LAB_ROOT/.agents" "$LAB_ROOT/.tmp" "$LAB_ROOT/workspaces" "$LAB_ROOT/outputs" "$LAB_ROOT/registry" "$LAB_ROOT/scripts"; do
+  test -d "$dir" || fail "missing sandbox directory: $dir"
+  mode="$(stat -f '%Lp' "$dir")"
+  if (( 8#$mode & 8#022 )); then
+    fail "sandbox directory is group/world writable: $dir"
+  fi
+done
+
+printf 'OK: sandbox boundaries are valid\n'

@@ -1,6 +1,6 @@
 # Validation
 
-Last updated: 2026-06-29 20:22 +0800
+Last updated: 2026-06-29 21:26 +0800
 
 ## Completed Checks
 
@@ -59,7 +59,81 @@ Last updated: 2026-06-29 20:22 +0800
 
 - Script validation references
   - Result: pass
-  - Evidence: `scripts/check-lab`, `scripts/check-secrets`, `scripts/new-workspace`, `scripts/start-api-relay`, `scripts/start-api-relay-plain`, `scripts/start-clean-home`, `scripts/sync-long-horizon-skills`, `scripts/waterflow-scan`, `scripts/waterflow-verify`, `scripts/waterflow-stress`, and `scripts/waterflow-incident` are now explicitly named in this validation file.
+  - Evidence: `scripts/check-async-execution`, `scripts/check-lab`, `scripts/check-project-rules`, `scripts/check-sandbox`, `scripts/check-workflow-modes`, `scripts/check-secrets`, `scripts/new-workspace`, `scripts/start-api-relay`, `scripts/start-api-relay-plain`, `scripts/start-clean-home`, `scripts/sync-long-horizon-skills`, `scripts/workflow-mode`, `scripts/waterflow-scan`, `scripts/waterflow-verify`, `scripts/waterflow-stress`, and `scripts/waterflow-incident` are now explicitly named in this validation file.
+
+- Project-level rule expansion
+  - Command: `scripts/check-project-rules`
+  - Result: pass
+  - Evidence: command reported `OK: project rule surfaces are valid`.
+  - Evidence: check covers lab `AGENTS.md`, `docs/project-rule-template.md`, `registry/CAPABILITY_LAYERS.md`, `registry/current-progress.md`, `registry/VALIDATION.md`, and `scripts/new-workspace` local `AGENTS.md` generation.
+  - Command: `bash -n scripts/check-project-rules && bash -n scripts/check-lab && bash -n scripts/new-workspace`
+  - Result: pass
+  - Evidence: Bash syntax checks completed without output or error.
+  - Command: `scripts/check-lab`
+  - Result: pass
+  - Evidence: integrated lab check still reported 8 agents, 42 skills, Codex CLI on PATH, and `OK: lab structure is valid`.
+  - Command: `scripts/check-secrets`
+  - Result: pass
+  - Evidence: command reported `OK: no committable secrets or README-local user paths detected`.
+  - Command: `python3 -m unittest discover -s tests`
+  - Result: pass
+  - Evidence: `Ran 12 tests in 2.735s` and `OK`.
+  - Command: `scripts/waterflow-scan --root . --compare-last`
+  - Result: pass
+  - Evidence: generated Waterflow report, validation plan, changed-only validation plan, route index, path index, path diff, and change briefs with `findings: 0`.
+  - Command: `scripts/waterflow-verify`
+  - Result: pass
+  - Evidence: validation runner reported 5 checks, 5 passed, and 0 failed.
+
+- Workflow mode expansion
+  - Command: `scripts/workflow-mode list`
+  - Result: pass
+  - Evidence: listed `daily-app`, `cli-diagnosis`, `omx-long-horizon`, `multi-agent-review`, and `overnight-checkpoint`.
+  - Command: `scripts/workflow-mode omx-long-horizon`
+  - Result: pass
+  - Evidence: output included entry, artifacts, verification, stop condition, and CLI runtime OMX level.
+  - Command: `scripts/check-workflow-modes`
+  - Result: pass
+  - Evidence: command reported `OK: workflow modes are valid`.
+  - Evidence: check verifies each mode has script output with `mode`, `entry`, `verification`, and `stop` fields, and that `scripts/workflow-mode list` matches the documented mode set.
+  - Command: `bash -n scripts/workflow-mode && bash -n scripts/check-workflow-modes && bash -n scripts/check-lab`
+  - Result: pass
+  - Evidence: Bash syntax checks completed without output or error.
+  - Command: `scripts/check-lab`
+  - Result: pass
+  - Evidence: integrated lab check includes `scripts/check-workflow-modes` and still reported `OK: lab structure is valid`.
+  - Command: `scripts/check-secrets`
+  - Result: pass
+  - Evidence: command reported `OK: no committable secrets or README-local user paths detected`.
+  - Command: `python3 -m unittest discover -s tests`
+  - Result: pass
+  - Evidence: `Ran 12 tests in 3.775s` and `OK`.
+  - Command: `scripts/waterflow-scan --root . --compare-last`
+  - Result: pass
+  - Evidence: Waterflow generated report, validation plans, route index, path index, path diff, and change briefs with `findings: 0`.
+  - Command: `scripts/waterflow-verify`
+  - Result: pass
+  - Evidence: validation runner reported 5 checks, 5 passed, and 0 failed.
+
+- Sandbox boundary check
+  - Command: `bash -n scripts/check-sandbox && scripts/check-sandbox`
+  - Result: pass
+  - Evidence: command reported `OK: sandbox boundaries are valid`.
+  - Evidence: check validates workspace-write sandbox config, disabled clean-home memory/chronicle/js_repl flags, bounded agent settings, lab-only writable roots, no clean-home auth.json, no secret-like files, symlink targets, no machine-local paths in scripts, and non-group/world-writable sandbox directories.
+  - Command: `scripts/check-lab`
+  - Result: pass
+  - Evidence: integrated lab check invokes `scripts/check-sandbox` and still reports `OK: lab structure is valid`.
+
+- Bounded OMX execution proof
+  - Command: `OMX_GREEN_LIGHT_NOTIFY=0 /Users/liuchengxu/.local/bin/omx-api exec -C /Users/liuchengxu/Desktop/codex-agent-lab "<bounded proof prompt>"`
+  - Result: mixed pass
+  - Evidence: CLI output showed `OpenAI Codex v0.142.4`, provider `custom`, the lab workdir, and a green-light `cli-omx-runtime` event for the bounded proof prompt.
+  - Evidence: workspace `workspaces/20260629_204008-omx-execution-proof` contains `omx-execution-report.md`, `validation.md`, `benefit-matrix.json`, `progress.md`, and App-side `app-audit.md`.
+  - Evidence: App-side JSON audit reported no missing files, no missing required benefit-matrix fields, rating `moderate_positive_with_runtime_gap`, runtime winner `tie_with_gap`, and parallelism winner `app_only_for_this_scope`.
+  - Evidence: App-side re-ran `scripts/check-workflow-modes`, `scripts/check-lab`, and `scripts/workflow-mode omx-long-horizon`; all passed or printed the expected mode contract.
+  - Boundary: OMX generated a shell quoting incident that accidentally invoked `omx-api` from Markdown backticks; those accidental invocations failed before useful work and are recorded in `validation.md` and `app-audit.md`.
+  - Boundary: `/tmp/benefit-matrix-check.txt` was created by the proof run and removed by App-side audit after confirming it contained only proof JSON.
+  - Verdict: OMX proved bounded `omx-api exec` execution, durable artifacts, auditability, and handoff value; it did not prove OMX team/tmux parallel throughput.
 
 - Waterflow Auditor final scan
   - Command: `scripts/waterflow-scan --root /Users/liuchengxu/Desktop/codex-agent-lab`
@@ -167,7 +241,7 @@ Last updated: 2026-06-29 20:22 +0800
 - Repository secret guard
   - Command: `scripts/check-secrets`
   - Result: pass
-  - Evidence: `OK: no tracked secrets or README-local user paths detected`.
+  - Evidence: `OK: no committable secrets or README-local user paths detected`.
   - Evidence: the check rejects tracked `auth.json`, `.env*`, private-key files, common GitHub token formats, OpenAI-style API keys, AWS access key ids, private-key blocks, and `/Users/` paths in `README.md`.
   - Evidence: `.github/workflows/security.yml` runs the same check on push and pull request without requiring repository secrets.
 
@@ -188,6 +262,123 @@ Last updated: 2026-06-29 20:22 +0800
   - Command: `scripts/waterflow-verify`
   - Result: pass
   - Evidence: latest result artifact reports 5 checks, 5 passed, 0 failed, 0 timed out, and max exit code 0.
+
+- Mission and quality-bar expansion
+  - Command: `scripts/check-project-rules`
+  - Result: pass
+  - Evidence: command reported `OK: project rule surfaces are valid`.
+  - Evidence: the project-rule gate now requires `docs/agent-lab-mission.md`, the `AGENTS.md` mission section, the capability-layer mission anchor, and mission quality-bar sections.
+  - Command: `bash -n scripts/check-project-rules scripts/check-lab scripts/workflow-mode scripts/check-workflow-modes scripts/check-secrets`
+  - Result: pass
+  - Evidence: Bash syntax checks completed without output or error.
+  - Command: `scripts/check-secrets`
+  - Result: pass
+  - Evidence: command reported `OK: no committable secrets or README-local user paths detected`.
+  - Command: `rg -n '/Users/|liuchengxu' README.md docs/agent-lab-mission.md`
+  - Result: pass
+  - Evidence: no matches; reader-facing README and mission docs avoid machine-local user paths.
+  - Command: `scripts/check-lab`
+  - Result: pass
+  - Evidence: lab check reported 8 custom agents, 42 lab-local skills, Codex CLI found, and `OK: lab structure is valid`.
+  - Command: `scripts/check-workflow-modes`
+  - Result: pass
+  - Evidence: command reported `OK: workflow modes are valid`.
+  - Command: `python3 -m unittest discover -s tests`
+  - Result: pass
+  - Evidence: `Ran 12 tests in 3.256s` and `OK`.
+  - Command: `scripts/waterflow-scan --root . --compare-last`
+  - Result: pass
+  - Evidence: latest report summary is `finding_count: 0`, `node_count: 86`, `edge_count: 85`, and `path_count: 86`.
+  - Evidence: latest path diff reports `added_count: 0`, `removed_count: 0`, `changed_count: 0`, and `unchanged_count: 86`.
+
+- Sandbox hardening
+  - Command: `scripts/check-sandbox`
+  - Result: pass
+  - Evidence: command reported `OK: sandbox boundaries are valid`.
+  - Evidence: the gate verifies `workspace-write`, single lab-root `writable_roots`, disabled response storage, disabled memories/chronicle/js_repl, capped agent depth/runtime, system tmp exclusion, forbidden secret-like files, symlink escape boundaries, script portability, and non-group/world-writable sandbox directories.
+  - Command: `scripts/check-project-rules`
+  - Result: pass
+  - Evidence: command reported `OK: project rule surfaces are valid`.
+  - Evidence: project-rule checks now require `docs/sandbox-boundaries.md` and executable `scripts/check-sandbox`.
+  - Command: `scripts/check-secrets`
+  - Result: pass
+  - Evidence: command reported `OK: no committable secrets or README-local user paths detected`.
+  - Evidence: `scripts/check-secrets` now writes scratch files under lab-local `.tmp/` instead of system `/tmp`.
+  - Command: `scripts/check-lab`
+  - Result: pass
+  - Evidence: integrated lab check invokes the sandbox gate and reported `OK: lab structure is valid`.
+  - Command: `bash -n scripts/check-sandbox scripts/check-secrets scripts/check-lab scripts/check-project-rules scripts/check-workflow-modes scripts/new-workspace scripts/workflow-mode`
+  - Result: pass
+  - Evidence: Bash syntax checks completed without output or error.
+  - Command: `python3 -m unittest discover -s tests`
+  - Result: pass
+  - Evidence: `Ran 12 tests in 6.820s` and `OK`.
+  - Evidence: test temporary directories now use lab-local `.tmp/tests`.
+  - Command: `scripts/waterflow-scan --root . --compare-last`
+  - Result: pass
+  - Evidence: final scan after recording validation reported `finding_count: 0`, `node_count: 89`, `edge_count: 88`, and `path_count: 89`.
+  - Evidence: latest path diff reported `added_count: 0`, `changed_count: 1`, `removed_count: 0`, and `unchanged_count: 88`.
+  - Command: `scripts/waterflow-verify`
+  - Result: pass
+  - Evidence: validation runner reported 5 checks, 5 passed, 0 failed, 0 timed out, and max exit code 0.
+
+- Async execution and reasoning speed surfaces
+  - Command: `scripts/check-async-execution`
+  - Result: pass
+  - Evidence: generated `outputs/shared/async-execution/20260629T130836Z-26094/async-execution-results.json`.
+  - Evidence: async summary reported 7 checks, 7 passed, 0 failed, 0 timed out, and total duration 4.948 seconds.
+  - Evidence: concurrent checks were `sandbox`, `secrets`, `project-rules`, `workflow-modes`, `unit-tests`, `waterflow-scan-a`, and `waterflow-scan-b`.
+  - Evidence: each async task used an isolated `TMPDIR`; the two Waterflow scans wrote to separate `.tmp/async-execution/.../waterflow-*` output directories instead of shared `outputs/shared/waterflow`.
+  - Command: `scripts/check-project-rules`
+  - Result: pass
+  - Evidence: command reported `OK: project rule surfaces are valid`.
+  - Evidence: project-rule checks now require `docs/reasoning-speed-playbook.md` and executable `scripts/check-async-execution`.
+  - Command: `scripts/check-secrets`
+  - Result: pass
+  - Evidence: command reported `OK: no committable secrets or README-local user paths detected`.
+  - Evidence: `scripts/check-secrets` excludes `.tmp/` from token-content scanning while still checking committable paths through git.
+  - Command: `scripts/waterflow-scan --root . --compare-last`
+  - Result: pass
+  - Evidence: final scan reported `finding_count: 0`, `node_count: 92`, `edge_count: 91`, and `path_count: 92`.
+  - Evidence: latest path diff reported `added_count: 0`, `changed_count: 0`, `removed_count: 0`, and `unchanged_count: 92`.
+  - Command: `scripts/waterflow-verify`
+  - Result: pass
+  - Evidence: validation runner reported 5 checks, 5 passed, and 0 failed.
+
+- Async race hardening
+  - Trigger: a concurrent async run exposed `find: ... No such file or directory` in `check-sandbox` stderr while the overall exit code stayed zero.
+  - Fix: `scripts/check-sandbox` now prunes volatile `.tmp/` scratch subtrees during recursive static scans and still checks top-level `.tmp/` permissions.
+  - Fix: `scripts/check-async-execution` now treats unexpected stderr from quiet health checks as failure; `python3 -m unittest discover -s tests` is explicitly allowed to write progress output to stderr.
+  - Command: `bash -n ./scripts/check-sandbox ./scripts/check-async-execution`
+  - Result: pass
+  - Evidence: Bash syntax checks completed without output or error.
+  - Command: `scripts/check-sandbox`
+  - Result: pass
+  - Evidence: command reported `OK: sandbox boundaries are valid`.
+  - Command: `scripts/check-async-execution`
+  - Result: pass
+  - Evidence: generated `outputs/shared/async-execution/20260629T132619Z-90643/async-execution-results.json`.
+  - Evidence: async summary reported 7 checks, 7 passed, 0 failed, 0 timed out, and total duration 3.461 seconds.
+  - Evidence: quiet checks `sandbox`, `secrets`, `project-rules`, `workflow-modes`, `waterflow-scan-a`, and `waterflow-scan-b` had empty stderr; only `unit-tests` had stderr and it was explicitly allow-listed.
+  - Command: `scripts/check-project-rules`
+  - Result: pass
+  - Evidence: command reported `OK: project rule surfaces are valid`.
+  - Command: `scripts/check-secrets`
+  - Result: pass
+  - Evidence: command reported `OK: no committable secrets or README-local user paths detected`.
+  - Command: `scripts/check-lab`
+  - Result: pass
+  - Evidence: lab check reported 8 custom agents, 42 lab-local skills, Codex CLI found, and `OK: lab structure is valid`.
+  - Command: `python3 -m unittest discover -s tests`
+  - Result: pass
+  - Evidence: `Ran 12 tests in 3.006s` and `OK`.
+  - Command: `scripts/waterflow-verify`
+  - Result: pass
+  - Evidence: validation runner reported 5 checks, 5 passed, 0 failed, 0 timed out, and max exit code 0.
+  - Command: `scripts/waterflow-scan --root . --compare-last`
+  - Result: pass
+  - Evidence: final Waterflow report summary is `finding_count: 0`, `node_count: 92`, `edge_count: 91`, and `path_count: 92`.
+  - Evidence: latest path diff reports `added_count: 0`, `changed_count: 0`, `removed_count: 0`, and `unchanged_count: 92`.
 
 ## Not Run
 

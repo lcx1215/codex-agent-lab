@@ -1,4 +1,5 @@
 .DS_Store
+.tmp/
 .env
 .env.*
 !.env.example
@@ -27,3 +28,4 @@ outputs/**/*.log
 outputs/**/*.tmp
 workspaces/**/.env
 workspaces/**/.env.*
+workspaces/**/team-runtime-repo/

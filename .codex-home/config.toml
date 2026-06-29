@@ -30,5 +30,5 @@ job_max_runtime_seconds = 3600
 [sandbox_workspace_write]
 writable_roots = ["/Users/liuchengxu/Desktop/codex-agent-lab"]
 network_access = true
-exclude_tmpdir_env_var = false
-exclude_slash_tmp = false
+exclude_tmpdir_env_var = true
+exclude_slash_tmp = true

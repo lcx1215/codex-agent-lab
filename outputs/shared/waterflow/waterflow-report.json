@@ -1,6 +1,6 @@
 {
   "findings": [],
-  "generated_at": "2026-06-29T12:15:14.311270+00:00",
+  "generated_at": "2026-06-29T13:27:59.469522+00:00",
   "graph": {
     "edges": [
       {
@@ -316,15 +316,39 @@
         "type": "contains"
       },
       {
+        "evidence": "scripts/check-async-execution",
+        "source": "lab-root",
+        "target": "script:scripts/check-async-execution",
+        "type": "contains"
+      },
+      {
         "evidence": "scripts/check-lab",
         "source": "lab-root",
         "target": "script:scripts/check-lab",
         "type": "contains"
       },
       {
+        "evidence": "scripts/check-project-rules",
+        "source": "lab-root",
+        "target": "script:scripts/check-project-rules",
+        "type": "contains"
+      },
+      {
+        "evidence": "scripts/check-sandbox",
+        "source": "lab-root",
+        "target": "script:scripts/check-sandbox",
+        "type": "contains"
+      },
+      {
         "evidence": "scripts/check-secrets",
         "source": "lab-root",
         "target": "script:scripts/check-secrets",
+        "type": "contains"
+      },
+      {
+        "evidence": "scripts/check-workflow-modes",
+        "source": "lab-root",
+        "target": "script:scripts/check-workflow-modes",
         "type": "contains"
       },
       {
@@ -382,9 +406,27 @@
         "type": "contains"
       },
       {
+        "evidence": "scripts/workflow-mode",
+        "source": "lab-root",
+        "target": "script:scripts/workflow-mode",
+        "type": "contains"
+      },
+      {
         "evidence": "registry/AGENT_REGISTRY.md",
         "source": "lab-root",
         "target": "registry:registry/AGENT_REGISTRY.md",
+        "type": "contains"
+      },
+      {
+        "evidence": "registry/CAPABILITY_LAYERS.md",
+        "source": "lab-root",
+        "target": "registry:registry/CAPABILITY_LAYERS.md",
+        "type": "contains"
+      },
+      {
+        "evidence": "registry/OMX_RETROSPECTIVE.md",
+        "source": "lab-root",
+        "target": "registry:registry/OMX_RETROSPECTIVE.md",
         "type": "contains"
       },
       {
@@ -448,6 +490,30 @@
         "type": "contains"
       },
       {
+        "evidence": "docs/agent-lab-mission.md",
+        "source": "lab-root",
+        "target": "doc:docs/agent-lab-mission.md",
+        "type": "contains"
+      },
+      {
+        "evidence": "docs/project-rule-template.md",
+        "source": "lab-root",
+        "target": "doc:docs/project-rule-template.md",
+        "type": "contains"
+      },
+      {
+        "evidence": "docs/reasoning-speed-playbook.md",
+        "source": "lab-root",
+        "target": "doc:docs/reasoning-speed-playbook.md",
+        "type": "contains"
+      },
+      {
+        "evidence": "docs/sandbox-boundaries.md",
+        "source": "lab-root",
+        "target": "doc:docs/sandbox-boundaries.md",
+        "type": "contains"
+      },
+      {
         "evidence": "docs/waterflow-auditor-design.md",
         "source": "lab-root",
         "target": "doc:docs/waterflow-auditor-design.md",
@@ -460,9 +526,27 @@
         "type": "contains"
       },
       {
+        "evidence": "docs/workflow-modes.md",
+        "source": "lab-root",
+        "target": "doc:docs/workflow-modes.md",
+        "type": "contains"
+      },
+      {
         "evidence": "workspaces",
         "source": "lab-root",
         "target": "workspace-root:workspaces",
+        "type": "contains"
+      },
+      {
+        "evidence": "workspaces/20260629_204008-omx-execution-proof",
+        "source": "lab-root",
+        "target": "workspace:workspaces/20260629_204008-omx-execution-proof",
+        "type": "contains"
+      },
+      {
+        "evidence": "workspaces/20260629_210146-omx-team-tmux-proof",
+        "source": "lab-root",
+        "target": "workspace:workspaces/20260629_210146-omx-team-tmux-proof",
         "type": "contains"
       }
     ],
@@ -481,8 +565,8 @@
         "kind": "rules",
         "label": "AGENTS.md",
         "metadata": {
-          "hash": "5c079d1af3953fc6dbd611591b3ec8e99099ff4716680c7276bb3e1de5d8ce37",
-          "size": 3885
+          "hash": "bf7cdb4b1d4e97b16fd7b43616e842e6256a73eca172170416af756041eb5359",
+          "size": 6742
         },
         "path": "AGENTS.md"
       },
@@ -491,8 +575,8 @@
         "kind": "readme",
         "label": "README.md",
         "metadata": {
-          "hash": "95e8850eb7601e501b8d54d0413704fcca98d61b96f1daac61e99fb82057ef63",
-          "size": 4844
+          "hash": "b0fd92d242827e8284b859ed36178a622b0d796eadbba2eb45d66ef47e65e655",
+          "size": 6341
         },
         "path": "README.md"
       },
@@ -997,32 +1081,72 @@
         "path": ".agents/skills/writing-skills/SKILL.md"
       },
       {
+        "id": "script:scripts/check-async-execution",
+        "kind": "script",
+        "label": "check-async-execution",
+        "metadata": {
+          "hash": "38986f72bcecdb411c9dd935c6b178b619266eaafcdab78c710fa5e2051ffb0d",
+          "size": 6569
+        },
+        "path": "scripts/check-async-execution"
+      },
+      {
         "id": "script:scripts/check-lab",
         "kind": "script",
         "label": "check-lab",
         "metadata": {
-          "hash": "e20ddd4ef5afa9af0578e7c456b0bf514d11fc4fe184513548099156d73c0d07",
-          "size": 2626
+          "hash": "46e715b393e6a125ab4f125a93637a2093dd33cf986e9500abd331a291d13dc3",
+          "size": 3300
         },
         "path": "scripts/check-lab"
+      },
+      {
+        "id": "script:scripts/check-project-rules",
+        "kind": "script",
+        "label": "check-project-rules",
+        "metadata": {
+          "hash": "1a2d60a236d2ea83e6ae2c3ea479ec992848f96dc75d73b8b8eee7ce4d07cd2a",
+          "size": 3057
+        },
+        "path": "scripts/check-project-rules"
+      },
+      {
+        "id": "script:scripts/check-sandbox",
+        "kind": "script",
+        "label": "check-sandbox",
+        "metadata": {
+          "hash": "d17cd292f3af7de53c21dc5971a57ab904f20644f7e80aa686bff6e1c589dddf",
+          "size": 4778
+        },
+        "path": "scripts/check-sandbox"
       },
       {
         "id": "script:scripts/check-secrets",
         "kind": "script",
         "label": "check-secrets",
         "metadata": {
-          "hash": "48aae689a7b0dcc96cceaa72d2ed9618e757e0372583df0a7f44e3539fe82a0f",
-          "size": 1479
+          "hash": "9143b5250122cd4fd5806f35125e2ae23102b47a758a695598c40e0b6ca4d88c",
+          "size": 1492
         },
         "path": "scripts/check-secrets"
+      },
+      {
+        "id": "script:scripts/check-workflow-modes",
+        "kind": "script",
+        "label": "check-workflow-modes",
+        "metadata": {
+          "hash": "fb5798b869e50a9e9e7bb71f8b18bbbd68b41876e9048bf1e9047784a641f746",
+          "size": 1382
+        },
+        "path": "scripts/check-workflow-modes"
       },
       {
         "id": "script:scripts/new-workspace",
         "kind": "script",
         "label": "new-workspace",
         "metadata": {
-          "hash": "dbc5fdfdea4b807b9fd6f9ab7d8066b9ec1fcd4dd819642eaee23bd622c05cbd",
-          "size": 784
+          "hash": "3ae98612ce5d45c17a0d6966ffb651a8bacf5ddecdc754cb8477bf4ffc5a44e8",
+          "size": 1714
         },
         "path": "scripts/new-workspace"
       },
@@ -1107,6 +1231,16 @@
         "path": "scripts/waterflow-verify"
       },
       {
+        "id": "script:scripts/workflow-mode",
+        "kind": "script",
+        "label": "workflow-mode",
+        "metadata": {
+          "hash": "a70032fcef3473126ed995699fe0d92f3be37d1be8b70b35fdc6662a05ea15a5",
+          "size": 2370
+        },
+        "path": "scripts/workflow-mode"
+      },
+      {
         "id": "registry:registry/AGENT_REGISTRY.md",
         "kind": "registry",
         "label": "AGENT_REGISTRY.md",
@@ -1117,12 +1251,32 @@
         "path": "registry/AGENT_REGISTRY.md"
       },
       {
+        "id": "registry:registry/CAPABILITY_LAYERS.md",
+        "kind": "registry",
+        "label": "CAPABILITY_LAYERS.md",
+        "metadata": {
+          "hash": "1095c718d4ff6ab08279e1f164a23749db5bd0c68039d7951349d8481e9b7087",
+          "size": 4528
+        },
+        "path": "registry/CAPABILITY_LAYERS.md"
+      },
+      {
+        "id": "registry:registry/OMX_RETROSPECTIVE.md",
+        "kind": "registry",
+        "label": "OMX_RETROSPECTIVE.md",
+        "metadata": {
+          "hash": "d68a2a07cb17103eb6ede69fba5452a83effd60be688724062e19a65c95ea190",
+          "size": 3683
+        },
+        "path": "registry/OMX_RETROSPECTIVE.md"
+      },
+      {
         "id": "registry:registry/VALIDATION.md",
         "kind": "registry",
         "label": "VALIDATION.md",
         "metadata": {
-          "hash": "75101f6cab24c655ae1343a2c30cf9ce5ba12e1d9695f26e3b3659a661b5b81e",
-          "size": 14321
+          "hash": "9a6f0d3e471065adf7401c2cd4e5b84aea49f216290e798f79795d0aa3679f89",
+          "size": 27534
         },
         "path": "registry/VALIDATION.md"
       },
@@ -1131,8 +1285,8 @@
         "kind": "registry",
         "label": "current-progress.md",
         "metadata": {
-          "hash": "21c8550fd8de60114d2017c727c1c9ccd6b805c48ef648e4cc90007581fad8b9",
-          "size": 6625
+          "hash": "00df2786e87c2a30a90488490d72fc7276c5aa668da50feae1eae7fc21737ea0",
+          "size": 12215
         },
         "path": "registry/current-progress.md"
       },
@@ -1191,8 +1345,8 @@
         "kind": "test",
         "label": "test_waterflow_auditor.py",
         "metadata": {
-          "hash": "e2e7e2c8089713b9c0ebce27d8d275c909c3eb3dd9ed8eda89f758446d2c6392",
-          "size": 12118
+          "hash": "de904a1141f905546fcdf85505e16cc288606cf8f23312dba80a52efdbf8c9bb",
+          "size": 12355
         },
         "path": "tests/test_waterflow_auditor.py"
       },
@@ -1201,8 +1355,8 @@
         "kind": "test",
         "label": "test_waterflow_incident.py",
         "metadata": {
-          "hash": "d0ea5c85af825d7c824fe9f68619500ccbdc2fe472e57f0c9cfab8522badef51",
-          "size": 2446
+          "hash": "0651f04e37207216b662a18fac6e0a6b78fefdaa7dc1e070b883c61894e4dec8",
+          "size": 2683
         },
         "path": "tests/test_waterflow_incident.py"
       },
@@ -1211,10 +1365,50 @@
         "kind": "test",
         "label": "test_waterflow_stress.py",
         "metadata": {
-          "hash": "0e9810d05c90b6134d5b9628665b833541873d39b234fa8d1d38265ccdad4d2d",
-          "size": 2205
+          "hash": "e0edf12f3458d1b523b44ba4145a1abc9d2de84b21b51e4548d82dbf6cd042d7",
+          "size": 2442
         },
         "path": "tests/test_waterflow_stress.py"
+      },
+      {
+        "id": "doc:docs/agent-lab-mission.md",
+        "kind": "doc",
+        "label": "agent-lab-mission.md",
+        "metadata": {
+          "hash": "4e2750999d44fe4b7e75d96986370ce1c50d9f873b39482779ff001f4c8aaa10",
+          "size": 2411
+        },
+        "path": "docs/agent-lab-mission.md"
+      },
+      {
+        "id": "doc:docs/project-rule-template.md",
+        "kind": "doc",
+        "label": "project-rule-template.md",
+        "metadata": {
+          "hash": "5bd4912eed36923e1b2c211986e056e1512dc4406884f6dd925760e49dccc204",
+          "size": 2087
+        },
+        "path": "docs/project-rule-template.md"
+      },
+      {
+        "id": "doc:docs/reasoning-speed-playbook.md",
+        "kind": "doc",
+        "label": "reasoning-speed-playbook.md",
+        "metadata": {
+          "hash": "b804419ce0fd1679e904b3584cf09bc63b880c8cc2312d5604237d9c7c079cc5",
+          "size": 2835
+        },
+        "path": "docs/reasoning-speed-playbook.md"
+      },
+      {
+        "id": "doc:docs/sandbox-boundaries.md",
+        "kind": "doc",
+        "label": "sandbox-boundaries.md",
+        "metadata": {
+          "hash": "a2f72677886210a9fa0a9da1cb0b467a24c4266176c7ea3571d87c216046bac9",
+          "size": 1822
+        },
+        "path": "docs/sandbox-boundaries.md"
       },
       {
         "id": "doc:docs/waterflow-auditor-design.md",
@@ -1237,11 +1431,35 @@
         "path": "docs/waterflow-harness-philosophy.md"
       },
       {
+        "id": "doc:docs/workflow-modes.md",
+        "kind": "doc",
+        "label": "workflow-modes.md",
+        "metadata": {
+          "hash": "be193965ef7f2ff64ce077120c24f59a8dceabeed9086ffa69c851b357da35df",
+          "size": 4186
+        },
+        "path": "docs/workflow-modes.md"
+      },
+      {
         "id": "workspace-root:workspaces",
         "kind": "workspace-root",
         "label": "workspaces",
         "metadata": {},
         "path": "workspaces"
+      },
+      {
+        "id": "workspace:workspaces/20260629_204008-omx-execution-proof",
+        "kind": "workspace",
+        "label": "20260629_204008-omx-execution-proof",
+        "metadata": {},
+        "path": "workspaces/20260629_204008-omx-execution-proof"
+      },
+      {
+        "id": "workspace:workspaces/20260629_210146-omx-team-tmux-proof",
+        "kind": "workspace",
+        "label": "20260629_210146-omx-team-tmux-proof",
+        "metadata": {},
+        "path": "workspaces/20260629_210146-omx-team-tmux-proof"
       }
     ]
   },
@@ -1249,22 +1467,22 @@
   "path_diff": {
     "added": [],
     "changed": [],
-    "current_generated_at": "2026-06-29T12:15:14.311270+00:00",
-    "generated_at": "2026-06-29T12:15:14.311270+00:00",
+    "current_generated_at": "2026-06-29T13:27:59.469522+00:00",
+    "generated_at": "2026-06-29T13:27:59.469522+00:00",
     "impact": {},
-    "previous_generated_at": "2026-06-29T12:15:00.483422+00:00",
+    "previous_generated_at": "2026-06-29T13:27:37.533072+00:00",
     "removed": [],
     "schema_version": 1,
     "summary": {
       "added_count": 0,
       "changed_count": 0,
       "removed_count": 0,
-      "unchanged_count": 78
+      "unchanged_count": 92
     }
   },
   "schema_version": 1,
   "summary": {
-    "edge_count": 77,
+    "edge_count": 91,
     "finding_count": 0,
     "finding_counts_by_severity": {
       "P0": 0,
@@ -1272,7 +1490,7 @@
       "P2": 0,
       "P3": 0
     },
-    "node_count": 78,
-    "path_count": 78
+    "node_count": 92,
+    "path_count": 92
   }
 }

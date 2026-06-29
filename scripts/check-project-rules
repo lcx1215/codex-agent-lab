@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LAB_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+fail() {
+  printf 'FAIL: %s\n' "$*" >&2
+  exit 1
+}
+
+check_file() {
+  local file="$1"
+  test -f "$file" || fail "missing file: $file"
+}
+
+check_pattern() {
+  local file="$1"
+  local pattern="$2"
+  local label="$3"
+  rg -q "$pattern" "$file" || fail "$label missing in $file"
+}
+
+check_file "$LAB_ROOT/AGENTS.md"
+check_file "$LAB_ROOT/docs/agent-lab-mission.md"
+check_file "$LAB_ROOT/docs/project-rule-template.md"
+check_file "$LAB_ROOT/docs/reasoning-speed-playbook.md"
+check_file "$LAB_ROOT/docs/sandbox-boundaries.md"
+check_file "$LAB_ROOT/registry/CAPABILITY_LAYERS.md"
+check_file "$LAB_ROOT/registry/current-progress.md"
+check_file "$LAB_ROOT/registry/VALIDATION.md"
+test -x "$LAB_ROOT/scripts/check-sandbox" || fail "sandbox check script missing or not executable"
+test -x "$LAB_ROOT/scripts/check-async-execution" || fail "async execution check script missing or not executable"
+
+check_pattern "$LAB_ROOT/AGENTS.md" '^## Mission And Quality Bar$' "mission and quality bar section"
+check_pattern "$LAB_ROOT/docs/agent-lab-mission.md" '^## Mission$' "mission section"
+check_pattern "$LAB_ROOT/docs/agent-lab-mission.md" '^## Quality Bar$' "quality bar section"
+check_pattern "$LAB_ROOT/docs/agent-lab-mission.md" '^## Expansion Rule$' "expansion rule section"
+check_pattern "$LAB_ROOT/AGENTS.md" '^## Project-Level Rule Expansion$' "project-level expansion section"
+check_pattern "$LAB_ROOT/docs/project-rule-template.md" '^## Project Identity$' "template project identity section"
+check_pattern "$LAB_ROOT/docs/project-rule-template.md" '^## Runtime Routing$' "template runtime routing section"
+check_pattern "$LAB_ROOT/docs/project-rule-template.md" '^## Verification$' "template verification section"
+check_pattern "$LAB_ROOT/docs/project-rule-template.md" '^## Handoff$' "template handoff section"
+check_pattern "$LAB_ROOT/docs/reasoning-speed-playbook.md" '^## Practical Speed Levers$' "reasoning speed levers section"
+check_pattern "$LAB_ROOT/docs/reasoning-speed-playbook.md" '^## Async Safety$' "reasoning async safety section"
+check_pattern "$LAB_ROOT/docs/sandbox-boundaries.md" '^## Writable Boundary$' "sandbox writable boundary section"
+check_pattern "$LAB_ROOT/docs/sandbox-boundaries.md" '^## Health Gate$' "sandbox health gate section"
+check_pattern "$LAB_ROOT/registry/CAPABILITY_LAYERS.md" '^## Mission Anchor$' "capability mission anchor"
+check_pattern "$LAB_ROOT/registry/CAPABILITY_LAYERS.md" '^## Layer 1: Project-Level Rules$' "capability layer 1 section"
+check_pattern "$LAB_ROOT/scripts/new-workspace" 'AGENTS.md' "new workspace local AGENTS creation"
+
+while IFS= read -r workspace; do
+  test -f "$workspace/brief.md" || fail "workspace missing brief.md: $workspace"
+  test -f "$workspace/progress.md" || fail "workspace missing progress.md: $workspace"
+done < <(find "$LAB_ROOT/workspaces" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort)
+
+printf 'OK: project rule surfaces are valid\n'
