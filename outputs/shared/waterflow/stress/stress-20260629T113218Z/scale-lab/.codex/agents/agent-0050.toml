@@ -1,0 +1,3 @@
+name = "agent-0050"
+description = "Synthetic scale agent 50."
+developer_instructions = """Read AGENTS.md and registry/VALIDATION.md."""

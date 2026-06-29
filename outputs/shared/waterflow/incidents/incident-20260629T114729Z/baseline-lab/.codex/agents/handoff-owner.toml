@@ -1,0 +1,3 @@
+name = "handoff-owner"
+description = "Owns clean handoff routing."
+developer_instructions = """Read AGENTS.md, README.md, and registry/VALIDATION.md."""

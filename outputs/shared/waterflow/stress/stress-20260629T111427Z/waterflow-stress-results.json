@@ -1,0 +1,149 @@
+{
+  "artifacts": {
+    "problem_repair_briefs": "/Users/liuchengxu/Desktop/codex-agent-lab/outputs/shared/waterflow/stress/stress-20260629T111427Z/problem-repair-briefs.md",
+    "problem_report_json": "/Users/liuchengxu/Desktop/codex-agent-lab/outputs/shared/waterflow/stress/stress-20260629T111427Z/problem-report.json",
+    "problem_report_markdown": "/Users/liuchengxu/Desktop/codex-agent-lab/outputs/shared/waterflow/stress/stress-20260629T111427Z/problem-report.md",
+    "scale_report_json": "/Users/liuchengxu/Desktop/codex-agent-lab/outputs/shared/waterflow/stress/stress-20260629T111427Z/scale-report.json",
+    "scale_report_markdown": "/Users/liuchengxu/Desktop/codex-agent-lab/outputs/shared/waterflow/stress/stress-20260629T111427Z/scale-report.md",
+    "validation_results_json": "/Users/liuchengxu/Desktop/codex-agent-lab/outputs/shared/waterflow/stress/stress-20260629T111427Z/validation-results.json",
+    "validation_results_markdown": "/Users/liuchengxu/Desktop/codex-agent-lab/outputs/shared/waterflow/stress/stress-20260629T111427Z/validation-results.md"
+  },
+  "detector_coverage": {
+    "detected_problem_codes": [
+      "AGENT_MISSING_FIELD",
+      "AGENT_TOML_INVALID",
+      "CROSS_PROJECT_REFERENCE",
+      "DUPLICATE_AGENT_NAME",
+      "DUPLICATE_SKILL_NAME",
+      "EMPTY_REGISTRY_FILE",
+      "MISSING_CORE_PATH",
+      "PROGRESS_WITHOUT_VALIDATION",
+      "SCRIPT_NOT_EXECUTABLE",
+      "SCRIPT_WITHOUT_VALIDATION_REFERENCE",
+      "SKILL_MISSING_ENTRYPOINT",
+      "SKILL_MISSING_FIELD"
+    ],
+    "expected_problem_codes": [
+      "AGENT_MISSING_FIELD",
+      "AGENT_TOML_INVALID",
+      "CROSS_PROJECT_REFERENCE",
+      "DUPLICATE_AGENT_NAME",
+      "DUPLICATE_SKILL_NAME",
+      "EMPTY_REGISTRY_FILE",
+      "MISSING_CORE_PATH",
+      "PROGRESS_WITHOUT_VALIDATION",
+      "SCRIPT_NOT_EXECUTABLE",
+      "SCRIPT_WITHOUT_VALIDATION_REFERENCE",
+      "SKILL_MISSING_ENTRYPOINT",
+      "SKILL_MISSING_FIELD"
+    ],
+    "expected_without_implementation": [],
+    "implemented_codes": [
+      "AGENT_MISSING_FIELD",
+      "AGENT_TOML_INVALID",
+      "CROSS_PROJECT_REFERENCE",
+      "DUPLICATE_AGENT_NAME",
+      "DUPLICATE_SKILL_NAME",
+      "EMPTY_REGISTRY_FILE",
+      "MISSING_CORE_PATH",
+      "PROGRESS_WITHOUT_VALIDATION",
+      "SCRIPT_NOT_EXECUTABLE",
+      "SCRIPT_WITHOUT_VALIDATION_REFERENCE",
+      "SKILL_MISSING_ENTRYPOINT",
+      "SKILL_MISSING_FIELD"
+    ],
+    "uncovered_implemented_codes": []
+  },
+  "generated_at": "2026-06-29T11:14:29.380446+00:00",
+  "harness_criteria": [
+    {
+      "description": "Problem fixture must detect every expected defect family.",
+      "evidence": [],
+      "name": "expected_problem_codes_detected",
+      "passed": true
+    },
+    {
+      "description": "Every implemented detector code must have a matching injected problem, and every expected injected problem must map to a detector.",
+      "evidence": [],
+      "name": "implemented_detector_codes_covered",
+      "passed": true
+    },
+    {
+      "description": "Scale fixture must reach the requested node count without unexpected findings.",
+      "evidence": [],
+      "name": "clean_scale_stays_clean",
+      "passed": true
+    },
+    {
+      "description": "Validation stress must record one pass, one failing command, and one timeout.",
+      "evidence": [],
+      "name": "validation_failures_are_recorded",
+      "passed": true
+    },
+    {
+      "description": "Problem and scale fixtures must stay inside the generated stress run directory.",
+      "evidence": [],
+      "name": "fixtures_are_generated_evidence",
+      "passed": true
+    }
+  ],
+  "harness_philosophy": {
+    "isolation": "Generated fixtures stay under outputs/shared/waterflow/stress so negative evidence cannot contaminate the real lab graph.",
+    "non_goal": "A stress pass is not a claim that the real lab, a product, or a live agent workflow has no defects.",
+    "pass_definition": "A stress pass means expected defects were detected, clean scale produced no unexpected findings, and expected validation failures/timeouts were recorded.",
+    "purpose": "Turn Waterflow confidence into falsifiable evidence by injecting known defects, clean scale, and expected command failures."
+  },
+  "problem_lab": {
+    "detected_code_counts": {
+      "AGENT_MISSING_FIELD": 2,
+      "AGENT_TOML_INVALID": 1,
+      "CROSS_PROJECT_REFERENCE": 1,
+      "DUPLICATE_AGENT_NAME": 1,
+      "DUPLICATE_SKILL_NAME": 1,
+      "EMPTY_REGISTRY_FILE": 1,
+      "MISSING_CORE_PATH": 1,
+      "PROGRESS_WITHOUT_VALIDATION": 1,
+      "SCRIPT_NOT_EXECUTABLE": 1,
+      "SCRIPT_WITHOUT_VALIDATION_REFERENCE": 1,
+      "SKILL_MISSING_ENTRYPOINT": 1,
+      "SKILL_MISSING_FIELD": 1
+    },
+    "detected_codes": [
+      "AGENT_MISSING_FIELD",
+      "AGENT_TOML_INVALID",
+      "CROSS_PROJECT_REFERENCE",
+      "DUPLICATE_AGENT_NAME",
+      "DUPLICATE_SKILL_NAME",
+      "EMPTY_REGISTRY_FILE",
+      "MISSING_CORE_PATH",
+      "PROGRESS_WITHOUT_VALIDATION",
+      "SCRIPT_NOT_EXECUTABLE",
+      "SCRIPT_WITHOUT_VALIDATION_REFERENCE",
+      "SKILL_MISSING_ENTRYPOINT",
+      "SKILL_MISSING_FIELD"
+    ],
+    "finding_count": 13,
+    "missing_expected_codes": [],
+    "root": "/Users/liuchengxu/Desktop/codex-agent-lab/outputs/shared/waterflow/stress/stress-20260629T111427Z/problem-lab"
+  },
+  "run_dir": "/Users/liuchengxu/Desktop/codex-agent-lab/outputs/shared/waterflow/stress/stress-20260629T111427Z",
+  "scale_lab": {
+    "edge_count": 1208,
+    "finding_count": 0,
+    "node_count": 1209,
+    "requested_scale_paths": 1200,
+    "root": "/Users/liuchengxu/Desktop/codex-agent-lab/outputs/shared/waterflow/stress/stress-20260629T111427Z/scale-lab",
+    "scan_finished_at": "2026-06-29T11:14:28.258340+00:00",
+    "scan_started_at": "2026-06-29T11:14:27.958253+00:00"
+  },
+  "schema_version": 1,
+  "status": "pass",
+  "validation_runner": {
+    "check_count": 3,
+    "duration_seconds": 1.121,
+    "failed_count": 2,
+    "max_exit_code": 124,
+    "passed_count": 1,
+    "timed_out_count": 1
+  }
+}

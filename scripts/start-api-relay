@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LAB_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+export CODEX_HOME="${CODEX_HOME:-$HOME/.codex-api-relay}"
+OMX_API_BIN="${OMX_API_BIN:-$HOME/.local/bin/omx-api}"
+
+mkdir -p "$LAB_ROOT/outputs/api-relay"
+cd "$LAB_ROOT"
+
+exec "$OMX_API_BIN" -C "$LAB_ROOT" "$@"

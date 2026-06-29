@@ -1,0 +1,221 @@
+{
+  "added": [
+    ".agents/skills/duplicate-skill-a/SKILL.md",
+    ".agents/skills/duplicate-skill-b/SKILL.md",
+    ".agents/skills/missing-description/SKILL.md",
+    ".codex/agents/broken-syntax.toml",
+    ".codex/agents/duplicate-owner-a.toml",
+    ".codex/agents/duplicate-owner-b.toml",
+    ".codex/agents/missing-owner.toml",
+    "registry/empty-claim.md",
+    "scripts/release-handoff",
+    "tests/test_incident.py",
+    "workspaces/release-repair"
+  ],
+  "changed": [
+    "AGENTS.md",
+    "docs/design.md",
+    "registry/VALIDATION.md",
+    "registry/current-progress.md",
+    "scripts/smoke-check",
+    "waterflow/auditor.py"
+  ],
+  "current_generated_at": "2026-06-29T11:47:29.529570+00:00",
+  "generated_at": "2026-06-29T11:47:29.529570+00:00",
+  "impact": {
+    ".agents/skills/duplicate-skill-a/SKILL.md": {
+      "kind": "skill",
+      "recommended_checks": [
+        "scripts/check-lab",
+        "CODEX_HOME=/Users/liuchengxu/Desktop/codex-agent-lab/.codex-home codex -C /Users/liuchengxu/Desktop/codex-agent-lab debug prompt-input \"Verify skill discovery only.\"",
+        "scripts/waterflow-scan --root /Users/liuchengxu/Desktop/codex-agent-lab"
+      ],
+      "risk": "P2"
+    },
+    ".agents/skills/duplicate-skill-b/SKILL.md": {
+      "kind": "skill",
+      "recommended_checks": [
+        "scripts/check-lab",
+        "CODEX_HOME=/Users/liuchengxu/Desktop/codex-agent-lab/.codex-home codex -C /Users/liuchengxu/Desktop/codex-agent-lab debug prompt-input \"Verify skill discovery only.\"",
+        "scripts/waterflow-scan --root /Users/liuchengxu/Desktop/codex-agent-lab"
+      ],
+      "risk": "P2"
+    },
+    ".agents/skills/handoff-skill/SKILL.md": {
+      "kind": "skill",
+      "recommended_checks": [
+        "scripts/check-lab",
+        "CODEX_HOME=/Users/liuchengxu/Desktop/codex-agent-lab/.codex-home codex -C /Users/liuchengxu/Desktop/codex-agent-lab debug prompt-input \"Verify skill discovery only.\"",
+        "scripts/waterflow-scan --root /Users/liuchengxu/Desktop/codex-agent-lab"
+      ],
+      "risk": "P2"
+    },
+    ".agents/skills/missing-description/SKILL.md": {
+      "kind": "skill",
+      "recommended_checks": [
+        "scripts/check-lab",
+        "CODEX_HOME=/Users/liuchengxu/Desktop/codex-agent-lab/.codex-home codex -C /Users/liuchengxu/Desktop/codex-agent-lab debug prompt-input \"Verify skill discovery only.\"",
+        "scripts/waterflow-scan --root /Users/liuchengxu/Desktop/codex-agent-lab"
+      ],
+      "risk": "P2"
+    },
+    ".codex/agents/broken-syntax.toml": {
+      "kind": "agent",
+      "recommended_checks": [
+        "scripts/check-lab",
+        "CODEX_HOME=/Users/liuchengxu/Desktop/codex-agent-lab/.codex-home codex -C /Users/liuchengxu/Desktop/codex-agent-lab debug prompt-input \"Verify agent discovery only.\"",
+        "scripts/waterflow-scan --root /Users/liuchengxu/Desktop/codex-agent-lab"
+      ],
+      "risk": "P2"
+    },
+    ".codex/agents/duplicate-owner-a.toml": {
+      "kind": "agent",
+      "recommended_checks": [
+        "scripts/check-lab",
+        "CODEX_HOME=/Users/liuchengxu/Desktop/codex-agent-lab/.codex-home codex -C /Users/liuchengxu/Desktop/codex-agent-lab debug prompt-input \"Verify agent discovery only.\"",
+        "scripts/waterflow-scan --root /Users/liuchengxu/Desktop/codex-agent-lab"
+      ],
+      "risk": "P2"
+    },
+    ".codex/agents/duplicate-owner-b.toml": {
+      "kind": "agent",
+      "recommended_checks": [
+        "scripts/check-lab",
+        "CODEX_HOME=/Users/liuchengxu/Desktop/codex-agent-lab/.codex-home codex -C /Users/liuchengxu/Desktop/codex-agent-lab debug prompt-input \"Verify agent discovery only.\"",
+        "scripts/waterflow-scan --root /Users/liuchengxu/Desktop/codex-agent-lab"
+      ],
+      "risk": "P2"
+    },
+    ".codex/agents/handoff-owner.toml": {
+      "kind": "agent",
+      "recommended_checks": [
+        "scripts/check-lab",
+        "CODEX_HOME=/Users/liuchengxu/Desktop/codex-agent-lab/.codex-home codex -C /Users/liuchengxu/Desktop/codex-agent-lab debug prompt-input \"Verify agent discovery only.\"",
+        "scripts/waterflow-scan --root /Users/liuchengxu/Desktop/codex-agent-lab"
+      ],
+      "risk": "P2"
+    },
+    ".codex/agents/missing-owner.toml": {
+      "kind": "agent",
+      "recommended_checks": [
+        "scripts/check-lab",
+        "CODEX_HOME=/Users/liuchengxu/Desktop/codex-agent-lab/.codex-home codex -C /Users/liuchengxu/Desktop/codex-agent-lab debug prompt-input \"Verify agent discovery only.\"",
+        "scripts/waterflow-scan --root /Users/liuchengxu/Desktop/codex-agent-lab"
+      ],
+      "risk": "P2"
+    },
+    "AGENTS.md": {
+      "kind": "documentation",
+      "recommended_checks": [
+        "scripts/waterflow-scan --root /Users/liuchengxu/Desktop/codex-agent-lab"
+      ],
+      "risk": "P3"
+    },
+    "README.md": {
+      "kind": "documentation",
+      "recommended_checks": [
+        "scripts/waterflow-scan --root /Users/liuchengxu/Desktop/codex-agent-lab"
+      ],
+      "risk": "P3"
+    },
+    "docs/design.md": {
+      "kind": "documentation",
+      "recommended_checks": [
+        "scripts/waterflow-scan --root /Users/liuchengxu/Desktop/codex-agent-lab"
+      ],
+      "risk": "P3"
+    },
+    "registry/VALIDATION.md": {
+      "kind": "registry",
+      "recommended_checks": [
+        "scripts/waterflow-scan --root /Users/liuchengxu/Desktop/codex-agent-lab"
+      ],
+      "risk": "P3"
+    },
+    "registry/current-progress.md": {
+      "kind": "registry",
+      "recommended_checks": [
+        "scripts/waterflow-scan --root /Users/liuchengxu/Desktop/codex-agent-lab"
+      ],
+      "risk": "P3"
+    },
+    "registry/empty-claim.md": {
+      "kind": "registry",
+      "recommended_checks": [
+        "scripts/waterflow-scan --root /Users/liuchengxu/Desktop/codex-agent-lab"
+      ],
+      "risk": "P3"
+    },
+    "scripts/release-handoff": {
+      "kind": "script",
+      "recommended_checks": [
+        "python3 -m unittest discover -s tests",
+        "scripts/check-lab",
+        "scripts/waterflow-scan --root /Users/liuchengxu/Desktop/codex-agent-lab"
+      ],
+      "risk": "P2"
+    },
+    "scripts/smoke-check": {
+      "kind": "script",
+      "recommended_checks": [
+        "python3 -m unittest discover -s tests",
+        "scripts/check-lab",
+        "scripts/waterflow-scan --root /Users/liuchengxu/Desktop/codex-agent-lab"
+      ],
+      "risk": "P2"
+    },
+    "tests/test_baseline.py": {
+      "kind": "auditor-code",
+      "recommended_checks": [
+        "python3 -m unittest discover -s tests",
+        "scripts/waterflow-scan --root /Users/liuchengxu/Desktop/codex-agent-lab"
+      ],
+      "risk": "P2"
+    },
+    "tests/test_incident.py": {
+      "kind": "auditor-code",
+      "recommended_checks": [
+        "python3 -m unittest discover -s tests",
+        "scripts/waterflow-scan --root /Users/liuchengxu/Desktop/codex-agent-lab"
+      ],
+      "risk": "P2"
+    },
+    "waterflow/auditor.py": {
+      "kind": "auditor-code",
+      "recommended_checks": [
+        "python3 -m unittest discover -s tests",
+        "scripts/waterflow-scan --root /Users/liuchengxu/Desktop/codex-agent-lab"
+      ],
+      "risk": "P2"
+    },
+    "workspaces/handoff-check": {
+      "kind": "unknown",
+      "recommended_checks": [
+        "scripts/waterflow-scan --root /Users/liuchengxu/Desktop/codex-agent-lab"
+      ],
+      "risk": "P3"
+    },
+    "workspaces/release-repair": {
+      "kind": "unknown",
+      "recommended_checks": [
+        "scripts/waterflow-scan --root /Users/liuchengxu/Desktop/codex-agent-lab"
+      ],
+      "risk": "P3"
+    }
+  },
+  "previous_generated_at": "2026-06-29T11:47:29.526015+00:00",
+  "removed": [
+    ".agents/skills/handoff-skill/SKILL.md",
+    ".codex/agents/handoff-owner.toml",
+    "README.md",
+    "tests/test_baseline.py",
+    "workspaces/handoff-check"
+  ],
+  "schema_version": 1,
+  "summary": {
+    "added_count": 11,
+    "changed_count": 6,
+    "removed_count": 5,
+    "unchanged_count": 2
+  }
+}

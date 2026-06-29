@@ -1,0 +1,2 @@
+def incident():
+    return False

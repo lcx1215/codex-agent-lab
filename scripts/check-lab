@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LAB_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+CONFIG="$LAB_ROOT/.codex-home/config.toml"
+GLOBAL_AGENTS="$LAB_ROOT/.codex-home/AGENTS.md"
+AGENT_DIR="$LAB_ROOT/.codex/agents"
+SKILL_DIR="$LAB_ROOT/.agents/skills"
+
+fail() {
+  printf 'FAIL: %s\n' "$*" >&2
+  exit 1
+}
+
+printf 'Lab root: %s\n' "$LAB_ROOT"
+
+test -d "$LAB_ROOT" || fail "lab root missing"
+test -f "$LAB_ROOT/AGENTS.md" || fail "AGENTS.md missing"
+test -f "$CONFIG" || fail "clean-home config missing"
+test -e "$GLOBAL_AGENTS" || fail "clean-home global AGENTS.md reference missing"
+test -d "$AGENT_DIR" || fail "agent directory missing"
+test -d "$SKILL_DIR" || fail "skill directory missing"
+
+if test -e "$LAB_ROOT/.codex-home/auth.json"; then
+  fail "clean home contains auth.json; this lab should not copy secrets"
+fi
+
+rg -q '^model_provider = "custom"$' "$CONFIG" || fail "config model_provider is not custom"
+rg -q '^model = "gpt-5.5"$' "$CONFIG" || fail "config model is not gpt-5.5"
+rg -q '^model_reasoning_effort = "xhigh"$' "$CONFIG" || fail "config reasoning effort is not xhigh"
+rg -q '^sandbox_mode = "workspace-write"$' "$CONFIG" || fail "config sandbox is not workspace-write"
+rg -q 'base_url = "https://api.modextm.com/v1"' "$CONFIG" || fail "custom provider base_url missing"
+
+if test -L "$GLOBAL_AGENTS"; then
+  target="$(readlink "$GLOBAL_AGENTS")"
+  expected_global="${HOME}/.codex/AGENTS.md"
+  test "$target" = "$expected_global" || fail "global AGENTS symlink points to $target"
+fi
+
+agent_count="$(find "$AGENT_DIR" -maxdepth 1 -name '*.toml' -type f | wc -l | tr -d ' ')"
+test "$agent_count" -ge 7 || fail "expected at least 7 agent toml files, found $agent_count"
+
+missing_fields=0
+while IFS= read -r file; do
+  rg -q '^name = ' "$file" || { printf 'Missing name: %s\n' "$file" >&2; missing_fields=1; }
+  rg -q '^description = ' "$file" || { printf 'Missing description: %s\n' "$file" >&2; missing_fields=1; }
+  rg -q '^developer_instructions = ' "$file" || { printf 'Missing developer_instructions: %s\n' "$file" >&2; missing_fields=1; }
+done < <(find "$AGENT_DIR" -maxdepth 1 -name '*.toml' -type f | sort)
+test "$missing_fields" -eq 0 || fail "one or more agents are missing required fields"
+
+skill_count="$(find "$SKILL_DIR" -mindepth 2 -maxdepth 2 -name SKILL.md -type f | wc -l | tr -d ' ')"
+printf 'Agents: %s\n' "$agent_count"
+printf 'Skills: %s\n' "$skill_count"
+
+if command -v codex >/dev/null 2>&1; then
+  printf 'Codex CLI: %s\n' "$(command -v codex)"
+else
+  printf 'Codex CLI: not found on PATH\n'
+fi
+
+printf 'OK: lab structure is valid\n'

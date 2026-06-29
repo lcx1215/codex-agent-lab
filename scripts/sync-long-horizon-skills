@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LAB_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+SOURCE_ROOT="${SOURCE_ROOT:-$HOME/.codex/skills}"
+LIST="${LIST:-$HOME/.codex-long-horizon-agent/registry/installed-20260629_154856.txt}"
+DEST="$LAB_ROOT/.agents/skills"
+
+test -f "$LIST" || { printf 'Missing skill list: %s\n' "$LIST" >&2; exit 1; }
+mkdir -p "$DEST"
+
+while IFS= read -r skill; do
+  test -n "$skill" || continue
+  case "$skill" in
+    .*|*/*) printf 'Skipping invalid skill name: %s\n' "$skill" >&2; continue ;;
+  esac
+  src="$SOURCE_ROOT/$skill"
+  test -d "$src" || { printf 'Missing source skill: %s\n' "$src" >&2; exit 1; }
+  rm -rf "$DEST/$skill"
+  cp -R "$src" "$DEST/$skill"
+done < "$LIST"
+
+printf 'Synced %s skills into %s\n' "$(find "$DEST" -mindepth 2 -maxdepth 2 -name SKILL.md -type f | wc -l | tr -d ' ')" "$DEST"

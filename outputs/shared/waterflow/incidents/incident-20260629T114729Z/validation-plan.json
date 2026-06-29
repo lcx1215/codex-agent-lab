@@ -1,0 +1,41 @@
+{
+  "checks": [
+    {
+      "command": "python3 -c 'print(\"incident-pass: baseline evidence readable\")'",
+      "paths": [
+        "validation/pass"
+      ],
+      "risk": "P2",
+      "route_kinds": [
+        "incident"
+      ]
+    },
+    {
+      "command": "python3 -c 'import sys; print(\"incident-fail: broken handoff reproduced\"); sys.exit(9)'",
+      "paths": [
+        "validation/fail"
+      ],
+      "risk": "P1",
+      "route_kinds": [
+        "incident"
+      ]
+    },
+    {
+      "command": "python3 -c 'import time; print(\"incident-timeout: stuck repair loop\"); time.sleep(5)'",
+      "paths": [
+        "validation/timeout"
+      ],
+      "risk": "P1",
+      "route_kinds": [
+        "incident"
+      ]
+    }
+  ],
+  "generated_at": "2026-06-29T11:47:29.529790+00:00",
+  "lab_root": "/Users/liuchengxu/Desktop/codex-agent-lab/outputs/shared/waterflow/incidents/incident-20260629T114729Z",
+  "schema_version": 1,
+  "summary": {
+    "check_count": 3,
+    "max_risk": "P1"
+  }
+}

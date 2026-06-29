@@ -1,0 +1,554 @@
+{
+  "generated_at": "2026-06-29T12:15:14.311270+00:00",
+  "lab_root": "/Users/liuchengxu/Desktop/codex-agent-lab",
+  "path_count": 78,
+  "paths": {
+    ".": {
+      "hash": "",
+      "id": "lab-root",
+      "kind": "root",
+      "label": "codex-agent-lab",
+      "size": 0
+    },
+    ".agents/skills/api-and-interface-design/SKILL.md": {
+      "hash": "293db2903b41316a5109a1e0ce3e1740eeafae31735bc1f9143dafbfd1187363",
+      "id": "skill:.agents/skills/api-and-interface-design/SKILL.md",
+      "kind": "skill",
+      "label": "api-and-interface-design",
+      "size": 10307
+    },
+    ".agents/skills/brainstorming/SKILL.md": {
+      "hash": "e14914605f640e0841758e45d0ab2a53243b59b921f929e47921c99668f2e61d",
+      "id": "skill:.agents/skills/brainstorming/SKILL.md",
+      "kind": "skill",
+      "label": "brainstorming",
+      "size": 10435
+    },
+    ".agents/skills/browser-testing-with-devtools/SKILL.md": {
+      "hash": "4e3aacd6a380cd25bc6c2d67fdd1c926a9b22535b8a62109ecd33cefd909e3d9",
+      "id": "skill:.agents/skills/browser-testing-with-devtools/SKILL.md",
+      "kind": "skill",
+      "label": "browser-testing-with-devtools",
+      "size": 14539
+    },
+    ".agents/skills/ci-cd-and-automation/SKILL.md": {
+      "hash": "a6ed8ed56456b01ff8314c44eefc69897d9905ae4e06bb2b7036286efb79b5f0",
+      "id": "skill:.agents/skills/ci-cd-and-automation/SKILL.md",
+      "kind": "skill",
+      "label": "ci-cd-and-automation",
+      "size": 11332
+    },
+    ".agents/skills/cli-creator/SKILL.md": {
+      "hash": "24058eabf0aafce6def3fb937ac93cbe3fa341c653c658dc589edb77f73d6152",
+      "id": "skill:.agents/skills/cli-creator/SKILL.md",
+      "kind": "skill",
+      "label": "cli-creator",
+      "size": 10502
+    },
+    ".agents/skills/code-review-and-quality/SKILL.md": {
+      "hash": "6d7c7cb43e8eb6727ab72b3baa570d8e8c00f484392cfd07acf4550fed2b6838",
+      "id": "skill:.agents/skills/code-review-and-quality/SKILL.md",
+      "kind": "skill",
+      "label": "code-review-and-quality",
+      "size": 18456
+    },
+    ".agents/skills/code-simplification/SKILL.md": {
+      "hash": "f0c5ed754057eb0c1e027e2587f59de816651feb5e837242296c43ea21cf621d",
+      "id": "skill:.agents/skills/code-simplification/SKILL.md",
+      "kind": "skill",
+      "label": "code-simplification",
+      "size": 13545
+    },
+    ".agents/skills/context-engineering/SKILL.md": {
+      "hash": "ff9d4e5706bdd2eb7de1bfed569f1f42d28e478979ce6fcc32e617e7861b491d",
+      "id": "skill:.agents/skills/context-engineering/SKILL.md",
+      "kind": "skill",
+      "label": "context-engineering",
+      "size": 11070
+    },
+    ".agents/skills/debugging-and-error-recovery/SKILL.md": {
+      "hash": "927ad6917fa2891827351cfa3470cd715423faaa5c5f27fe74534d9324c35eea",
+      "id": "skill:.agents/skills/debugging-and-error-recovery/SKILL.md",
+      "kind": "skill",
+      "label": "debugging-and-error-recovery",
+      "size": 10603
+    },
+    ".agents/skills/define-goal/SKILL.md": {
+      "hash": "708df89ff19cbae82a762efae036735d1914b5c7e44df1832e0b723f6cd9ee30",
+      "id": "skill:.agents/skills/define-goal/SKILL.md",
+      "kind": "skill",
+      "label": "define-goal",
+      "size": 5647
+    },
+    ".agents/skills/deprecation-and-migration/SKILL.md": {
+      "hash": "bf2d9b4e3bc635b32e8de70b0ab41e4395d7b585e6474347c53ce89d45fbdb75",
+      "id": "skill:.agents/skills/deprecation-and-migration/SKILL.md",
+      "kind": "skill",
+      "label": "deprecation-and-migration",
+      "size": 9000
+    },
+    ".agents/skills/dispatching-parallel-agents/SKILL.md": {
+      "hash": "f0df13f584049059cc5619f90061405b89dcc6e28ab3f2a8517d27d99c7a46a6",
+      "id": "skill:.agents/skills/dispatching-parallel-agents/SKILL.md",
+      "kind": "skill",
+      "label": "dispatching-parallel-agents",
+      "size": 6644
+    },
+    ".agents/skills/documentation-and-adrs/SKILL.md": {
+      "hash": "7fed35f9c5b95d8e3623ad24d78d209c3267ab62d7157fc03954c76a7e58adf4",
+      "id": "skill:.agents/skills/documentation-and-adrs/SKILL.md",
+      "kind": "skill",
+      "label": "documentation-and-adrs",
+      "size": 8734
+    },
+    ".agents/skills/doubt-driven-development/SKILL.md": {
+      "hash": "59aef769adeae40aad67a1d54474aaf914ea7ecdfc2a4752a54840a8d29f80de",
+      "id": "skill:.agents/skills/doubt-driven-development/SKILL.md",
+      "kind": "skill",
+      "label": "doubt-driven-development",
+      "size": 16487
+    },
+    ".agents/skills/executing-plans/SKILL.md": {
+      "hash": "b357c2a2e5bf24adf237b5d4a83cacd828f07b886d0873ad91546aa3c99905c9",
+      "id": "skill:.agents/skills/executing-plans/SKILL.md",
+      "kind": "skill",
+      "label": "executing-plans",
+      "size": 2600
+    },
+    ".agents/skills/finishing-a-development-branch/SKILL.md": {
+      "hash": "e6d4a812de900d33c6eacfb40747f99427f25c304a7b7099120f9373b115a47f",
+      "id": "skill:.agents/skills/finishing-a-development-branch/SKILL.md",
+      "kind": "skill",
+      "label": "finishing-a-development-branch",
+      "size": 6832
+    },
+    ".agents/skills/frontend-ui-engineering/SKILL.md": {
+      "hash": "9f9e5b3141c891d866c2a15a11ac3aba4e86ec6c530d054f0534503c2e720cb1",
+      "id": "skill:.agents/skills/frontend-ui-engineering/SKILL.md",
+      "kind": "skill",
+      "label": "frontend-ui-engineering",
+      "size": 10639
+    },
+    ".agents/skills/git-workflow-and-versioning/SKILL.md": {
+      "hash": "b1a84eac7a47f6e2985a27733137d862fcdeb552eefe2bd17629e1f3c20e0e97",
+      "id": "skill:.agents/skills/git-workflow-and-versioning/SKILL.md",
+      "kind": "skill",
+      "label": "git-workflow-and-versioning",
+      "size": 10530
+    },
+    ".agents/skills/idea-refine/SKILL.md": {
+      "hash": "79e773058963adc7646b0115b4f8a4afc974c5ff95843e4ef1cafff3cb51899e",
+      "id": "skill:.agents/skills/idea-refine/SKILL.md",
+      "kind": "skill",
+      "label": "idea-refine",
+      "size": 8111
+    },
+    ".agents/skills/incremental-implementation/SKILL.md": {
+      "hash": "960f2ed08ccdd51527c347d29d2d00c80edb9992e95d67030d8a289ba04eed4e",
+      "id": "skill:.agents/skills/incremental-implementation/SKILL.md",
+      "kind": "skill",
+      "label": "incremental-implementation",
+      "size": 9249
+    },
+    ".agents/skills/interview-me/SKILL.md": {
+      "hash": "1d94741d10d2c826cd0c191aea3981ee94c8abb27ef2a166f6a372117d06448f",
+      "id": "skill:.agents/skills/interview-me/SKILL.md",
+      "kind": "skill",
+      "label": "interview-me",
+      "size": 14359
+    },
+    ".agents/skills/migrate-to-codex/SKILL.md": {
+      "hash": "145b7fe48360642cb7a42bad3a817f10833fa8a387ffcb4c2df8a47c01a832e2",
+      "id": "skill:.agents/skills/migrate-to-codex/SKILL.md",
+      "kind": "skill",
+      "label": "migrate-to-codex",
+      "size": 7939
+    },
+    ".agents/skills/observability-and-instrumentation/SKILL.md": {
+      "hash": "40c59a0c3ba28f5697600add521e38f81f880f986317628cdc0df9bdb8acf126",
+      "id": "skill:.agents/skills/observability-and-instrumentation/SKILL.md",
+      "kind": "skill",
+      "label": "observability-and-instrumentation",
+      "size": 11047
+    },
+    ".agents/skills/openai-docs/SKILL.md": {
+      "hash": "057d24b4f36dab38299857777e4c0ca5bcce65d8cf89d917c174c1a0ae23d9f8",
+      "id": "skill:.agents/skills/openai-docs/SKILL.md",
+      "kind": "skill",
+      "label": "openai-docs",
+      "size": 18302
+    },
+    ".agents/skills/performance-optimization/SKILL.md": {
+      "hash": "46ebf029d5fe812c312d4c5388ba7f07a076685fd30c7dfa7539c07763f1304e",
+      "id": "skill:.agents/skills/performance-optimization/SKILL.md",
+      "kind": "skill",
+      "label": "performance-optimization",
+      "size": 11593
+    },
+    ".agents/skills/planning-and-task-breakdown/SKILL.md": {
+      "hash": "8cc81534485e2b3171c5036bb273984d4c2cb93efd526c63ff8a180a5516a224",
+      "id": "skill:.agents/skills/planning-and-task-breakdown/SKILL.md",
+      "kind": "skill",
+      "label": "planning-and-task-breakdown",
+      "size": 7259
+    },
+    ".agents/skills/receiving-code-review/SKILL.md": {
+      "hash": "647036bbdab7bf2317e14e079595e984c9030f64295e2b4c0fb57dbeb48f25dd",
+      "id": "skill:.agents/skills/receiving-code-review/SKILL.md",
+      "kind": "skill",
+      "label": "receiving-code-review",
+      "size": 6382
+    },
+    ".agents/skills/requesting-code-review/SKILL.md": {
+      "hash": "1017ccdd5bc61fab67c654cf118cbdb520464b313073a0a6b9a6b9aa647a3ad6",
+      "id": "skill:.agents/skills/requesting-code-review/SKILL.md",
+      "kind": "skill",
+      "label": "requesting-code-review",
+      "size": 2826
+    },
+    ".agents/skills/security-and-hardening/SKILL.md": {
+      "hash": "8fed058a520281384ed1bbfddbfb3d2b12479459231c67ae0d1f0d765bb52f95",
+      "id": "skill:.agents/skills/security-and-hardening/SKILL.md",
+      "kind": "skill",
+      "label": "security-and-hardening",
+      "size": 18878
+    },
+    ".agents/skills/shipping-and-launch/SKILL.md": {
+      "hash": "efc70a45ad6435d93f2b3cef16c125ff6d75a2383e49f30056fcba04b27d6e4a",
+      "id": "skill:.agents/skills/shipping-and-launch/SKILL.md",
+      "kind": "skill",
+      "label": "shipping-and-launch",
+      "size": 10045
+    },
+    ".agents/skills/source-driven-development/SKILL.md": {
+      "hash": "b979e7531ea601ed14a090f32a5b135db517c48ab9821c5e8b09efd80f4ff4d8",
+      "id": "skill:.agents/skills/source-driven-development/SKILL.md",
+      "kind": "skill",
+      "label": "source-driven-development",
+      "size": 8204
+    },
+    ".agents/skills/spec-driven-development/SKILL.md": {
+      "hash": "386c599468ca483b19337a1022dfb4c00f5541299be1e70fdd7993ea338e7e0e",
+      "id": "skill:.agents/skills/spec-driven-development/SKILL.md",
+      "kind": "skill",
+      "label": "spec-driven-development",
+      "size": 8298
+    },
+    ".agents/skills/subagent-driven-development/SKILL.md": {
+      "hash": "41ab239a6ad1c487cd839fdac972a8c9cf0f5e90efa59a63f963767864f0df4c",
+      "id": "skill:.agents/skills/subagent-driven-development/SKILL.md",
+      "kind": "skill",
+      "label": "subagent-driven-development",
+      "size": 21647
+    },
+    ".agents/skills/systematic-debugging/SKILL.md": {
+      "hash": "3b20719eca4f0461cb51a195221320d775dcf03b6859271066a03a5132a6ce7a",
+      "id": "skill:.agents/skills/systematic-debugging/SKILL.md",
+      "kind": "skill",
+      "label": "systematic-debugging",
+      "size": 9885
+    },
+    ".agents/skills/test-driven-development/SKILL.md": {
+      "hash": "b5b4717b8b761cce15a6cfe9022e33fd959e0894c0c39d72c9cb49c23486c10e",
+      "id": "skill:.agents/skills/test-driven-development/SKILL.md",
+      "kind": "skill",
+      "label": "test-driven-development",
+      "size": 9894
+    },
+    ".agents/skills/using-agent-skills/SKILL.md": {
+      "hash": "a5bf05293cfb67af9c5e21e14023d723d2ac8ca42912cef4cee29fbb07e67d64",
+      "id": "skill:.agents/skills/using-agent-skills/SKILL.md",
+      "kind": "skill",
+      "label": "using-agent-skills",
+      "size": 10337
+    },
+    ".agents/skills/using-git-worktrees/SKILL.md": {
+      "hash": "e2c3ec142e52868a51af246c620cd76ab648dcf27d6900d47e6ffd07159a9794",
+      "id": "skill:.agents/skills/using-git-worktrees/SKILL.md",
+      "kind": "skill",
+      "label": "using-git-worktrees",
+      "size": 7472
+    },
+    ".agents/skills/using-superpowers/SKILL.md": {
+      "hash": "918562bbba1c73d1407c50de77a92eeaa6930508bdb57a64324d7d508a9069e1",
+      "id": "skill:.agents/skills/using-superpowers/SKILL.md",
+      "kind": "skill",
+      "label": "using-superpowers",
+      "size": 5899
+    },
+    ".agents/skills/verification-before-completion/SKILL.md": {
+      "hash": "ea52d15aabaf72bc6b558efe2c126f161b53961090ddcd712000273bfe8c7b6c",
+      "id": "skill:.agents/skills/verification-before-completion/SKILL.md",
+      "kind": "skill",
+      "label": "verification-before-completion",
+      "size": 4201
+    },
+    ".agents/skills/waterflow-auditor/SKILL.md": {
+      "hash": "9a353970d151ea1d319b8727eddd07cf3d1458f5b0af35086d76115a9987f480",
+      "id": "skill:.agents/skills/waterflow-auditor/SKILL.md",
+      "kind": "skill",
+      "label": "waterflow-auditor",
+      "size": 4097
+    },
+    ".agents/skills/writing-plans/SKILL.md": {
+      "hash": "272e1af349f5062c28dc282b3e21b220d58d683a7314a10c455b7432ec91d845",
+      "id": "skill:.agents/skills/writing-plans/SKILL.md",
+      "kind": "skill",
+      "label": "writing-plans",
+      "size": 7092
+    },
+    ".agents/skills/writing-skills/SKILL.md": {
+      "hash": "f01f666a4426ce800d40649704104c252e6607c196656e5ce6a28e9f51650f3a",
+      "id": "skill:.agents/skills/writing-skills/SKILL.md",
+      "kind": "skill",
+      "label": "writing-skills",
+      "size": 26852
+    },
+    ".codex/agents/context-architect.toml": {
+      "hash": "af3cc5a5b5cbe072d4dfd718738e6cc3539b761ee663db18fa7a7c00f1d17543",
+      "id": "agent:.codex/agents/context-architect.toml",
+      "kind": "agent",
+      "label": "context-architect",
+      "size": 699
+    },
+    ".codex/agents/handoff-summarizer.toml": {
+      "hash": "e5fb63b3a8fe9bed2e2830e6c6ad413783ac616dafe4222b5198edbf0b81cb99",
+      "id": "agent:.codex/agents/handoff-summarizer.toml",
+      "kind": "agent",
+      "label": "handoff-summarizer",
+      "size": 662
+    },
+    ".codex/agents/implementation-worker.toml": {
+      "hash": "c3423ea00a186dc4cc50a1e6b4c878aa434599a520e4e02308d5d84d85327c43",
+      "id": "agent:.codex/agents/implementation-worker.toml",
+      "kind": "agent",
+      "label": "implementation-worker",
+      "size": 778
+    },
+    ".codex/agents/long-horizon-orchestrator.toml": {
+      "hash": "617c56988f95f4ac9dd37e1bbe43278b42e17b785d6b205ad3b41ec024193db4",
+      "id": "agent:.codex/agents/long-horizon-orchestrator.toml",
+      "kind": "agent",
+      "label": "long-horizon-orchestrator",
+      "size": 1193
+    },
+    ".codex/agents/research-scout.toml": {
+      "hash": "b5088a4d864d589a5616b5a3c37e478c08f1b1fc57742b4d9134d1952bac2b3f",
+      "id": "agent:.codex/agents/research-scout.toml",
+      "kind": "agent",
+      "label": "research-scout",
+      "size": 781
+    },
+    ".codex/agents/risk-reviewer.toml": {
+      "hash": "2a276b8e44be7bf0709522dcb70a3a666516385d0dbacdd8c66714a939d7d2a4",
+      "id": "agent:.codex/agents/risk-reviewer.toml",
+      "kind": "agent",
+      "label": "risk-reviewer",
+      "size": 675
+    },
+    ".codex/agents/verification-auditor.toml": {
+      "hash": "39b5844b19bda6742b1ae799e37282a906729b22746cfb9f0e8f07a1859fc6aa",
+      "id": "agent:.codex/agents/verification-auditor.toml",
+      "kind": "agent",
+      "label": "verification-auditor",
+      "size": 761
+    },
+    ".codex/agents/waterflow-auditor.toml": {
+      "hash": "43db5bd7eb184f5e87a0a34dff8cf9fbb53521691d473d4988f28fed1ef93954",
+      "id": "agent:.codex/agents/waterflow-auditor.toml",
+      "kind": "agent",
+      "label": "waterflow-auditor",
+      "size": 1031
+    },
+    "AGENTS.md": {
+      "hash": "5c079d1af3953fc6dbd611591b3ec8e99099ff4716680c7276bb3e1de5d8ce37",
+      "id": "rules:AGENTS.md",
+      "kind": "rules",
+      "label": "AGENTS.md",
+      "size": 3885
+    },
+    "README.md": {
+      "hash": "95e8850eb7601e501b8d54d0413704fcca98d61b96f1daac61e99fb82057ef63",
+      "id": "readme:README.md",
+      "kind": "readme",
+      "label": "README.md",
+      "size": 4844
+    },
+    "docs/waterflow-auditor-design.md": {
+      "hash": "a51ba6b9102d2a5cf22b9a28ce2167e57e7d2cf7e92e21920bea2f83b463c374",
+      "id": "doc:docs/waterflow-auditor-design.md",
+      "kind": "doc",
+      "label": "waterflow-auditor-design.md",
+      "size": 11712
+    },
+    "docs/waterflow-harness-philosophy.md": {
+      "hash": "aee5d36ce6da68c86ea852b8b0f74d7c0e0e53736fc8fbaed2093cef70675d49",
+      "id": "doc:docs/waterflow-harness-philosophy.md",
+      "kind": "doc",
+      "label": "waterflow-harness-philosophy.md",
+      "size": 5125
+    },
+    "registry/AGENT_REGISTRY.md": {
+      "hash": "9347fc22d4f8cb21ad8c8f804765f0fd5f59d3179e2b0ff6ea6dd8318b9140b9",
+      "id": "registry:registry/AGENT_REGISTRY.md",
+      "kind": "registry",
+      "label": "AGENT_REGISTRY.md",
+      "size": 1294
+    },
+    "registry/VALIDATION.md": {
+      "hash": "75101f6cab24c655ae1343a2c30cf9ce5ba12e1d9695f26e3b3659a661b5b81e",
+      "id": "registry:registry/VALIDATION.md",
+      "kind": "registry",
+      "label": "VALIDATION.md",
+      "size": 14321
+    },
+    "registry/current-progress.md": {
+      "hash": "21c8550fd8de60114d2017c727c1c9ccd6b805c48ef648e4cc90007581fad8b9",
+      "id": "registry:registry/current-progress.md",
+      "kind": "registry",
+      "label": "current-progress.md",
+      "size": 6625
+    },
+    "scripts/check-lab": {
+      "hash": "e20ddd4ef5afa9af0578e7c456b0bf514d11fc4fe184513548099156d73c0d07",
+      "id": "script:scripts/check-lab",
+      "kind": "script",
+      "label": "check-lab",
+      "size": 2626
+    },
+    "scripts/check-secrets": {
+      "hash": "48aae689a7b0dcc96cceaa72d2ed9618e757e0372583df0a7f44e3539fe82a0f",
+      "id": "script:scripts/check-secrets",
+      "kind": "script",
+      "label": "check-secrets",
+      "size": 1479
+    },
+    "scripts/new-workspace": {
+      "hash": "dbc5fdfdea4b807b9fd6f9ab7d8066b9ec1fcd4dd819642eaee23bd622c05cbd",
+      "id": "script:scripts/new-workspace",
+      "kind": "script",
+      "label": "new-workspace",
+      "size": 784
+    },
+    "scripts/start-api-relay": {
+      "hash": "0910b8c0d4fc046998bfbbfc2e4122c6dc4eb8029c339f692ad52d0cbf7faf8b",
+      "id": "script:scripts/start-api-relay",
+      "kind": "script",
+      "label": "start-api-relay",
+      "size": 348
+    },
+    "scripts/start-api-relay-plain": {
+      "hash": "ac48ac5de691de26ef59fbd09f24d41fe46fbdbc0d1fddd4e2b25250b026e86a",
+      "id": "script:scripts/start-api-relay-plain",
+      "kind": "script",
+      "label": "start-api-relay-plain",
+      "size": 356
+    },
+    "scripts/start-clean-home": {
+      "hash": "edc56770688a4c84f90621e86178f07eaaabe1e799bc16345cfa728a6db3aaa5",
+      "id": "script:scripts/start-clean-home",
+      "kind": "script",
+      "label": "start-clean-home",
+      "size": 283
+    },
+    "scripts/sync-long-horizon-skills": {
+      "hash": "4700a87253eed0148746a29f5e1cf77cfae82a34026b337391e656d9171a8ab1",
+      "id": "script:scripts/sync-long-horizon-skills",
+      "kind": "script",
+      "label": "sync-long-horizon-skills",
+      "size": 879
+    },
+    "scripts/waterflow-incident": {
+      "hash": "7303b413f0facaec0427865079fa25b042cc4e5e1058280d6fcdf5eaab1c3811",
+      "id": "script:scripts/waterflow-incident",
+      "kind": "script",
+      "label": "waterflow-incident",
+      "size": 195
+    },
+    "scripts/waterflow-scan": {
+      "hash": "32cffa02e23d8fcc9a779934ef067164249e9e29fe4e5fab72a065c0cbd16f35",
+      "id": "script:scripts/waterflow-scan",
+      "kind": "script",
+      "label": "waterflow-scan",
+      "size": 194
+    },
+    "scripts/waterflow-stress": {
+      "hash": "7b926f7b830da1bd07e1f81eaaf96488f177948193bddcc71e142a3b6a2317c7",
+      "id": "script:scripts/waterflow-stress",
+      "kind": "script",
+      "label": "waterflow-stress",
+      "size": 193
+    },
+    "scripts/waterflow-verify": {
+      "hash": "5ce275711f3be054822d4afdb3e4140071488deb208363353c7127f2433c7689",
+      "id": "script:scripts/waterflow-verify",
+      "kind": "script",
+      "label": "waterflow-verify",
+      "size": 193
+    },
+    "tests/test_waterflow_auditor.py": {
+      "hash": "e2e7e2c8089713b9c0ebce27d8d275c909c3eb3dd9ed8eda89f758446d2c6392",
+      "id": "test:tests/test_waterflow_auditor.py",
+      "kind": "test",
+      "label": "test_waterflow_auditor.py",
+      "size": 12118
+    },
+    "tests/test_waterflow_incident.py": {
+      "hash": "d0ea5c85af825d7c824fe9f68619500ccbdc2fe472e57f0c9cfab8522badef51",
+      "id": "test:tests/test_waterflow_incident.py",
+      "kind": "test",
+      "label": "test_waterflow_incident.py",
+      "size": 2446
+    },
+    "tests/test_waterflow_stress.py": {
+      "hash": "0e9810d05c90b6134d5b9628665b833541873d39b234fa8d1d38265ccdad4d2d",
+      "id": "test:tests/test_waterflow_stress.py",
+      "kind": "test",
+      "label": "test_waterflow_stress.py",
+      "size": 2205
+    },
+    "waterflow/__init__.py": {
+      "hash": "8be99dba6a6b73e79fa14bc43d7e6484cf55b59f324aac1155f5fd7953166c62",
+      "id": "auditor-code:waterflow/__init__.py",
+      "kind": "auditor-code",
+      "label": "__init__.py",
+      "size": 33
+    },
+    "waterflow/auditor.py": {
+      "hash": "8ddbfb3faf48ba22808abb5533371c27c7a854e1a7e62595f47952c1e87d7ef0",
+      "id": "auditor-code:waterflow/auditor.py",
+      "kind": "auditor-code",
+      "label": "auditor.py",
+      "size": 47713
+    },
+    "waterflow/incident.py": {
+      "hash": "5256da823860d0c59ca41dd017c92e38f3d87940269f4dc1da9db5eb1c7be4bb",
+      "id": "auditor-code:waterflow/incident.py",
+      "kind": "auditor-code",
+      "label": "incident.py",
+      "size": 25720
+    },
+    "waterflow/stress.py": {
+      "hash": "1a6bb0328aee6dea5f6307227a61865bf301f464be799a4932284d2bd8097c5d",
+      "id": "auditor-code:waterflow/stress.py",
+      "kind": "auditor-code",
+      "label": "stress.py",
+      "size": 24166
+    },
+    "waterflow/verify.py": {
+      "hash": "cf3d296b864f73d2d1d656b44d58905b7ef232da88d295a8ebcc01607d7cd716",
+      "id": "auditor-code:waterflow/verify.py",
+      "kind": "auditor-code",
+      "label": "verify.py",
+      "size": 146
+    },
+    "workspaces": {
+      "hash": "",
+      "id": "workspace-root:workspaces",
+      "kind": "workspace-root",
+      "label": "workspaces",
+      "size": 0
+    }
+  },
+  "schema_version": 1
+}

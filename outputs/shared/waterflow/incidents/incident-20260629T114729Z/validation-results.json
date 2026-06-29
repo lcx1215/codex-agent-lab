@@ -1,0 +1,68 @@
+{
+  "checks": [
+    {
+      "command": "python3 -c 'print(\"incident-pass: baseline evidence readable\")'",
+      "duration_seconds": 0.027,
+      "exit_code": 0,
+      "index": 1,
+      "passed": true,
+      "paths": [
+        "validation/pass"
+      ],
+      "risk": "P2",
+      "route_kinds": [
+        "incident"
+      ],
+      "stderr": "",
+      "stdout": "incident-pass: baseline evidence readable\n",
+      "timed_out": false
+    },
+    {
+      "command": "python3 -c 'import sys; print(\"incident-fail: broken handoff reproduced\"); sys.exit(9)'",
+      "duration_seconds": 0.027,
+      "exit_code": 9,
+      "index": 2,
+      "passed": false,
+      "paths": [
+        "validation/fail"
+      ],
+      "risk": "P1",
+      "route_kinds": [
+        "incident"
+      ],
+      "stderr": "",
+      "stdout": "incident-fail: broken handoff reproduced\n",
+      "timed_out": false
+    },
+    {
+      "command": "python3 -c 'import time; print(\"incident-timeout: stuck repair loop\"); time.sleep(5)'",
+      "duration_seconds": 1.003,
+      "exit_code": 124,
+      "index": 3,
+      "passed": false,
+      "paths": [
+        "validation/timeout"
+      ],
+      "risk": "P1",
+      "route_kinds": [
+        "incident"
+      ],
+      "stderr": "Timed out after 1 seconds.",
+      "stdout": "",
+      "timed_out": true
+    }
+  ],
+  "generated_at": "2026-06-29T11:47:30.587207+00:00",
+  "lab_root": "/Users/liuchengxu/Desktop/codex-agent-lab/outputs/shared/waterflow/incidents/incident-20260629T114729Z",
+  "plan_generated_at": "2026-06-29T11:47:29.529790+00:00",
+  "schema_version": 1,
+  "summary": {
+    "check_count": 3,
+    "duration_seconds": 1.057,
+    "failed_count": 2,
+    "max_exit_code": 124,
+    "passed_count": 1,
+    "timed_out_count": 1
+  },
+  "timeout_seconds": 1
+}

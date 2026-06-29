@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LAB_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+export CODEX_HOME="$LAB_ROOT/.codex-home"
+
+mkdir -p "$CODEX_HOME" "$LAB_ROOT/outputs/clean-home"
+cd "$LAB_ROOT"
+
+exec codex -C "$LAB_ROOT" "$@"
