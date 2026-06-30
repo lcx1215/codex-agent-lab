@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LAB_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+SKILL_DIR="$LAB_ROOT/.agents/skills"
+
+fail() {
+  printf 'FAIL: %s\n' "$*" >&2
+  exit 1
+}
+
+check_file() {
+  local file="$1"
+  test -f "$file" || fail "missing file: $file"
+}
+
+check_pattern() {
+  local file="$1"
+  local pattern="$2"
+  local label="$3"
+  rg -q "$pattern" "$file" || fail "$label missing in $file"
+}
+
+skills=(
+  secret-boundary-auditor
+  async-race-detector
+  tmux-omx-runtime-doctor
+  sandbox-artifact-hygiene
+)
+
+for skill in "${skills[@]}"; do
+  file="$SKILL_DIR/$skill/SKILL.md"
+  meta="$SKILL_DIR/$skill/agents/openai.yaml"
+  check_file "$file"
+  check_file "$meta"
+  check_pattern "$file" '^---$' "$skill frontmatter delimiter"
+  check_pattern "$file" "^name: $skill$" "$skill name"
+  check_pattern "$file" '^description: Use when ' "$skill trigger description"
+  check_pattern "$file" '^description: .{20,}$' "$skill useful description"
+  check_pattern "$file" '^## Overview$' "$skill overview"
+  check_pattern "$file" '^## Workflow$' "$skill workflow"
+  check_pattern "$meta" '^interface:$' "$skill interface metadata"
+  check_pattern "$meta" '^[[:space:]]+display_name: ' "$skill display name"
+  check_pattern "$meta" '^[[:space:]]+short_description: ' "$skill short description"
+  check_pattern "$meta" '^[[:space:]]+default_prompt: ' "$skill default prompt"
+  if rg -q 'TODO|\\[TODO\\]' "$file"; then
+    fail "$skill still contains TODO text"
+  fi
+  if rg -q 'TODO|\\[TODO\\]' "$meta"; then
+    fail "$skill metadata still contains TODO text"
+  fi
+done
+
+check_pattern "$SKILL_DIR/secret-boundary-auditor/SKILL.md" 'check-secrets|auth\.json|redacted' "secret auditor boundary terms"
+check_pattern "$SKILL_DIR/async-race-detector/SKILL.md" 'check-async-execution|unexpected stderr|TMPDIR' "async detector race terms"
+check_pattern "$SKILL_DIR/tmux-omx-runtime-doctor/SKILL.md" 'worker_notify_failed|tmux list-panes|omx team' "tmux doctor runtime terms"
+check_pattern "$SKILL_DIR/sandbox-artifact-hygiene/SKILL.md" 'git status|waterflow-scan|transient scratch' "artifact hygiene terms"
+
+printf 'OK: sandbox skills are valid\n'

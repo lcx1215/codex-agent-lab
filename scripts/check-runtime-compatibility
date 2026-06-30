@@ -1,0 +1,403 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import shutil
+import subprocess
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+
+LAB_ROOT = Path(__file__).resolve().parents[1]
+OUTPUT_ROOT = LAB_ROOT / "outputs" / "shared" / "compatibility"
+OUTPUT_JSON = OUTPUT_ROOT / "runtime-compatibility.json"
+OUTPUT_MD = OUTPUT_ROOT / "runtime-compatibility.md"
+
+REQUIRED_COMMANDS = [
+    "awk",
+    "bash",
+    "find",
+    "git",
+    "grep",
+    "python3",
+    "rg",
+    "sed",
+    "sort",
+    "stat",
+    "tr",
+    "wc",
+]
+
+OPTIONAL_COMMANDS = [
+    "codex",
+    "omx",
+    "tmux",
+]
+
+REQUIRED_SCRIPT_REFERENCES = [
+    "check-runtime-compatibility",
+    "check-workspace-safety",
+    "check-project-rules",
+    "check-workflow-modes",
+    "check-sandbox",
+    "check-sandbox-skills",
+    "check-speed-contract",
+    "check-collaboration",
+]
+
+REQUIRED_DIRS = [
+    ".codex-home",
+    ".codex/agents",
+    ".agents/skills",
+    ".tmp",
+    "docs",
+    "outputs",
+    "registry",
+    "scripts",
+    "tests",
+    "workspaces",
+]
+
+
+def run(command: list[str], *, cwd: Path = LAB_ROOT) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        command,
+        cwd=str(cwd),
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+
+def check(status: str, name: str, message: str, evidence: list[str] | None = None) -> dict[str, object]:
+    if status not in {"pass", "warn", "fail"}:
+        raise ValueError(f"invalid status: {status}")
+    return {
+        "name": name,
+        "status": status,
+        "message": message,
+        "evidence": evidence or [],
+    }
+
+
+def command_version(command: str) -> str:
+    probes = [
+        [command, "--version"],
+        [command, "-V"],
+    ]
+    for probe in probes:
+        completed = run(probe)
+        text = (completed.stdout or completed.stderr).strip().splitlines()
+        if completed.returncode == 0 and text:
+            return text[0][:160]
+    return "version probe unavailable"
+
+
+def command_checks() -> list[dict[str, object]]:
+    checks: list[dict[str, object]] = []
+    for command in REQUIRED_COMMANDS:
+        found = shutil.which(command)
+        if found:
+            checks.append(
+                check(
+                    "pass",
+                    f"required command: {command}",
+                    "required command is available",
+                    [found, command_version(command)],
+                )
+            )
+        else:
+            checks.append(check("fail", f"required command: {command}", "required command missing"))
+
+    for command in OPTIONAL_COMMANDS:
+        found = shutil.which(command)
+        if found:
+            checks.append(
+                check(
+                    "pass",
+                    f"optional command: {command}",
+                    "optional agent/runtime command is available",
+                    [found, command_version(command)],
+                )
+            )
+        else:
+            checks.append(
+                check(
+                    "warn",
+                    f"optional command: {command}",
+                    "optional command missing; related workflow should fall back or skip live runtime proof",
+                )
+            )
+    return checks
+
+
+def python_checks() -> list[dict[str, object]]:
+    checks: list[dict[str, object]] = []
+    version = sys.version_info
+    if version >= (3, 11):
+        checks.append(
+            check(
+                "pass",
+                "python version",
+                "python3 supports tomllib and current lab scripts",
+                [f"{version.major}.{version.minor}.{version.micro}"],
+            )
+        )
+    else:
+        checks.append(
+            check(
+                "fail",
+                "python version",
+                "python3 must be 3.11+ because lab scripts use tomllib",
+                [f"{version.major}.{version.minor}.{version.micro}"],
+            )
+        )
+
+    modules = ["asyncio", "json", "pathlib", "subprocess", "tomllib", "unittest"]
+    missing = []
+    for module in modules:
+        try:
+            __import__(module)
+        except Exception as exc:  # pragma: no cover - defensive import report
+            missing.append(f"{module}: {exc}")
+    if missing:
+        checks.append(check("fail", "python stdlib modules", "required Python stdlib modules missing", missing))
+    else:
+        checks.append(check("pass", "python stdlib modules", "required Python stdlib modules import"))
+    return checks
+
+
+def directory_checks() -> list[dict[str, object]]:
+    checks: list[dict[str, object]] = []
+    for rel in REQUIRED_DIRS:
+        path = LAB_ROOT / rel
+        status = "pass" if path.is_dir() else "fail"
+        checks.append(check(status, f"directory: {rel}", "required directory exists" if status == "pass" else "required directory missing"))
+    return checks
+
+
+def script_hygiene_checks() -> list[dict[str, object]]:
+    checks: list[dict[str, object]] = []
+    scripts = sorted(path for path in (LAB_ROOT / "scripts").iterdir() if path.is_file())
+    bad_shebang: list[str] = []
+    bad_executable: list[str] = []
+    bad_crlf: list[str] = []
+
+    for path in scripts:
+        data = path.read_bytes()
+        rel = path.relative_to(LAB_ROOT).as_posix()
+        first_line = data.splitlines()[0].decode("utf-8", errors="replace") if data else ""
+        if not first_line.startswith("#!"):
+            bad_shebang.append(rel)
+        if not os.access(path, os.X_OK):
+            bad_executable.append(rel)
+        if b"\r\n" in data:
+            bad_crlf.append(rel)
+
+    checks.append(
+        check(
+            "pass" if not bad_shebang else "fail",
+            "script shebangs",
+            "all scripts declare an interpreter" if not bad_shebang else "scripts without shebang detected",
+            bad_shebang,
+        )
+    )
+    checks.append(
+        check(
+            "pass" if not bad_executable else "fail",
+            "script executability",
+            "all scripts are executable" if not bad_executable else "scripts are not executable",
+            bad_executable,
+        )
+    )
+    checks.append(
+        check(
+            "pass" if not bad_crlf else "fail",
+            "script line endings",
+            "scripts use LF line endings" if not bad_crlf else "scripts use CRLF line endings",
+            bad_crlf,
+        )
+    )
+
+    check_lab = (LAB_ROOT / "scripts" / "check-lab").read_text(encoding="utf-8")
+    missing_refs = [item for item in REQUIRED_SCRIPT_REFERENCES if item not in check_lab]
+    checks.append(
+        check(
+            "pass" if not missing_refs else "fail",
+            "check-lab aggregation",
+            "check-lab references required lightweight gates" if not missing_refs else "check-lab is missing required gate references",
+            missing_refs,
+        )
+    )
+    return checks
+
+
+def gitignore_checks() -> list[dict[str, object]]:
+    checks: list[dict[str, object]] = []
+    if not (LAB_ROOT / ".git").is_dir():
+        return [check("warn", "gitignore runtime state", "not a git checkout; cannot verify ignore contract")]
+
+    examples = [
+        (".omx/state/example.json", True, "OMX runtime state should be ignored"),
+        (".omc/state/example.json", True, "OMC runtime state should be ignored"),
+        (".omc/skills/example/SKILL.md", False, "project OMC skills should remain committable"),
+    ]
+    for rel, should_be_ignored, message in examples:
+        completed = run(["git", "check-ignore", "-q", rel])
+        ignored = completed.returncode == 0
+        if ignored == should_be_ignored:
+            checks.append(check("pass", f"gitignore: {rel}", message))
+        else:
+            expected = "ignored" if should_be_ignored else "not ignored"
+            actual = "ignored" if ignored else "not ignored"
+            checks.append(check("fail", f"gitignore: {rel}", f"expected {expected}, got {actual}"))
+    return checks
+
+
+def runtime_context_checks() -> list[dict[str, object]]:
+    checks: list[dict[str, object]] = []
+    codex_home = os.environ.get("CODEX_HOME")
+    if not codex_home:
+        checks.append(check("pass", "CODEX_HOME environment", "CODEX_HOME is unset for this preflight"))
+    else:
+        resolved = Path(codex_home).expanduser().resolve()
+        allowed = {
+            (LAB_ROOT / ".codex-home").resolve(),
+            (Path.home() / ".codex-api-relay").resolve(),
+        }
+        if resolved in allowed:
+            checks.append(check("pass", "CODEX_HOME environment", "CODEX_HOME points to an expected lab/API-relay home", [str(resolved)]))
+        else:
+            checks.append(
+                check(
+                    "warn",
+                    "CODEX_HOME environment",
+                    "CODEX_HOME points outside the expected lab/API-relay homes; verify lane before launching long work",
+                    [str(resolved)],
+                )
+            )
+
+    if (LAB_ROOT / ".codex-home" / "auth.json").exists():
+        checks.append(check("fail", "clean-home auth boundary", "clean home contains auth.json"))
+    else:
+        checks.append(check("pass", "clean-home auth boundary", "clean home has no auth.json"))
+    return checks
+
+
+def documentation_checks() -> list[dict[str, object]]:
+    checks: list[dict[str, object]] = []
+    required_files = [
+        "docs/runtime-compatibility.md",
+        "README.md",
+        "AGENTS.md",
+        "registry/CAPABILITY_LAYERS.md",
+    ]
+    for rel in required_files:
+        path = LAB_ROOT / rel
+        if not path.is_file():
+            checks.append(check("fail", f"documentation: {rel}", "required compatibility documentation surface missing"))
+            continue
+        text = path.read_text(encoding="utf-8")
+        if "check-runtime-compatibility" in text or rel == "docs/runtime-compatibility.md":
+            checks.append(check("pass", f"documentation: {rel}", "compatibility gate is documented"))
+        else:
+            checks.append(check("fail", f"documentation: {rel}", "compatibility gate reference missing"))
+    return checks
+
+
+def build_report() -> dict[str, object]:
+    checks: list[dict[str, object]] = []
+    for collector in (
+        command_checks,
+        python_checks,
+        directory_checks,
+        script_hygiene_checks,
+        gitignore_checks,
+        runtime_context_checks,
+        documentation_checks,
+    ):
+        checks.extend(collector())
+
+    failed = [item for item in checks if item["status"] == "fail"]
+    warnings = [item for item in checks if item["status"] == "warn"]
+    status = "fail" if failed else "warn" if warnings else "pass"
+    return {
+        "schema_version": 1,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "lab_root": str(LAB_ROOT),
+        "status": status,
+        "summary": {
+            "check_count": len(checks),
+            "passed_count": sum(1 for item in checks if item["status"] == "pass"),
+            "warning_count": len(warnings),
+            "failed_count": len(failed),
+        },
+        "checks": checks,
+    }
+
+
+def render_markdown(report: dict[str, object]) -> str:
+    summary = report["summary"]
+    lines = [
+        "# Runtime Compatibility Report",
+        "",
+        f"- Generated: `{report['generated_at']}`",
+        f"- Status: `{report['status']}`",
+        f"- Checks: `{summary['check_count']}`",
+        f"- Passed: `{summary['passed_count']}`",
+        f"- Warnings: `{summary['warning_count']}`",
+        f"- Failed: `{summary['failed_count']}`",
+        "",
+        "## Findings",
+        "",
+    ]
+    for item in report["checks"]:
+        lines.extend(
+            [
+                f"### {item['status']}: {item['name']}",
+                "",
+                str(item["message"]),
+                "",
+            ]
+        )
+        for evidence in item.get("evidence") or []:
+            lines.append(f"- `{evidence}`")
+        if item.get("evidence"):
+            lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Check Codex Agent Lab runtime compatibility and error-prone setup drift.")
+    parser.add_argument("--json", action="store_true", help="Print the report JSON to stdout.")
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    report = build_report()
+    OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
+    OUTPUT_JSON.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    OUTPUT_MD.write_text(render_markdown(report), encoding="utf-8")
+
+    if args.json:
+        print(json.dumps(report, indent=2, sort_keys=True))
+    else:
+        summary = report["summary"]
+        print(f"status: {report['status']}")
+        print(f"checks: {summary['check_count']}")
+        print(f"passed: {summary['passed_count']}")
+        print(f"warnings: {summary['warning_count']}")
+        print(f"failed: {summary['failed_count']}")
+        print(f"json: {OUTPUT_JSON}")
+        print(f"markdown: {OUTPUT_MD}")
+
+    return 1 if report["status"] == "fail" else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

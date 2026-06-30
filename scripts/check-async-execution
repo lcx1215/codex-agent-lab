@@ -21,6 +21,8 @@ OUT_ROOT = LAB_ROOT / "outputs" / "shared" / "async-execution" / RUN_ID
 MAX_OUTPUT_CHARS = 6000
 
 TASKS = [
+    {"name": "runtime-compatibility", "command": "./scripts/check-runtime-compatibility", "timeout": 60},
+    {"name": "workspace-safety", "command": "./scripts/check-workspace-safety", "timeout": 60},
     {"name": "sandbox", "command": "./scripts/check-sandbox", "timeout": 60},
     {"name": "secrets", "command": "./scripts/check-secrets", "timeout": 60},
     {"name": "project-rules", "command": "./scripts/check-project-rules", "timeout": 60},

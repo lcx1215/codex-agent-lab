@@ -23,6 +23,13 @@ Audit the lab as a graph of work paths. The first version is scoped to `/Users/l
 12. Run `scripts/waterflow-incident` when the user asks whether Waterflow can handle a realistic complex failure and produce a repair handoff for Codex or Claude.
 13. Re-run the scan after repairs and record evidence in `registry/VALIDATION.md`.
 
+## Speed Contract
+
+- Follow `docs/waterflow-speed-contract.md` before deciding whether Waterflow should block active Codex or Claude work.
+- Default supervision is non-blocking: use the latest route index, changed-only validation plan, and repair briefs before recomputing broad evidence.
+- Treat full validation, stress fixtures, and incident fixtures as boundary checks for commit, PR, high-risk changes, explicit user requests, or contradictory evidence.
+- At large scale, start from the route index and changed-only plans; do not inspect every path unless those artifacts point to a specific route family or risk.
+
 ## Defect Families
 
 - Missing core path or entrypoint.

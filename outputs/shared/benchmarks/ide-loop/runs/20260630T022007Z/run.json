@@ -1,0 +1,187 @@
+{
+  "async_summary": {
+    "path": "outputs/shared/async-execution/20260630T022018Z-72275/async-execution-results.json",
+    "run_id": "20260630T022018Z-72275",
+    "summary": {
+      "check_count": 7,
+      "duration_seconds": 3.423,
+      "failed_count": 0,
+      "passed_count": 7,
+      "timed_out_count": 0
+    }
+  },
+  "checks": [
+    {
+      "command": "python3 -m unittest discover -s tests",
+      "cwd": "outputs/shared/benchmarks/ide-loop/runs/20260630T022007Z/fixture",
+      "duration_seconds": 0.214,
+      "exit_code": 1,
+      "expected_failure": true,
+      "name": "red_unit_test",
+      "passed": true,
+      "post_error": null,
+      "stderr_path": "outputs/shared/benchmarks/ide-loop/runs/20260630T022007Z/logs/red_unit_test.stderr.txt",
+      "stdout_path": "outputs/shared/benchmarks/ide-loop/runs/20260630T022007Z/logs/red_unit_test.stdout.txt",
+      "timed_out": false
+    },
+    {
+      "command": "python3 -m unittest discover -s tests",
+      "cwd": "outputs/shared/benchmarks/ide-loop/runs/20260630T022007Z/fixture",
+      "duration_seconds": 0.217,
+      "exit_code": 0,
+      "expected_failure": false,
+      "name": "green_unit_test",
+      "passed": true,
+      "post_error": null,
+      "stderr_path": "outputs/shared/benchmarks/ide-loop/runs/20260630T022007Z/logs/green_unit_test.stderr.txt",
+      "stdout_path": "outputs/shared/benchmarks/ide-loop/runs/20260630T022007Z/logs/green_unit_test.stdout.txt",
+      "timed_out": false
+    },
+    {
+      "command": "python3 -m py_compile lane_router.py",
+      "cwd": "outputs/shared/benchmarks/ide-loop/runs/20260630T022007Z/fixture",
+      "duration_seconds": 0.139,
+      "exit_code": 0,
+      "expected_failure": false,
+      "name": "compile_check",
+      "passed": true,
+      "post_error": null,
+      "stderr_path": "outputs/shared/benchmarks/ide-loop/runs/20260630T022007Z/logs/compile_check.stderr.txt",
+      "stdout_path": "outputs/shared/benchmarks/ide-loop/runs/20260630T022007Z/logs/compile_check.stdout.txt",
+      "timed_out": false
+    },
+    {
+      "command": "./scripts/check-speed-contract",
+      "cwd": ".",
+      "duration_seconds": 0.226,
+      "exit_code": 0,
+      "expected_failure": false,
+      "name": "speed_contract",
+      "passed": true,
+      "post_error": null,
+      "stderr_path": "outputs/shared/benchmarks/ide-loop/runs/20260630T022007Z/logs/speed_contract.stderr.txt",
+      "stdout_path": "outputs/shared/benchmarks/ide-loop/runs/20260630T022007Z/logs/speed_contract.stdout.txt",
+      "timed_out": false
+    },
+    {
+      "command": "./scripts/check-project-rules",
+      "cwd": ".",
+      "duration_seconds": 0.179,
+      "exit_code": 0,
+      "expected_failure": false,
+      "name": "project_rules",
+      "passed": true,
+      "post_error": null,
+      "stderr_path": "outputs/shared/benchmarks/ide-loop/runs/20260630T022007Z/logs/project_rules.stderr.txt",
+      "stdout_path": "outputs/shared/benchmarks/ide-loop/runs/20260630T022007Z/logs/project_rules.stdout.txt",
+      "timed_out": false
+    },
+    {
+      "command": "./scripts/check-secrets",
+      "cwd": ".",
+      "duration_seconds": 0.703,
+      "exit_code": 0,
+      "expected_failure": false,
+      "name": "secret_guard",
+      "passed": true,
+      "post_error": null,
+      "stderr_path": "outputs/shared/benchmarks/ide-loop/runs/20260630T022007Z/logs/secret_guard.stderr.txt",
+      "stdout_path": "outputs/shared/benchmarks/ide-loop/runs/20260630T022007Z/logs/secret_guard.stdout.txt",
+      "timed_out": false
+    },
+    {
+      "command": "./scripts/check-lab",
+      "cwd": ".",
+      "duration_seconds": 5.209,
+      "exit_code": 0,
+      "expected_failure": false,
+      "name": "check_lab",
+      "passed": true,
+      "post_error": null,
+      "stderr_path": "outputs/shared/benchmarks/ide-loop/runs/20260630T022007Z/logs/check_lab.stderr.txt",
+      "stdout_path": "outputs/shared/benchmarks/ide-loop/runs/20260630T022007Z/logs/check_lab.stdout.txt",
+      "timed_out": false
+    },
+    {
+      "command": "python3 -m unittest discover -s tests",
+      "cwd": ".",
+      "duration_seconds": 3.157,
+      "exit_code": 0,
+      "expected_failure": false,
+      "name": "lab_unit_tests",
+      "passed": true,
+      "post_error": null,
+      "stderr_path": "outputs/shared/benchmarks/ide-loop/runs/20260630T022007Z/logs/lab_unit_tests.stderr.txt",
+      "stdout_path": "outputs/shared/benchmarks/ide-loop/runs/20260630T022007Z/logs/lab_unit_tests.stdout.txt",
+      "timed_out": false
+    },
+    {
+      "command": "./scripts/check-async-execution",
+      "cwd": ".",
+      "duration_seconds": 3.614,
+      "exit_code": 0,
+      "expected_failure": false,
+      "name": "async_execution",
+      "passed": true,
+      "post_error": null,
+      "stderr_path": "outputs/shared/benchmarks/ide-loop/runs/20260630T022007Z/logs/async_execution.stderr.txt",
+      "stdout_path": "outputs/shared/benchmarks/ide-loop/runs/20260630T022007Z/logs/async_execution.stdout.txt",
+      "timed_out": false
+    },
+    {
+      "command": "./scripts/waterflow-scan --root . --compare-last",
+      "cwd": ".",
+      "duration_seconds": 0.216,
+      "exit_code": 0,
+      "expected_failure": false,
+      "name": "waterflow_scan",
+      "passed": true,
+      "post_error": null,
+      "stderr_path": "outputs/shared/benchmarks/ide-loop/runs/20260630T022007Z/logs/waterflow_scan.stderr.txt",
+      "stdout_path": "outputs/shared/benchmarks/ide-loop/runs/20260630T022007Z/logs/waterflow_scan.stdout.txt",
+      "timed_out": false
+    },
+    {
+      "command": "./scripts/waterflow-verify",
+      "cwd": ".",
+      "duration_seconds": 8.131,
+      "exit_code": 0,
+      "expected_failure": false,
+      "name": "waterflow_verify",
+      "passed": true,
+      "post_error": null,
+      "stderr_path": "outputs/shared/benchmarks/ide-loop/runs/20260630T022007Z/logs/waterflow_verify.stderr.txt",
+      "stdout_path": "outputs/shared/benchmarks/ide-loop/runs/20260630T022007Z/logs/waterflow_verify.stdout.txt",
+      "timed_out": false
+    }
+  ],
+  "fixture": "/Users/liuchengxu/Desktop/codex-agent-lab/outputs/shared/benchmarks/ide-loop/runs/20260630T022007Z/fixture",
+  "generated_at": "2026-06-30T02:20:29.972921+00:00",
+  "run_dir": "/Users/liuchengxu/Desktop/codex-agent-lab/outputs/shared/benchmarks/ide-loop/runs/20260630T022007Z",
+  "run_id": "20260630T022007Z",
+  "run_json": "outputs/shared/benchmarks/ide-loop/runs/20260630T022007Z/run.json",
+  "run_markdown": "outputs/shared/benchmarks/ide-loop/runs/20260630T022007Z/run.md",
+  "schema_version": 1,
+  "skip_waterflow_verify": false,
+  "waterflow_summary": {
+    "changed_plan": {
+      "changed_path_count": 0,
+      "check_count": 0,
+      "max_risk": "P3",
+      "scope": "changed"
+    },
+    "report": {
+      "edge_count": 101,
+      "finding_count": 2,
+      "finding_counts_by_severity": {
+        "P0": 0,
+        "P1": 0,
+        "P2": 0,
+        "P3": 2
+      },
+      "node_count": 102,
+      "path_count": 102
+    }
+  },
+  "with_omx": false
+}

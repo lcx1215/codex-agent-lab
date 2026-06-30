@@ -1,10 +1,14 @@
 # Agent Lab Mission
 
-This repository is a strict, long-horizon agent development environment, not a throwaway sandbox.
+This repository is a strict, long-horizon agent development environment, not a throwaway sandbox and not a single-scenario product template.
 
 ## Mission
 
-Build a rich, isolated, evidence-driven environment where Codex, Claude, and future agents can plan, execute, audit, verify, and hand off large engineering tasks without leaking secrets, breaking lane isolation, or losing durable progress.
+Build a rich, isolated, evidence-driven environment where Codex, Claude, and future agents can plan, execute, audit, verify, and hand off very large engineering tasks without leaking secrets, breaking lane isolation, or losing durable progress.
+
+The lab is scenario-neutral. UCP agents, commercial customer-service agents, research agents, code-maintenance agents, workflow agents, evaluation agents, and future agent families should all fit here as workspaces, not as constraints on the environment.
+
+The lab amplifies Codex and Claude. It gives them durable memory surfaces, harnesses, route indexes, health gates, benchmarks, isolated workspaces, and handoff contracts. It must not pretend to replace their reasoning, coding, review, or recovery ability with rigid automation.
 
 ## Quality Bar
 
@@ -13,6 +17,8 @@ Build a rich, isolated, evidence-driven environment where Codex, Claude, and fut
 - Durable state wins: important work writes progress, validation, and handoff artifacts before it depends on conversation memory.
 - Evidence before claims: every completed capability needs a runnable check, captured result, or explicit validation gap.
 - Richness means layered capability, not uncontrolled sprawl.
+- Openness means new agent families can be added without rewriting the lab's identity.
+- Amplification over replacement: scripts, skills, Waterflow, OMX, and dashboards should increase Codex/Claude leverage while leaving final reasoning, integration, and verification ownership explicit.
 - Agents stay bounded: every delegated agent needs a named role, narrow task, expected output, and integration owner.
 - Harnesses must test detection and reporting, not just happy-path success.
 - Reader-facing docs should use relative paths and placeholders instead of machine-local paths.
@@ -27,6 +33,7 @@ Build a rich, isolated, evidence-driven environment where Codex, Claude, and fut
 - Waterflow-style path auditing, route indexes, changed-only validation, stress fixtures, and incident rehearsals.
 - Health gates for structure, secrets, rules, workflow modes, validation evidence, and generated handoffs.
 - Restartable workspaces that can survive app restart, context compaction, or lane handoff.
+- Scenario workspaces that remain local examples unless their patterns prove broadly reusable.
 
 ## Expansion Rule
 

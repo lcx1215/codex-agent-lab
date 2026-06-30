@@ -6,7 +6,21 @@ LAB_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 name="${1:-task}"
 stamp="$(date +%Y%m%d_%H%M%S)"
 safe_name="$(printf '%s' "$name" | tr -cs 'A-Za-z0-9._-' '-' | sed 's/^-//; s/-$//')"
-workspace="$LAB_ROOT/workspaces/${stamp}-${safe_name:-task}"
+
+fail() {
+  printf 'FAIL: %s\n' "$*" >&2
+  exit 1
+}
+
+workspace_root="${WORKSPACE_ROOT:-$LAB_ROOT/workspaces}"
+workspace_root="$(python3 -c 'import os, sys; print(os.path.realpath(sys.argv[1]))' "$workspace_root")"
+case "$workspace_root/" in
+  "$LAB_ROOT/"*) ;;
+  *) fail "WORKSPACE_ROOT must stay inside the lab root" ;;
+esac
+mkdir -p "$workspace_root"
+
+workspace="$workspace_root/${stamp}-${safe_name:-task}"
 
 mkdir -p "$workspace"
 cat > "$workspace/brief.md" <<EOF
@@ -17,6 +31,13 @@ Created: $(date '+%Y-%m-%d %H:%M:%S %z')
 ## Objective
 
 TBD
+
+## Scenario
+
+- Scenario type: TBD
+- Inside boundary: TBD
+- Outside boundary: TBD
+- Codex/Claude amplification: TBD
 
 ## Constraints
 
@@ -41,6 +62,19 @@ Use the lab template at ../../docs/project-rule-template.md when this workspace 
 - Keep edits inside this workspace unless the parent lab rules or user task name another path.
 - Do not read, print, copy, or migrate secrets, auth files, session files, cookies, OTPs, or API keys.
 
+## Scenario Boundary
+
+- Scenario type: TBD
+- This workspace is a scenario surface inside the broader lab; it must not redefine the root lab identity.
+- Keep scenario-specific assumptions, fixtures, docs, and experiments local until they prove reusable across scenarios.
+- Promote a pattern to the root lab only after it has cross-scenario value, a boundary, and a verification check.
+
+## Codex Claude Amplification
+
+- Use this workspace to focus Codex and Claude with durable context, runnable checks, and concise handoffs.
+- Scripts, harnesses, skills, and dashboards should amplify model-agent reasoning and execution, not replace them.
+- Keep final integration and verification ownership explicit.
+
 ## Routing
 
 - Default workflow mode: TBD
@@ -59,6 +93,33 @@ cat > "$workspace/progress.md" <<EOF
 # Progress
 
 - Created workspace: $(basename "$workspace")
+EOF
+
+cat > "$workspace/.gitignore" <<'EOF'
+.DS_Store
+.tmp/
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.token
+*.secret
+*_token
+*_secret
+.omx/
+.omc/*
+!.omc/skills/
+!.omc/skills/**
+.codex-home/auth.json
+.codex-home/log/
+.codex-home/sessions/
+__pycache__/
+*.pyc
+*.log
+*.tmp
+node_modules/
 EOF
 
 printf '%s\n' "$workspace"

@@ -8,9 +8,14 @@ GLOBAL_AGENTS="$LAB_ROOT/.codex-home/AGENTS.md"
 AGENT_DIR="$LAB_ROOT/.codex/agents"
 SKILL_DIR="$LAB_ROOT/.agents/skills"
 PROJECT_RULE_CHECK="$LAB_ROOT/scripts/check-project-rules"
+RUNTIME_COMPAT_CHECK="$LAB_ROOT/scripts/check-runtime-compatibility"
+WORKSPACE_SAFETY_CHECK="$LAB_ROOT/scripts/check-workspace-safety"
 WORKFLOW_MODE_CHECK="$LAB_ROOT/scripts/check-workflow-modes"
 SANDBOX_CHECK="$LAB_ROOT/scripts/check-sandbox"
 ASYNC_CHECK="$LAB_ROOT/scripts/check-async-execution"
+SANDBOX_SKILL_CHECK="$LAB_ROOT/scripts/check-sandbox-skills"
+SPEED_CHECK="$LAB_ROOT/scripts/check-speed-contract"
+COLLAB_CHECK="$LAB_ROOT/scripts/check-collaboration"
 
 fail() {
   printf 'FAIL: %s\n' "$*" >&2
@@ -26,9 +31,14 @@ test -e "$GLOBAL_AGENTS" || fail "clean-home global AGENTS.md reference missing"
 test -d "$AGENT_DIR" || fail "agent directory missing"
 test -d "$SKILL_DIR" || fail "skill directory missing"
 test -x "$PROJECT_RULE_CHECK" || fail "project rule check script missing or not executable"
+test -x "$RUNTIME_COMPAT_CHECK" || fail "runtime compatibility check script missing or not executable"
+test -x "$WORKSPACE_SAFETY_CHECK" || fail "workspace safety check script missing or not executable"
 test -x "$WORKFLOW_MODE_CHECK" || fail "workflow mode check script missing or not executable"
 test -x "$SANDBOX_CHECK" || fail "sandbox check script missing or not executable"
 test -x "$ASYNC_CHECK" || fail "async execution check script missing or not executable"
+test -x "$SANDBOX_SKILL_CHECK" || fail "sandbox skill check script missing or not executable"
+test -x "$SPEED_CHECK" || fail "speed contract check script missing or not executable"
+test -x "$COLLAB_CHECK" || fail "collaboration check script missing or not executable"
 
 if test -e "$LAB_ROOT/.codex-home/auth.json"; then
   fail "clean home contains auth.json; this lab should not copy secrets"
@@ -68,7 +78,12 @@ else
 fi
 
 "$PROJECT_RULE_CHECK" >/dev/null
+"$RUNTIME_COMPAT_CHECK" >/dev/null
+"$WORKSPACE_SAFETY_CHECK" >/dev/null
 "$WORKFLOW_MODE_CHECK" >/dev/null
 "$SANDBOX_CHECK" >/dev/null
+"$SANDBOX_SKILL_CHECK" >/dev/null
+"$SPEED_CHECK" >/dev/null
+"$COLLAB_CHECK" >/dev/null
 
 printf 'OK: lab structure is valid\n'

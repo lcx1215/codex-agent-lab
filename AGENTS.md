@@ -3,9 +3,20 @@
 This file is the project-specific overlay for `/Users/liuchengxu/Desktop/codex-agent-lab`.
 Global Codex rules remain in `/Users/liuchengxu/.codex/AGENTS.md`; do not duplicate them here unless this lab needs a narrower local rule.
 
+## Autonomy (Highest Priority)
+
+- Claude (and the agent on duty) completes tasks end-to-end without asking the user for approval. Decide, execute, verify, and report the result; do not pause to request permission to proceed.
+- The user has granted standing authorization for autonomous execution in this lab.
+- **NEVER end a turn with a yes/no or "want me to…? / 要我…吗?" permission question.** If about to ask "should I / want me to / shall I" — just do it and report. Asking permission is itself a violation. Only genuine *what-the-user-wants* ambiguities are askable, and even then prefer choosing the reasonable option and noting it.
+- Report conclusions, not raw transcripts. The user is in the CLI without a GUI — clear presentation is the agent's job; don't dump long logs and make the user assemble the state. Use `mas` for environment status, `duo` for side-by-side collaboration.
+- This does NOT relax the safety boundaries below: the `## Isolation` rules (no secrets/auth, no touching `~/.codex` / `~/.codex-api-relay` / provider config / LaunchAgents, stay within the lab root) remain hard limits. Autonomy means "don't ask permission to do the work," not "cross the safety lines."
+- When the user's intent is ambiguous, pick the most reasonable interpretation and note it in the result instead of blocking on a question.
+
 ## Mission And Quality Bar
 
 - This lab is a strict, long-horizon agent development environment, not a throwaway sandbox.
+- This lab is scenario-neutral. UCP, commercial customer-service, and other future agents belong in workspaces; none of them should redefine the lab's core identity.
+- The lab should amplify Codex and Claude with durable state, harnesses, supervision, verification, and handoffs. It should not replace their reasoning, coding, review, or recovery responsibilities with rigid automation.
 - Use `docs/agent-lab-mission.md` as the durable mission and capability-quality bar.
 - Build the environment richly, but only through layered, documented, verifiable capabilities.
 - Every promoted capability should have a purpose, boundary, entrypoint, expected artifacts, verification path, failure mode, and promotion gate.
@@ -35,10 +46,14 @@ Global Codex rules remain in `/Users/liuchengxu/.codex/AGENTS.md`; do not duplic
 - Project agents live in `.codex/agents/`.
 - Project skills live in `.agents/skills/`.
 - Environment-specific skills should be placed in `.agents/skills/`; general reusable skills can remain in global Codex homes or plugin caches.
+- Sandbox-specific skills currently include `secret-boundary-auditor`, `async-race-detector`, `tmux-omx-runtime-doctor`, and `sandbox-artifact-hygiene`.
 - Existing global plugins may be used normally when available, but plugin install/enable/disable state must not be changed from this lab unless explicitly requested.
 - The lab config uses `workspace-write` with this lab as the writable root. Treat any request to weaken sandboxing or write elsewhere as a lane-affecting action.
 - The lab config excludes system tmp directories; scripts and tests should use `.tmp/` for local temporary files.
 - Run `scripts/check-async-execution` after changing async behavior, validation runners, temp-file handling, or long-horizon execution scripts.
+- Run `scripts/check-runtime-compatibility` after changing script requirements, PATH assumptions, runtime ignore rules, clean-home compatibility, dashboard health inputs, or cross-lane startup commands.
+- Run `scripts/check-workspace-safety` after adding or changing workspaces, workspace templates, workspace runtime directories, workspace-local symlinks, or large-agent task scaffolds.
+- Run `scripts/check-sandbox-skills` after adding or changing sandbox-specific skills.
 - Keep `agents.max_depth = 1`; child agents should not recursively fan out.
 
 ## Long-Horizon Work Contract
@@ -46,6 +61,9 @@ Global Codex rules remain in `/Users/liuchengxu/.codex/AGENTS.md`; do not duplic
 - Start by creating or updating `registry/current-progress.md`.
 - For a new project or task, create a dedicated folder under `workspaces/`.
 - New workspace folders should include a local `AGENTS.md` derived from `docs/project-rule-template.md` when the work may span sessions, agents, or lanes.
+- Treat scenario workspaces as examples until their patterns are proven reusable; do not promote UCP, commercial support, or any single domain into root lab policy without broad value evidence.
+- Use `docs/scenario-workspace-contract.md` for scenario boundaries and Codex/Claude amplification declarations.
+- Use `docs/workspace-safety-contract.md` to distinguish hard workspace safety failures from temporary in-progress scaffold warnings.
 - Use file handoffs instead of pasting large context into messages.
 - When dispatching agents, name the exact custom agent and give it a narrow task.
 - Do not dispatch unbounded "all agents" work. Use a small set with clear owners.
@@ -73,8 +91,14 @@ Global Codex rules remain in `/Users/liuchengxu/.codex/AGENTS.md`; do not duplic
 ## Reasoning Speed
 
 - Use `docs/reasoning-speed-playbook.md` to reduce avoidable `gpt-5.5` + `xhigh` latency.
+- Use `docs/waterflow-speed-contract.md` to keep Waterflow supervision advisory, incremental, and non-blocking during ordinary Codex and Claude work.
 - Keep xhigh for high-risk architecture, security, root-cause debugging, and final integration decisions.
 - Move file lookup, scans, shell checks, changed-only validation, and independent evidence collection onto faster or parallel lanes when safe.
+- Do not put stress fixtures, incident fixtures, full Waterflow verification, broad unit discovery, or async fan-out into the default edit loop.
+- Run `scripts/check-speed-contract` after changing Waterflow supervision, speed routing, async execution, or default health gates.
+- Use `scripts/benchmark-ide-loop` for measured RED/GREEN, gate, Waterflow, and OMX model-smoke timing; use `scripts/lab-dashboard` to summarize current health from artifacts.
+- Use `docs/runtime-compatibility.md` and `scripts/check-runtime-compatibility` to separate environment drift from agent implementation bugs before long work starts.
+- Use `scripts/check-workspace-safety` before promoting any workspace output into root lab patterns or before treating a large-agent workspace as stable.
 
 ## Agent Roles
 
@@ -86,6 +110,13 @@ Global Codex rules remain in `/Users/liuchengxu/.codex/AGENTS.md`; do not duplic
 - `risk-reviewer`: reviews correctness, security, regressions, and missing tests.
 - `handoff-summarizer`: writes compact restart and compaction handoffs.
 - `waterflow-auditor`: scans lab workflow paths and emits repair briefs for coordination defects.
+- `foundation-amplifier`: strengthens the lab foundation by routing large agent work, defining Codex/Claude amplification plans, and backtesting whether environment capabilities improved.
+- `development-experience-auditor`: scores Codex/Claude lab comfort across context, runtime, verification, handoff, and safety signals.
+- `third-party-large-agent-auditor`: audits large-agent readiness from an external-review posture across intake, context, architecture, runtime, delegation, tooling, verification, observability, safety, handoff, performance, and model-proof signals.
+- `secret-boundary-auditor`: audits secret, auth, token, and local-path leakage in sandbox artifacts.
+- `async-race-detector`: diagnoses concurrent check, worker, temp, stderr, timeout, and cleanup races.
+- `tmux-omx-runtime-doctor`: diagnoses OMX team, tmux pane, startup script, and worker runtime failures.
+- `sandbox-artifact-hygiene`: classifies generated outputs, logs, workspaces, and proof artifacts before commit.
 
 ## Reporting
 

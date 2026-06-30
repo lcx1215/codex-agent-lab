@@ -1,0 +1,55 @@
+{
+  "schema": "codex-claude-collaboration-assignments/v1",
+  "updated": "2026-06-30T17:05:00+08:00",
+  "assignments": [
+    {
+      "id": "collab-0001-omc-team-bootstrap",
+      "title": "OMC team run (security-reviewer, architect, verifier)",
+      "leader": "claude",
+      "workers": ["security-reviewer", "architect", "verifier"],
+      "reviewer": "codex",
+      "status": "blocked",
+      "handoff": null,
+      "artifacts": [".omc/state/team/2026-06-30-omc-lane-1-omc-setu"],
+      "note": "Workers stayed pending; startup failure worker_start_submit_unverified:worker-1:%1:467cbe2c5fa6. Installed but not proven.",
+      "updated": "2026-06-30T15:40:00+08:00"
+    },
+    {
+      "id": "collab-0002-collaboration-layer",
+      "title": "Build lab-local Codex-Claude collaboration layer",
+      "leader": "claude",
+      "workers": ["executor"],
+      "reviewer": "verifier",
+      "status": "proven",
+      "handoff": null,
+      "artifacts": [
+        "CLAUDE.md",
+        "docs/codex-claude-collaboration-protocol.md",
+        "registry/collaboration/assignments.json",
+        "registry/collaboration/handoffs/",
+        "scripts/check-collaboration"
+      ],
+      "note": "Collaboration surfaces authored from the Codex audit recommendation and validated by scripts/check-collaboration (wired into scripts/check-lab). Real interop proven by collab-0003.",
+      "updated": "2026-06-30T17:05:00+08:00"
+    },
+    {
+      "id": "collab-0003-interop-proof",
+      "title": "Real tmux omc interop proof (OMC leader + Codex/OMX worker)",
+      "leader": "claude",
+      "workers": ["codex"],
+      "reviewer": "codex",
+      "status": "proven",
+      "handoff": "registry/collaboration/handoffs/20260630-1600-claude-to-codex-interop-proof.md",
+      "artifacts": [
+        "outputs/shared/codex-claude-interop/20260630T0900Z/interop-proof-report.md",
+        "outputs/shared/codex-claude-interop/20260630T0900Z/task.json",
+        "outputs/shared/codex-claude-interop/20260630T0900Z/interop-result.json",
+        "outputs/shared/codex-claude-interop/20260630T0900Z/tmux-panes.txt",
+        "outputs/shared/codex-claude-interop/20260630T0900Z/omc-interop-launch.log",
+        "workspaces/20260630_164221-omc-omx-interop-proof/run-interop-proof.sh"
+      ],
+      "note": "PROVEN 2026-06-30: real tmux omc interop session (panes %2 zsh + %3 codex) ran a real OMC->OMX task round-trip (task id 1782809987353-7b9a7e408) answered by the real Codex model (gpt-5.5/xhigh) and read back via shared-state, exit 0, no secrets crossed lanes.",
+      "updated": "2026-06-30T17:05:00+08:00"
+    }
+  ]
+}

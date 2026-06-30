@@ -1,6 +1,6 @@
 # Validation
 
-Last updated: 2026-06-29 21:35 +0800
+Last updated: 2026-06-30 13:37 +0800
 
 ## Completed Checks
 
@@ -59,7 +59,7 @@ Last updated: 2026-06-29 21:35 +0800
 
 - Script validation references
   - Result: pass
-  - Evidence: `scripts/check-async-execution`, `scripts/check-lab`, `scripts/check-project-rules`, `scripts/check-sandbox`, `scripts/check-workflow-modes`, `scripts/check-secrets`, `scripts/new-workspace`, `scripts/start-api-relay`, `scripts/start-api-relay-plain`, `scripts/start-clean-home`, `scripts/sync-long-horizon-skills`, `scripts/workflow-mode`, `scripts/waterflow-scan`, `scripts/waterflow-verify`, `scripts/waterflow-stress`, and `scripts/waterflow-incident` are now explicitly named in this validation file.
+  - Evidence: `scripts/check-async-execution`, `scripts/check-lab`, `scripts/check-project-rules`, `scripts/check-sandbox`, `scripts/check-sandbox-skills`, `scripts/check-speed-contract`, `scripts/check-workflow-modes`, `scripts/check-secrets`, `scripts/development-experience-audit`, `scripts/new-workspace`, `scripts/start-api-relay`, `scripts/start-api-relay-plain`, `scripts/start-clean-home`, `scripts/sync-long-horizon-skills`, `scripts/workflow-mode`, `scripts/waterflow-scan`, `scripts/waterflow-verify`, `scripts/waterflow-stress`, and `scripts/waterflow-incident` are now explicitly named in this validation file.
 
 - Project-level rule expansion
   - Command: `scripts/check-project-rules`
@@ -422,6 +422,464 @@ Last updated: 2026-06-29 21:35 +0800
   - Evidence: final Waterflow report summary is `finding_count: 0`, `node_count: 92`, `edge_count: 91`, and `path_count: 92`.
   - Evidence: latest path diff reports `added_count: 0`, `changed_count: 0`, `removed_count: 0`, and `unchanged_count: 92`.
 
+- Sandbox Skill Pack 1
+  - Added skills: `secret-boundary-auditor`, `async-race-detector`, `tmux-omx-runtime-doctor`, and `sandbox-artifact-hygiene`.
+  - Command: `scripts/check-sandbox-skills`
+  - Result: pass
+  - Evidence: command reported `OK: sandbox skills are valid`.
+  - Command: `bash -n scripts/check-sandbox-skills scripts/check-lab scripts/check-project-rules`
+  - Result: pass
+  - Evidence: Bash syntax checks completed without output or error.
+  - Command: `scripts/check-project-rules`
+  - Result: pass
+  - Evidence: command reported `OK: project rule surfaces are valid`.
+  - Command: `scripts/check-lab`
+  - Result: pass
+  - Evidence: lab check reported 8 custom agents, 46 lab-local skills, Codex CLI found, and `OK: lab structure is valid`.
+
+- Waterflow speed contract
+  - Added surfaces: `docs/waterflow-speed-contract.md` and `scripts/check-speed-contract`.
+  - Command: `bash -n scripts/check-speed-contract scripts/check-lab scripts/check-project-rules`
+  - Result: pass
+  - Evidence: Bash syntax checks completed without output or error.
+  - Command: `scripts/check-speed-contract`
+  - Result: pass
+  - Evidence: command reported `OK: Waterflow speed contract is valid`.
+  - Command: `scripts/check-project-rules`
+  - Result: pass
+  - Evidence: command reported `OK: project rule surfaces are valid`.
+  - Command: `scripts/check-lab`
+  - Result: pass
+  - Evidence: lab check reported 8 custom agents, 46 lab-local skills, Codex CLI found, and `OK: lab structure is valid`.
+  - Command: `scripts/check-sandbox-skills`
+  - Result: pass
+  - Evidence: command reported `OK: sandbox skills are valid`.
+  - Command: `scripts/check-secrets`
+  - Result: pass
+  - Evidence: command reported `OK: no committable secrets or README-local user paths detected`.
+  - Command: `python3 -m unittest discover -s tests`
+  - Result: pass
+  - Evidence: `Ran 12 tests in 2.357s` and `OK`.
+  - Command: `scripts/waterflow-verify`
+  - Result: pass
+  - Evidence: validation runner reported 5 checks, 5 passed, and 0 failed.
+  - Command: `scripts/waterflow-scan --root . --compare-last`
+  - Result: pass
+  - Evidence: final Waterflow report summary is `finding_count: 0`, `node_count: 99`, `edge_count: 98`, and `path_count: 99`.
+  - Evidence: latest path diff reports `added_count: 0`, `changed_count: 0`, `removed_count: 0`, and `unchanged_count: 99`.
+  - Evidence: changed-only validation plan reports 0 changed paths and 0 checks.
+
+- IDE-loop benchmark and dashboard
+  - Added surfaces: `scripts/benchmark-ide-loop` and `scripts/lab-dashboard`.
+  - Command: `python3 -m py_compile scripts/benchmark-ide-loop scripts/lab-dashboard && bash -n scripts/check-project-rules scripts/check-lab`
+  - Result: pass
+  - Evidence: syntax checks completed without output or error.
+  - Command: `scripts/check-project-rules`
+  - Result: pass
+  - Evidence: command reported `OK: project rule surfaces are valid`.
+  - Command: `scripts/benchmark-ide-loop`
+  - Result: pass
+  - Evidence: generated `outputs/shared/benchmarks/ide-loop/runs/20260630T022007Z/run.json` and `run.md`.
+  - Evidence: earlier benchmark run reported `status: pass`, `with_omx: false`, `total_seconds: 22.005`, and `failed_checks: none`.
+  - Evidence: latest benchmark history was written to `outputs/shared/benchmarks/ide-loop/history.jsonl`, `history.csv`, and `history.md`.
+  - Command: `scripts/lab-dashboard`
+  - Result: pass with useful warning before validation-reference repair.
+  - Evidence: generated `outputs/shared/dashboard/lab-dashboard.json` and `lab-dashboard.md`; it reported the benchmark pass and surfaced 2 Waterflow findings for missing validation references on the two new scripts.
+  - Command: `scripts/waterflow-scan --root . --compare-last`
+  - Result: pass after adding validation references.
+  - Evidence: command reported `findings: 0`.
+  - Command: `scripts/lab-dashboard`
+  - Result: pass.
+  - Evidence: dashboard reported `Health: ok`, `Issues: none`, latest benchmark `status: pass`, Waterflow `Findings: 0`, diff added `0`, changed `0`, removed `0`, changed-only checks `0`, async `7` checks with `7` passed and `0` failed.
+
+- Local-only Scenario Workspace
+  - A private scenario workspace exists on this machine for local agent experimentation.
+  - It is intentionally excluded from Git/GitHub and should stay out of pushed commits unless the user explicitly asks to publish that workspace.
+  - Root lab validation evidence remains recorded through the generic lab gates below.
+  - Evidence: lab check reported 8 custom agents, 46 lab-local skills, Codex CLI found, and `OK: lab structure is valid`.
+  - Command: `scripts/check-secrets`
+  - Result: pass.
+  - Evidence: command reported `OK: no committable secrets or README-local user paths detected`.
+  - Command: `python3 -m unittest discover -s tests`
+  - Working directory: lab root.
+  - Result: pass.
+  - Evidence: `Ran 12 tests in 2.544s` and `OK`.
+  - Command: `scripts/waterflow-scan --root . --compare-last`
+  - Result: pass.
+  - Evidence: report summary showed 103 paths, 0 findings, and path diff added 0, changed 0, removed 0.
+  - Command: `scripts/waterflow-verify`
+  - Result: pass.
+  - Evidence: validation runner reported 5 checks, 5 passed, and 0 failed.
+  - Command: `scripts/lab-dashboard`
+  - Result: pass.
+  - Evidence: dashboard reported `Health: ok`, `Issues: none`, Waterflow findings clear, and verification 5 passed / 0 failed.
+
+- Open agent lab positioning correction
+  - Updated docs: `README.md`, `AGENTS.md`, `docs/agent-lab-mission.md`, and `registry/CAPABILITY_LAYERS.md`.
+  - Result: pass.
+  - Evidence: root lab now states that it is scenario-neutral and can host arbitrarily large agent families; UCP and commercial customer-service are future scenario workspaces only.
+  - Evidence: root lab now states that Waterflow, skills, scripts, benchmarks, and workspaces amplify Codex/Claude work rather than replacing model-agent reasoning, coding, review, or recovery.
+  - Command: `scripts/check-project-rules`
+  - Result: pass.
+  - Evidence: command reported `OK: project rule surfaces are valid`.
+  - Command: `scripts/check-lab`
+  - Result: pass.
+  - Evidence: lab check reported 8 custom agents, 46 lab-local skills, Codex CLI found, and `OK: lab structure is valid`.
+  - Command: `scripts/check-secrets`
+  - Result: pass.
+  - Evidence: command reported `OK: no committable secrets or README-local user paths detected`.
+  - Command: `python3 -m unittest discover -s tests`
+  - Working directory: lab root.
+  - Result: pass.
+  - Evidence: `Ran 12 tests in 2.911s` and `OK`.
+
+- Scenario workspace contract
+  - Added docs: `docs/scenario-workspace-contract.md`.
+  - Updated scaffold: `scripts/new-workspace`.
+  - Updated template: `docs/project-rule-template.md`.
+  - Added regression test: `tests/test_workspace_contract.py`.
+  - Command: `python3 -m unittest tests.test_workspace_contract`
+  - Result: RED before implementation.
+  - Evidence: failed because generated `AGENTS.md` lacked `## Scenario Boundary`.
+  - Command: `python3 -m unittest tests.test_workspace_contract`
+  - Result: pass after implementation.
+  - Evidence: `Ran 1 test in 3.061s` and `OK`.
+  - Command: `scripts/check-project-rules`
+  - Result: pass.
+  - Evidence: command reported `OK: project rule surfaces are valid`.
+  - Command: `bash -n scripts/new-workspace scripts/check-project-rules`
+  - Result: pass.
+  - Evidence: Bash syntax checks completed without output or error.
+  - Command: `python3 -m unittest discover -s tests`
+  - Result: pass.
+  - Evidence: `Ran 13 tests in 2.667s` and `OK`.
+  - Command: `scripts/check-lab`
+  - Result: pass.
+  - Evidence: lab check reported 8 custom agents, 46 lab-local skills, Codex CLI found, and `OK: lab structure is valid`.
+  - Command: `scripts/check-secrets`
+  - Result: pass.
+  - Evidence: command reported `OK: no committable secrets or README-local user paths detected`.
+  - Coverage: new scenario workspaces must declare scenario type, local boundary, promotion rule, and how the workspace amplifies Codex/Claude without replacing model-agent reasoning or verification responsibility.
+
+- Foundation amplifier agent
+  - Added agent: `.codex/agents/foundation-amplifier.toml`.
+  - Added docs: `docs/foundation-amplifier-agent.md`.
+  - Added regression test: `tests/test_foundation_amplifier_agent.py`.
+  - Added backtest artifact: `outputs/shared/foundation-amplifier/backtest-20260630T0330Z.md`.
+  - Command: `python3 -m unittest tests.test_foundation_amplifier_agent`
+  - Result: RED before implementation.
+  - Evidence: failed because `.codex/agents/foundation-amplifier.toml` was missing.
+  - Command: `python3 -m unittest tests.test_foundation_amplifier_agent`
+  - Result: pass after implementation.
+  - Evidence: `Ran 1 test in 0.002s` and `OK`.
+  - Command: `scripts/check-lab`
+  - Result: pass.
+  - Evidence: lab check reported 9 custom agents, 46 lab-local skills, Codex CLI found, and `OK: lab structure is valid`.
+  - Command: `python3 -m unittest discover -s tests`
+  - Result: pass.
+  - Evidence: `Ran 14 tests in 3.095s` and `OK`.
+  - Command: `scripts/check-project-rules`
+  - Result: pass.
+  - Evidence: command reported `OK: project rule surfaces are valid`.
+  - Command: `scripts/check-secrets`
+  - Result: pass.
+  - Evidence: command reported `OK: no committable secrets or README-local user paths detected`.
+  - Command: `CODEX_HOME=.codex-home codex -C /Users/liuchengxu/Desktop/codex-agent-lab debug prompt-input 'Check whether foundation-amplifier is discoverable.'`
+  - Result: pass.
+  - Evidence: prompt input included the lab AGENTS role entry for `foundation-amplifier`.
+  - Command: `scripts/benchmark-ide-loop`
+  - Result: pass.
+  - Evidence: run `20260630T032925Z` reported `status: pass`, `total_seconds: 19.335`, and `failed_checks: none`.
+  - Backtest verdict: Codex/Claude capability is better released through clearer routing, a discoverable foundation-strengthening agent, preserved safety gates, and a faster measured default loop compared with run `20260630T022007Z` at `22.005s`. This is not an absolute proof of maximum possible capability.
+
+- Live model-backed foundation-amplifier invocation
+  - Command: `/Users/liuchengxu/.local/bin/omx-api exec -C /Users/liuchengxu/Desktop/codex-agent-lab -`
+  - Result: pass.
+  - Evidence: CLI output showed provider `custom`, model `gpt-5.5`, reasoning effort `xhigh`, and green-light `cli-omx-runtime`.
+  - Evidence: live invocation wrote `outputs/shared/foundation-amplifier/live-model-backed-20260630T034423Z.md`.
+  - Evidence: subprocess verified the artifact has 34 lines and required sections `Summary`, `Evidence Read`, `Amplification Check`, `Problems Found`, and `Recommended Next Step`.
+  - Evidence: subprocess reported `tokens used 96,651`.
+  - Boundary: the invocation did not read or change secrets, auth files, provider config, plugin state, API keys, cookies, tokens, or live customer data; it did not run tests or broad scans.
+  - Boundary: this proof validates model-backed contract use and durable artifact creation, not native subagent dispatch, official OMX team reliability, or long-running autonomy.
+
+- Frugality guidance removal and benchmark real-smoke validation
+  - Updated surfaces: lab `AGENTS.md`, `README.md`, `docs/reasoning-speed-playbook.md`, `scripts/benchmark-ide-loop`, `tests/test_benchmark_ide_loop.py`, mirrored lab-local skills under `.agents/skills`, and matching global user skills under `/Users/liuchengxu/.codex/skills`.
+  - Result: pass.
+  - Evidence: phrase scan over lab rules, lab skills, global user skills, prompts, and agents found no remaining model-usage frugality rules; remaining hits were security credential storage references and Figma design-token references.
+  - Command: `python3 -m unittest tests.test_benchmark_ide_loop tests.test_foundation_amplifier_agent`
+  - Result: pass.
+  - Evidence: `Ran 3 tests in 0.019s` and `OK`.
+  - Command: `python3 -m unittest discover -s tests`
+  - Result: pass.
+  - Evidence: `Ran 16 tests in 2.944s` and `OK`.
+  - Command: `python3 -m py_compile scripts/benchmark-ide-loop scripts/lab-dashboard`
+  - Result: pass.
+  - Evidence: command exited 0.
+  - Command: `scripts/check-speed-contract`
+  - Result: pass.
+  - Evidence: command reported `OK: Waterflow speed contract is valid`.
+  - Command: `scripts/check-sandbox-skills`
+  - Result: pass.
+  - Evidence: command reported `OK: sandbox skills are valid`.
+  - Command: `scripts/check-secrets`
+  - Result: pass.
+  - Evidence: command reported `OK: no committable secrets or README-local user paths detected`.
+  - Command: `scripts/check-project-rules`
+  - Result: pass.
+  - Evidence: command reported `OK: project rule surfaces are valid`.
+  - Command: `scripts/check-lab`
+  - Result: pass.
+  - Evidence: lab check reported 9 custom agents, 46 lab-local skills, Codex CLI found, and `OK: lab structure is valid`.
+  - Command: `scripts/benchmark-ide-loop`
+  - Result: pass.
+  - Evidence: run `20260630T035103Z` reported `with_omx=true`, `status=pass`, `total_seconds=103.590`, `local_seconds=0.356`, `gate_seconds=9.969`, `waterflow_seconds=8.306`, `omx_seconds=84.959`, and `failed_checks=none`.
+  - Command: `scripts/waterflow-scan --root . --compare-last`
+  - Result: pass.
+  - Evidence: final compare reported `findings: 0`.
+  - Command: `scripts/waterflow-verify`
+  - Result: pass.
+  - Evidence: validation runner reported 5 checks, 5 passed, and 0 failed.
+  - Command: `scripts/lab-dashboard`
+  - Result: pass.
+  - Evidence: dashboard reported `Health: ok`, `Issues: none`, Waterflow 109 paths, 0 findings, 0 added/changed/removed diff, changed-only checks 0, and async 7 passed / 0 failed / 0 timed out.
+
+- Development Experience Auditor agent
+  - Added agent: `.codex/agents/development-experience-auditor.toml`.
+  - Added docs: `docs/development-experience-auditor-agent.md`.
+  - Added harness: `lab_agents/development_experience.py`.
+  - Added CLI: `scripts/development-experience-audit`.
+  - Added regression test: `tests/test_development_experience_auditor.py`.
+  - Command: `python3 -m unittest tests.test_development_experience_auditor`
+  - Result: RED before implementation.
+  - Evidence: first failure was `ModuleNotFoundError: No module named 'lab_agents'`.
+  - Command: `python3 -m unittest tests.test_development_experience_auditor`
+  - Result: RED during harness expansion.
+  - Evidence: second failure was `ImportError: cannot import name 'collect_lab_comfort_signals'`.
+  - Command: `python3 -m unittest tests.test_development_experience_auditor`
+  - Result: RED during benchmark parser repair.
+  - Evidence: third failure was `ImportError: cannot import name 'latest_model_seconds_from_history'`.
+  - Command: `python3 -m unittest tests.test_development_experience_auditor`
+  - Result: pass.
+  - Evidence: `Ran 5 tests in 0.002s` and `OK`.
+  - Command: `scripts/development-experience-audit`
+  - Result: pass.
+  - Evidence: generated `outputs/shared/development-experience-auditor/runs/20260630T040747Z/report.md`, `report.json`, `outputs/shared/development-experience-auditor/latest.md`, and `latest.json`.
+  - Evidence: report score was 92 with status `usable_with_friction`; only runtime was mixed because latest OMX model smoke took 84.959s.
+  - Command: `python3 -m py_compile lab_agents/development_experience.py && bash -n scripts/development-experience-audit scripts/check-project-rules scripts/check-lab`
+  - Result: pass.
+  - Evidence: command exited 0.
+  - Command: `python3 -m unittest discover -s tests`
+  - Result: pass.
+  - Evidence: `Ran 21 tests in 2.625s` and `OK`.
+  - Command: `scripts/check-project-rules`
+  - Result: pass.
+  - Evidence: command reported `OK: project rule surfaces are valid`.
+  - Command: `scripts/check-secrets`
+  - Result: pass.
+  - Evidence: command reported `OK: no committable secrets or README-local user paths detected`.
+  - Command: `scripts/check-lab`
+  - Result: pass.
+  - Evidence: lab check reported 10 custom agents, 46 lab-local skills, Codex CLI found, and `OK: lab structure is valid`.
+  - Command: `scripts/check-speed-contract`
+  - Result: pass.
+  - Evidence: command reported `OK: Waterflow speed contract is valid`.
+  - Command: `scripts/waterflow-scan --root . --compare-last`
+  - Result: pass.
+  - Evidence: final compare reported `findings: 0`.
+  - Command: `scripts/waterflow-verify`
+  - Result: pass.
+  - Evidence: validation runner reported 5 checks, 5 passed, and 0 failed.
+  - Command: `scripts/lab-dashboard`
+  - Result: pass.
+  - Evidence: dashboard reported `Health: ok`, Waterflow 113 paths, 0 findings, 0 added/changed/removed diff, and async 7 passed / 0 failed / 0 timed out.
+  - Comfort verdict: development in this lab is comfortable for medium-sized agent work, with the main friction being high-latency real model smoke. The active edit loop is fast enough when model smoke remains a boundary check.
+  - Command: `/Users/liuchengxu/.local/bin/omx-api exec -C /Users/liuchengxu/Desktop/codex-agent-lab -`
+  - Result: pass.
+  - Evidence: CLI output showed provider `custom`, model `gpt-5.5`, reasoning effort `xhigh`, and green-light `cli-omx-runtime`.
+  - Evidence: live model review wrote `outputs/shared/development-experience-auditor/live-model-review-20260630T041305Z.md`.
+  - Evidence: subprocess verified the artifact has 33 lines, and reported `tokens used 45,468`.
+  - Boundary: the live review read only the requested local evidence files, did not run tests or broad scans, and did not touch auth/provider/plugin/App state.
+
+- Third-Party Large Agent Readiness Auditor
+  - Added agent: `.codex/agents/third-party-large-agent-auditor.toml`.
+  - Added docs: `docs/third-party-large-agent-auditor.md`.
+  - Added harness: `lab_agents/large_agent_readiness.py`.
+  - Added CLI: `scripts/large-agent-readiness-audit`.
+  - Added regression test: `tests/test_large_agent_readiness_auditor.py`.
+  - Command: `python3 -m unittest tests.test_large_agent_readiness_auditor`
+  - Result: RED before implementation.
+  - Evidence: first failure was `ModuleNotFoundError: No module named 'lab_agents.large_agent_readiness'`.
+  - Command: `python3 -m unittest tests.test_large_agent_readiness_auditor`
+  - Result: pass.
+  - Evidence: `Ran 4 tests in 0.011s` and `OK`.
+  - Command: `scripts/large-agent-readiness-audit`
+  - Result: pass.
+  - Evidence: generated `outputs/shared/large-agent-readiness-auditor/runs/20260630T053031Z/report.md`, `report.json`, `outputs/shared/large-agent-readiness-auditor/latest.md`, and `latest.json`.
+  - Evidence: report score was 92 with status `ready_with_known_constraints`; 10 dimensions passed, 2 were mixed, and 0 failed or missing.
+  - Evidence: top risks were `delegation` because official team mode remains mixed or unproven, and `performance` because the latest OMX model smoke took 84.959s.
+  - Command: `python3 -m py_compile lab_agents/large_agent_readiness.py && bash -n scripts/large-agent-readiness-audit scripts/check-project-rules`
+  - Result: pass.
+  - Evidence: command exited 0.
+  - Command: `python3 -m unittest discover -s tests`
+  - Result: pass.
+  - Evidence: `Ran 25 tests in 2.577s` and `OK`.
+  - Command: `scripts/check-project-rules`
+  - Result: pass.
+  - Evidence: command reported `OK: project rule surfaces are valid`.
+  - Command: `scripts/check-secrets`
+  - Result: pass.
+  - Evidence: command reported `OK: no committable secrets or README-local user paths detected`.
+  - Command: `scripts/check-speed-contract`
+  - Result: pass.
+  - Evidence: command reported `OK: Waterflow speed contract is valid`.
+  - Command: `scripts/check-lab`
+  - Result: pass.
+  - Evidence: lab check reported 11 custom agents, 46 lab-local skills, Codex CLI found, and `OK: lab structure is valid`.
+  - Command: `scripts/check-sandbox-skills`
+  - Result: pass.
+  - Evidence: command reported `OK: sandbox skills are valid`.
+  - Command: `scripts/waterflow-scan --root . --compare-last`
+  - Result: found expected registration gap before this validation entry.
+  - Evidence: Waterflow reported 1 `SCRIPT_WITHOUT_VALIDATION_REFERENCE` finding for `scripts/large-agent-readiness-audit`, proving the new script was not yet explicitly recorded in this validation file.
+  - Command: `scripts/waterflow-scan --root . --compare-last`
+  - Result: pass after recording validation evidence.
+  - Evidence: command reported `findings: 0`.
+  - Command: `scripts/waterflow-verify`
+  - Result: initial failure exposed a separate malformed workspace.
+  - Evidence: validation results reported 4 passed and 1 failed because `workspaces/20260630_133236-multiagent-parallel-proof` was missing `brief.md`.
+  - Repair: added `brief.md`, `progress.md`, and `AGENTS.md` to `workspaces/20260630_133236-multiagent-parallel-proof`.
+  - Command: `scripts/check-lab`
+  - Result: pass after workspace metadata repair.
+  - Evidence: lab check reported 11 custom agents, 46 lab-local skills, Codex CLI found, and `OK: lab structure is valid`.
+  - Command: `scripts/waterflow-scan --root . --compare-last`
+  - Result: pass after workspace metadata repair.
+  - Evidence: command reported `findings: 0`.
+  - Command: `scripts/waterflow-verify`
+  - Result: pass after workspace metadata repair.
+  - Evidence: validation runner reported 5 checks, 5 passed, and 0 failed.
+  - Command: `scripts/lab-dashboard`
+  - Result: pass.
+  - Evidence: dashboard reported `Health: ok`, `Issues: none`, Waterflow 118 paths, 0 findings, changed-only checks 0, and validation 5 passed / 0 failed.
+  - Command: `/Users/liuchengxu/.local/bin/omx-api exec -C /Users/liuchengxu/Desktop/codex-agent-lab -`
+  - Result: pass.
+  - Evidence: CLI output showed provider `custom`, model `gpt-5.5`, reasoning effort `xhigh`, and green-light `cli-omx-runtime`.
+  - Evidence: live review wrote `outputs/shared/large-agent-readiness-auditor/live-third-party-review-20260630T053456Z.md`.
+  - Evidence: artifact has 48 lines and concluded the lab is conditionally ready for controlled large-agent pilots, not unconstrained production-scale multi-agent operation.
+  - Evidence: subprocess reported `tokens used 47,433`.
+  - Boundary: the live review read only the requested four local evidence files, did not run tests, scans, git, or broad search, and did not touch auth/provider/plugin/App state.
+
+- Runtime Compatibility And Collaboration Gates
+  - Added contract: `docs/runtime-compatibility.md`.
+  - Added gate: `scripts/check-runtime-compatibility`.
+  - Added regression test: `tests/test_runtime_compatibility.py`.
+  - Integrated the gate into `scripts/check-lab`, `scripts/check-project-rules`, `scripts/check-async-execution`, and `scripts/lab-dashboard`.
+  - Command: `bash -n scripts/check-lab scripts/check-project-rules scripts/check-async-execution`.
+  - Result: pass.
+  - Evidence: Bash syntax checks exited 0.
+  - Command: `python3 -m py_compile scripts/check-runtime-compatibility scripts/lab-dashboard`.
+  - Result: pass.
+  - Evidence: Python compile checks exited 0.
+  - Command: `scripts/check-runtime-compatibility`.
+  - Result: pass.
+  - Evidence: command reported `status: pass`, `checks: 40`, `passed: 40`, `warnings: 0`, and `failed: 0`.
+  - Evidence: generated `outputs/shared/compatibility/runtime-compatibility.json` and `outputs/shared/compatibility/runtime-compatibility.md`.
+  - Command: `scripts/check-project-rules`.
+  - Result: pass.
+  - Evidence: command reported `OK: project rule surfaces are valid`.
+  - Command: `python3 -m unittest tests.test_runtime_compatibility`.
+  - Result: pass.
+  - Evidence: `Ran 1 test in 2.593s` and `OK`.
+  - Command: `python3 -m unittest tests.test_workspace_contract tests.test_runtime_compatibility`.
+  - Result: pass after fixing async workspace-test isolation.
+  - Evidence: `Ran 2 tests in 2.446s` and `OK`.
+  - Command: `scripts/check-async-execution`.
+  - Result: initial failure exposed workspace-test collision risk.
+  - Evidence: run `20260630T080910Z-63463` passed 7 checks and failed unit tests because `tests/test_workspace_contract.py` wrote to shared `workspaces/`.
+  - Repair: `scripts/new-workspace` now supports `WORKSPACE_ROOT` only when it resolves inside the lab root, and `tests/test_workspace_contract.py` writes to `.tmp/tests/workspace-contract`.
+  - Command: `bash -n scripts/new-workspace`.
+  - Result: pass.
+  - Evidence: Bash syntax check exited 0.
+  - Command: `python3 -m unittest tests.test_workspace_contract`.
+  - Result: pass.
+  - Evidence: `Ran 2 tests in 1.729s` and `OK`; the outside-lab override test confirmed no outside directory is created before rejection.
+  - Command: `scripts/check-async-execution`.
+  - Result: pass after repair.
+  - Evidence: run `20260630T081043Z-70694` reported 8 checks, 8 passed, 0 failed, and 0 timed out.
+  - Command: `python3 -m unittest discover -s tests`.
+  - Result: pass.
+  - Evidence: `Ran 27 tests in 7.099s` and `OK`.
+  - Command: `scripts/check-lab`.
+  - Result: pass.
+  - Evidence: lab check reported 11 agents, 46 skills, Codex CLI found, and `OK: lab structure is valid`.
+  - Command: `scripts/check-speed-contract`.
+  - Result: pass.
+  - Evidence: command reported `OK: Waterflow speed contract is valid`.
+  - Command: `scripts/waterflow-scan --root . --compare-last`.
+  - Result: pass.
+  - Evidence: command reported `findings: 0`.
+  - Command: `scripts/waterflow-verify`.
+  - Result: pass.
+  - Evidence: validation runner reported 5 checks, 5 passed, and 0 failed.
+  - Command: `scripts/check-async-execution`.
+  - Result: pass in the final verification set.
+  - Evidence: run `20260630T081243Z-78335` reported 8 checks, 8 passed, 0 failed, and 0 timed out.
+  - Command: `scripts/lab-dashboard`.
+  - Result: pass.
+  - Evidence: dashboard reported `Health: ok`, `Issues: none`, compatibility 40 checks with 0 warnings and 0 failures, async 8 passed / 0 failed / 0 timed out, and Waterflow 123 paths with 0 findings.
+  - Command: `scripts/check-collaboration`.
+  - Result: pass.
+  - Evidence: command reported `assignments OK: 3 entries`, `Protocol: ok`, `Handoffs: 1`, and `OK: collaboration surfaces are valid`.
+  - Boundary: compatibility warnings do not block normal work; only required local tool, script hygiene, runtime-state, clean-home auth, or documentation failures make the gate fail.
+
+- Workspace Safety Gate
+  - Added contract: `docs/workspace-safety-contract.md`.
+  - Added gate: `scripts/check-workspace-safety`.
+  - Added regression test: `tests/test_workspace_safety.py`.
+  - Integrated the gate into `scripts/check-lab`, `scripts/check-project-rules`, `scripts/check-async-execution`, and `scripts/lab-dashboard`.
+  - Updated `scripts/new-workspace` to create a workspace-local `.gitignore` and to keep `WORKSPACE_ROOT` overrides inside the lab root.
+  - Added workspace-local `.gitignore` support to generated workspaces.
+  - Command: `python3 -m py_compile scripts/check-workspace-safety scripts/check-runtime-compatibility scripts/lab-dashboard`.
+  - Result: pass.
+  - Evidence: Python compile checks exited 0.
+  - Command: `scripts/check-workspace-safety`.
+  - Result: warn with no hard failures.
+  - Evidence: command reported workspace warnings with `failed: 0`.
+  - Command: `python3 -m unittest tests.test_workspace_contract tests.test_workspace_safety`.
+  - Result: pass.
+  - Evidence: `Ran 5 tests in 1.518s` and `OK`.
+  - Command: `python3 -m unittest discover -s tests` and `scripts/check-async-execution` run concurrently.
+  - Result: pass after making workspace-contract test roots unique per process.
+  - Evidence: root tests reported `Ran 30 tests in 4.552s` and `OK`.
+  - Evidence: async run `20260630T085150Z-87725` reported 9 checks, 9 passed, 0 failed, and 0 timed out.
+  - Command: `scripts/check-project-rules`.
+  - Result: pass.
+  - Evidence: command reported `OK: project rule surfaces are valid`.
+  - Command: `scripts/check-lab`.
+  - Result: pass.
+  - Evidence: lab check reported 11 agents, 46 skills, Codex CLI found, and `OK: lab structure is valid`.
+  - Boundary: scaffold gaps in active workspaces are warnings, not hard failures. Secret-like committable paths, symlink escapes, unignored runtime state, and workspace-local `.codex-home/auth.json` remain hard failures.
+
+## Codex-Claude Collaboration Layer
+
+- Date: 2026-06-30 16:10 +0800
+- Owner lane: claude
+- Scope: lab-local collaboration surfaces (`CLAUDE.md`, `docs/codex-claude-collaboration-protocol.md`, `registry/collaboration/assignments.json`, `registry/collaboration/handoffs/`, `scripts/check-collaboration`).
+  - Command: `scripts/check-collaboration`
+  - Result: pass.
+  - Evidence: reported `assignments OK: 3 entries`, `Protocol: ok`, `Handoffs: 1`, and `OK: collaboration surfaces are valid`.
+  - Note: the script is portable across lanes; it uses ripgrep when present and falls back to `grep -E`, so it runs in the Claude bash lane where `rg` is only the Codex.app-bundled binary.
+  - Command: `scripts/check-lab`
+  - Result: pass after wiring `check-collaboration` into the gate chain.
+  - Evidence: reported 11 custom agents, 46 lab-local skills, Codex CLI found, and `OK: lab structure is valid`.
+  - Command: `scripts/check-secrets`
+  - Result: pass.
+  - Evidence: reported `OK: no committable secrets or README-local user paths detected`.
+  - Command: `scripts/lab-dashboard`
+  - Result: pass.
+  - Evidence: dashboard reported `Health: ok`, 118 paths, 0 findings.
+  - Boundary: no secrets read or copied; no `~/.codex` / `~/.codex-api-relay` / provider / plugin state touched; all writes inside lab root.
+  - Honest status: collaboration commands are installed but real interop is not proven; assignment `collab-0003-interop-proof` stays `pending` until a real tmux run from a terminal produces an artifact.
+
 ## Not Run
 
-- A live model-backed custom-agent spawn was not run to avoid unnecessary API token spend.
+- No additional model-backed team or long-running autonomy proof was run for this validation.

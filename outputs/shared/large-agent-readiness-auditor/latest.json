@@ -1,0 +1,161 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-30T05:30:31.858052+00:00",
+  "summary": {
+    "dimension_count": 12,
+    "signal_count": 12,
+    "pass_count": 10,
+    "mixed_count": 2,
+    "fail_count": 0,
+    "missing_count": 0,
+    "readiness_score": 92,
+    "status": "ready_with_known_constraints",
+    "independent_verdict": "The lab can host large-agent development with explicit governance around the mixed dimensions."
+  },
+  "dimensions": {
+    "intake": {
+      "label": "Task intake",
+      "status": "pass",
+      "sources": [
+        "docs/scenario-workspace-contract.md"
+      ],
+      "evidence": [
+        "Scenario-neutral intake boundaries and workspace contract exist."
+      ]
+    },
+    "context": {
+      "label": "Context discipline",
+      "status": "pass",
+      "sources": [
+        "AGENTS.md"
+      ],
+      "evidence": [
+        "Long-horizon operating context is explicit."
+      ]
+    },
+    "architecture": {
+      "label": "Architecture readiness",
+      "status": "pass",
+      "sources": [
+        "docs/agent-lab-mission.md"
+      ],
+      "evidence": [
+        "Mission, quality bar, and promotion rules are documented."
+      ]
+    },
+    "runtime": {
+      "label": "Runtime execution",
+      "status": "pass",
+      "sources": [
+        "scripts/start-api-relay"
+      ],
+      "evidence": [
+        "API-relay OMX runtime entrypoint exists."
+      ]
+    },
+    "delegation": {
+      "label": "Delegation and parallelism",
+      "status": "mixed",
+      "sources": [
+        "workspaces/20260629_210146-omx-team-tmux-proof/team-summary.md"
+      ],
+      "evidence": [
+        "Official team mode remains mixed or unproven, while direct `omx-api exec` workers have proof artifacts."
+      ]
+    },
+    "tooling": {
+      "label": "Tools and skills",
+      "status": "pass",
+      "sources": [
+        ".agents/skills"
+      ],
+      "evidence": [
+        "46 lab-local skills are available."
+      ]
+    },
+    "verification": {
+      "label": "Verification gates",
+      "status": "pass",
+      "sources": [
+        "scripts/check-lab"
+      ],
+      "evidence": [
+        "Integrated lab health gate exists."
+      ]
+    },
+    "observability": {
+      "label": "Observability and dashboard",
+      "status": "pass",
+      "sources": [
+        "scripts/lab-dashboard"
+      ],
+      "evidence": [
+        "One-screen health dashboard exists."
+      ]
+    },
+    "safety": {
+      "label": "Safety and secret boundary",
+      "status": "pass",
+      "sources": [
+        "scripts/check-secrets"
+      ],
+      "evidence": [
+        "Secret scan entrypoint and explicit secret boundary rule exist."
+      ]
+    },
+    "handoff": {
+      "label": "Durable handoff",
+      "status": "pass",
+      "sources": [
+        "registry/current-progress.md"
+      ],
+      "evidence": [
+        "Durable progress registry exists."
+      ]
+    },
+    "performance": {
+      "label": "Performance and latency",
+      "status": "mixed",
+      "sources": [
+        "outputs/shared/benchmarks/ide-loop/history.md"
+      ],
+      "evidence": [
+        "Latest OMX model smoke took 84.959s; acceptable for boundary proof, too slow for the default edit loop."
+      ]
+    },
+    "model-proof": {
+      "label": "Model-backed proof",
+      "status": "pass",
+      "sources": [
+        "outputs/shared/development-experience-auditor/live-model-review-20260630T041305Z.md"
+      ],
+      "evidence": [
+        "A retained live model-backed review artifact exists."
+      ]
+    }
+  },
+  "top_risks": [
+    {
+      "dimension": "delegation",
+      "status": "mixed",
+      "source": "workspaces/20260629_210146-omx-team-tmux-proof/team-summary.md",
+      "evidence": "Official team mode remains mixed or unproven, while direct `omx-api exec` workers have proof artifacts."
+    },
+    {
+      "dimension": "performance",
+      "status": "mixed",
+      "source": "outputs/shared/benchmarks/ide-loop/history.md",
+      "evidence": "Latest OMX model smoke took 84.959s; acceptable for boundary proof, too slow for the default edit loop."
+    }
+  ],
+  "external_reviewer_notes": [
+    "This report judges retained artifacts and runnable checks, not claimed model-internal learning.",
+    "A passing dashboard is treated as health evidence, not as proof that future large-agent work will succeed automatically.",
+    "Delegation remains the largest scale risk until official team/tmux execution is freshly proven or deliberately bypassed.",
+    "Real model-backed proof is valuable, but slow model smoke tests should remain boundary checks instead of default edit-loop steps."
+  ],
+  "recommended_next_actions": [
+    "Keep direct `omx-api exec` as the proven worker path, and re-test official team mode only with a task that benefits from it.",
+    "Use `scripts/benchmark-ide-loop --skip-omx` for default health checks and reserve model smoke for boundary proof."
+  ]
+}

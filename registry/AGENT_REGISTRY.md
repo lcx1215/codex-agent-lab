@@ -12,6 +12,9 @@
 | `risk-reviewer` | Correctness and security review | read-only, xhigh |
 | `handoff-summarizer` | Restart and compaction notes | workspace-write, medium |
 | `waterflow-auditor` | Workflow graph audit and repair briefs | workspace-write, xhigh |
+| `foundation-amplifier` | Lab foundation strengthening, Codex/Claude amplification routing, and backtests | workspace-write, high |
+| `development-experience-auditor` | Codex/Claude development comfort scoring across context, runtime, verification, handoff, and safety | workspace-write, high |
+| `third-party-large-agent-auditor` | External-review large-agent readiness scoring across lifecycle, scale, safety, handoff, and model-proof signals | workspace-write, high |
 
 ## Runtime Lanes
 

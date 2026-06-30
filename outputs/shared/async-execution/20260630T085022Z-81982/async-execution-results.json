@@ -1,0 +1,143 @@
+{
+  "checks": [
+    {
+      "command": "./scripts/check-runtime-compatibility",
+      "duration_seconds": 2.763,
+      "exit_code": 0,
+      "failure_reasons": [],
+      "index": 1,
+      "name": "runtime-compatibility",
+      "passed": true,
+      "stderr": "",
+      "stderr_allowed": false,
+      "stdout": "status: pass\nchecks: 40\npassed: 40\nwarnings: 0\nfailed: 0\njson: /Users/liuchengxu/Desktop/codex-agent-lab/outputs/shared/compatibility/runtime-compatibility.json\nmarkdown: /Users/liuchengxu/Desktop/codex-agent-lab/outputs/shared/compatibility/runtime-compatibility.md\n",
+      "timed_out": false,
+      "tmpdir": ".tmp/async-execution/20260630T085022Z-81982/runtime-compatibility"
+    },
+    {
+      "command": "./scripts/check-workspace-safety",
+      "duration_seconds": 3.047,
+      "exit_code": 0,
+      "failure_reasons": [],
+      "index": 2,
+      "name": "workspace-safety",
+      "passed": true,
+      "stderr": "",
+      "stderr_allowed": false,
+      "stdout": "status: warn\nworkspaces: 6\nwarnings: 24\nfailed: 0\njson: /Users/liuchengxu/Desktop/codex-agent-lab/outputs/shared/workspace-safety/workspace-safety.json\nmarkdown: /Users/liuchengxu/Desktop/codex-agent-lab/outputs/shared/workspace-safety/workspace-safety.md\n",
+      "timed_out": false,
+      "tmpdir": ".tmp/async-execution/20260630T085022Z-81982/workspace-safety"
+    },
+    {
+      "command": "./scripts/check-sandbox",
+      "duration_seconds": 3.295,
+      "exit_code": 0,
+      "failure_reasons": [],
+      "index": 3,
+      "name": "sandbox",
+      "passed": true,
+      "stderr": "",
+      "stderr_allowed": false,
+      "stdout": "OK: sandbox boundaries are valid\n",
+      "timed_out": false,
+      "tmpdir": ".tmp/async-execution/20260630T085022Z-81982/sandbox"
+    },
+    {
+      "command": "./scripts/check-secrets",
+      "duration_seconds": 1.177,
+      "exit_code": 0,
+      "failure_reasons": [],
+      "index": 4,
+      "name": "secrets",
+      "passed": true,
+      "stderr": "",
+      "stderr_allowed": false,
+      "stdout": "OK: no committable secrets or README-local user paths detected\n",
+      "timed_out": false,
+      "tmpdir": ".tmp/async-execution/20260630T085022Z-81982/secrets"
+    },
+    {
+      "command": "./scripts/check-project-rules",
+      "duration_seconds": 3.427,
+      "exit_code": 0,
+      "failure_reasons": [],
+      "index": 5,
+      "name": "project-rules",
+      "passed": true,
+      "stderr": "",
+      "stderr_allowed": false,
+      "stdout": "OK: project rule surfaces are valid\n",
+      "timed_out": false,
+      "tmpdir": ".tmp/async-execution/20260630T085022Z-81982/project-rules"
+    },
+    {
+      "command": "./scripts/check-workflow-modes",
+      "duration_seconds": 1.266,
+      "exit_code": 0,
+      "failure_reasons": [],
+      "index": 6,
+      "name": "workflow-modes",
+      "passed": true,
+      "stderr": "",
+      "stderr_allowed": false,
+      "stdout": "OK: workflow modes are valid\n",
+      "timed_out": false,
+      "tmpdir": ".tmp/async-execution/20260630T085022Z-81982/workflow-modes"
+    },
+    {
+      "command": "python3 -m unittest discover -s tests",
+      "duration_seconds": 7.206,
+      "exit_code": 1,
+      "failure_reasons": [
+        "exit code 1"
+      ],
+      "index": 7,
+      "name": "unit-tests",
+      "passed": false,
+      "stderr": ".........................F....\n======================================================================\nFAIL: test_new_workspace_declares_scenario_boundary_and_agent_amplification (test_workspace_contract.WorkspaceContractTests.test_new_workspace_declares_scenario_boundary_and_agent_amplification)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/Users/liuchengxu/Desktop/codex-agent-lab/tests/test_workspace_contract.py\", line 31, in test_new_workspace_declares_scenario_boundary_and_agent_amplification\n    self.assertTrue(workspace.is_dir())\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^\nAssertionError: False is not true\n\n----------------------------------------------------------------------\nRan 30 tests in 6.721s\n\nFAILED (failures=1)\n",
+      "stderr_allowed": true,
+      "stdout": "",
+      "timed_out": false,
+      "tmpdir": ".tmp/async-execution/20260630T085022Z-81982/unit-tests"
+    },
+    {
+      "command": "python3 -m waterflow.auditor --root . --output-dir /Users/liuchengxu/Desktop/codex-agent-lab/.tmp/async-execution/20260630T085022Z-81982/waterflow-a --compare-last",
+      "duration_seconds": 0.671,
+      "exit_code": 0,
+      "failure_reasons": [],
+      "index": 8,
+      "name": "waterflow-scan-a",
+      "passed": true,
+      "stderr": "",
+      "stderr_allowed": false,
+      "stdout": "json: /Users/liuchengxu/Desktop/codex-agent-lab/.tmp/async-execution/20260630T085022Z-81982/waterflow-a/waterflow-report.json\nmarkdown: /Users/liuchengxu/Desktop/codex-agent-lab/.tmp/async-execution/20260630T085022Z-81982/waterflow-a/waterflow-report.md\nrepair_briefs: /Users/liuchengxu/Desktop/codex-agent-lab/.tmp/async-execution/20260630T085022Z-81982/waterflow-a/waterflow-repair-briefs.md\nvalidation_plan_json: /Users/liuchengxu/Desktop/codex-agent-lab/.tmp/async-execution/20260630T085022Z-81982/waterflow-a/waterflow-validation-plan.json\nvalidation_plan_markdown: /Users/liuchengxu/Desktop/codex-agent-lab/.tmp/async-execution/20260630T085022Z-81982/waterflow-a/waterflow-validation-plan.md\nchanged_validation_plan_json: /Users/liuchengxu/Desktop/codex-agent-lab/.tmp/async-execution/20260630T085022Z-81982/waterflow-a/waterflow-validation-plan-changed.json\nchanged_validation_plan_markdown: /Users/liuchengxu/Desktop/codex-agent-lab/.tmp/async-execution/20260630T085022Z-81982/waterflow-a/waterflow-validation-plan-changed.md\nroute_index_json: /Users/liuchengxu/Desktop/codex-agent-lab/.tmp/async-execution/20260630T085022Z-81982/waterflow-a/waterflow-route-index.json\nroute_index_markdown: /Users/liuchengxu/Desktop/codex-agent-lab/.tmp/async-execution/20260630T085022Z-81982/waterflow-a/waterflow-route-index.md\npath_index: /Users/liuchengxu/Desktop/codex-agent-lab/.tmp/async-execution/20260630T085022Z-81982/waterflow-a/waterflow-path-index.json\nfindings: 1\n",
+      "timed_out": false,
+      "tmpdir": ".tmp/async-execution/20260630T085022Z-81982/waterflow-scan-a"
+    },
+    {
+      "command": "python3 -m waterflow.auditor --root . --output-dir /Users/liuchengxu/Desktop/codex-agent-lab/.tmp/async-execution/20260630T085022Z-81982/waterflow-b",
+      "duration_seconds": 0.557,
+      "exit_code": 0,
+      "failure_reasons": [],
+      "index": 9,
+      "name": "waterflow-scan-b",
+      "passed": true,
+      "stderr": "",
+      "stderr_allowed": false,
+      "stdout": "json: /Users/liuchengxu/Desktop/codex-agent-lab/.tmp/async-execution/20260630T085022Z-81982/waterflow-b/waterflow-report.json\nmarkdown: /Users/liuchengxu/Desktop/codex-agent-lab/.tmp/async-execution/20260630T085022Z-81982/waterflow-b/waterflow-report.md\nrepair_briefs: /Users/liuchengxu/Desktop/codex-agent-lab/.tmp/async-execution/20260630T085022Z-81982/waterflow-b/waterflow-repair-briefs.md\nvalidation_plan_json: /Users/liuchengxu/Desktop/codex-agent-lab/.tmp/async-execution/20260630T085022Z-81982/waterflow-b/waterflow-validation-plan.json\nvalidation_plan_markdown: /Users/liuchengxu/Desktop/codex-agent-lab/.tmp/async-execution/20260630T085022Z-81982/waterflow-b/waterflow-validation-plan.md\nchanged_validation_plan_json: /Users/liuchengxu/Desktop/codex-agent-lab/.tmp/async-execution/20260630T085022Z-81982/waterflow-b/waterflow-validation-plan-changed.json\nchanged_validation_plan_markdown: /Users/liuchengxu/Desktop/codex-agent-lab/.tmp/async-execution/20260630T085022Z-81982/waterflow-b/waterflow-validation-plan-changed.md\nroute_index_json: /Users/liuchengxu/Desktop/codex-agent-lab/.tmp/async-execution/20260630T085022Z-81982/waterflow-b/waterflow-route-index.json\nroute_index_markdown: /Users/liuchengxu/Desktop/codex-agent-lab/.tmp/async-execution/20260630T085022Z-81982/waterflow-b/waterflow-route-index.md\npath_index: /Users/liuchengxu/Desktop/codex-agent-lab/.tmp/async-execution/20260630T085022Z-81982/waterflow-b/waterflow-path-index.json\nfindings: 1\n",
+      "timed_out": false,
+      "tmpdir": ".tmp/async-execution/20260630T085022Z-81982/waterflow-scan-b"
+    }
+  ],
+  "generated_at": "2026-06-30T08:50:29.649396+00:00",
+  "lab_root": "/Users/liuchengxu/Desktop/codex-agent-lab",
+  "run_id": "20260630T085022Z-81982",
+  "schema_version": 1,
+  "summary": {
+    "check_count": 9,
+    "duration_seconds": 7.228,
+    "failed_count": 1,
+    "passed_count": 8,
+    "timed_out_count": 0
+  }
+}

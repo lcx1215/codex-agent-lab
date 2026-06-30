@@ -176,4 +176,4 @@ For apps with LLM features. See the [OWASP GenAI Security Project](https://genai
 | LLM07 | System Prompt Leakage | Assume the system prompt can leak; put no secrets in it |
 | LLM08 | Vector and Embedding Weaknesses | Partition RAG embeddings per tenant; validate documents before indexing |
 | LLM09 | Misinformation | Ground answers with citations; validate critical claims; keep a human in the loop |
-| LLM10 | Unbounded Consumption | Cap tokens, request rate, and loop/recursion depth |
+| LLM10 | Unbounded Consumption | Bound request rate, loop/recursion depth, and workload fan-out |

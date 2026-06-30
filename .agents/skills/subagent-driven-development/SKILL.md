@@ -98,9 +98,9 @@ conflicts that only emerge from implementation.
 
 ## Model Selection
 
-Use the least powerful model that can handle each role to conserve cost and increase speed.
+Use the model capability that best fits each role. Do not choose weaker models when that would reduce correctness; prioritize correctness, throughput, and review quality.
 
-**Mechanical implementation tasks** (isolated functions, clear specs, 1-2 files): use a fast, cheap model. Most implementation tasks are mechanical when the plan is well-specified.
+**Mechanical implementation tasks** (isolated functions, clear specs, 1-2 files): a fast model is acceptable when it preserves correctness. Most implementation tasks are mechanical when the plan is well-specified.
 
 **Integration and judgment tasks** (multi-file coordination, pattern matching, debugging): use a standard model.
 
@@ -113,19 +113,19 @@ diff's size, complexity, and risk. A small mechanical diff does not need the
 most capable model; a subtle concurrency change does.
 
 **Always specify the model explicitly when dispatching a subagent.** An
-omitted model inherits your session's model — often the most capable and
-most expensive — which silently defeats this section.
+omitted model inherits your session's model, which can silently defeat
+deliberate role routing.
 
-**Turn count beats token price.** Wall-clock and context cost scale with how
-many turns a subagent takes, and the cheapest models routinely take 2-3× the
-turns on multi-step work — costing more overall. Use a mid-tier model as the
-floor for reviewers and for implementers working from prose descriptions.
-When the task's plan text contains the complete code to write, the
-implementation is transcription plus testing: use the cheapest tier for
-that implementer. Single-file mechanical fixes also take the cheapest tier.
+**Turn count matters more than a single-call shortcut.** Wall-clock and context overhead scale with how
+many turns a subagent takes, and underpowered models routinely take 2-3x the
+turns on multi-step work. Use a capable model as the floor for reviewers and
+for implementers working from prose descriptions. When the task's plan text
+contains the complete code to write, a fast tier is acceptable for that
+implementer. Single-file mechanical fixes can also use a fast tier when quality
+will not suffer.
 
 **Task complexity signals (implementation tasks):**
-- Touches 1-2 files with a complete spec → cheap model
+- Touches 1-2 files with a complete spec -> fast model acceptable
 - Touches multiple files with integration concerns → standard model
 - Requires design judgment or broad codebase understanding → most capable model
 
@@ -247,7 +247,7 @@ and is re-read on every later turn. Hand artifacts over as files:
 
 Conversation memory does not survive compaction. In real sessions,
 controllers that lost their place have re-dispatched entire completed task
-sequences — the single most expensive failure observed. Track progress in
+sequences — the single most damaging failure observed. Track progress in
 a ledger file, not only in todos.
 
 - At skill start, check for a ledger:

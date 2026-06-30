@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sandbox Artifact Hygiene"
+  short_description: "Classify sandbox outputs, logs, and workspaces before commit"
+  default_prompt: "Review these sandbox artifacts and decide what to commit, ignore, redact, or archive."

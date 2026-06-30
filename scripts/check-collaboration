@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LAB_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+PROTOCOL="$LAB_ROOT/docs/codex-claude-collaboration-protocol.md"
+ASSIGNMENTS="$LAB_ROOT/registry/collaboration/assignments.json"
+HANDOFF_DIR="$LAB_ROOT/registry/collaboration/handoffs"
+CLAUDE_MD="$LAB_ROOT/CLAUDE.md"
+
+fail() {
+  printf 'FAIL: %s\n' "$*" >&2
+  exit 1
+}
+
+# --- surfaces exist ---
+test -f "$PROTOCOL" || fail "collaboration protocol doc missing"
+test -f "$ASSIGNMENTS" || fail "collaboration assignments ledger missing"
+test -d "$HANDOFF_DIR" || fail "collaboration handoffs directory missing"
+test -f "$CLAUDE_MD" || fail "lab-local CLAUDE.md missing"
+
+# Portable matcher: prefer ripgrep when it is a real binary on PATH, else fall back to grep -E.
+# (In some lanes `rg` is only an interactive shell function and is not available to scripts.)
+if command -v rg >/dev/null 2>&1; then
+  has() { rg -q "$1" "$2"; }
+else
+  has() { grep -qE "$1" "$2"; }
+fi
+
+# --- protocol doc required sections ---
+for section in '^## Roles$' '^## Lane Boundaries$' '^## Handoff Format$' '^## Assignments Ledger$' '^## Proof Bar$' '^## Verification$'; do
+  has "$section" "$PROTOCOL" || fail "protocol doc missing section: $section"
+done
+
+# --- CLAUDE.md required sections ---
+has '^## Collaboration \(Claude <-> Codex\)$' "$CLAUDE_MD" || fail "CLAUDE.md missing Collaboration section"
+has '^## Isolation \(Hard Limits\)$' "$CLAUDE_MD" || fail "CLAUDE.md missing Isolation section"
+
+# --- assignments ledger is valid JSON with required shape ---
+python3 - "$ASSIGNMENTS" <<'PY' || fail "assignments ledger failed schema validation"
+import json, sys
+
+path = sys.argv[1]
+with open(path, encoding="utf-8") as fh:
+    data = json.load(fh)
+
+if data.get("schema") != "codex-claude-collaboration-assignments/v1":
+    print("bad or missing schema field", file=sys.stderr)
+    sys.exit(1)
+
+assignments = data.get("assignments")
+if not isinstance(assignments, list) or not assignments:
+    print("assignments must be a non-empty list", file=sys.stderr)
+    sys.exit(1)
+
+required = {"id", "title", "leader", "workers", "reviewer", "status", "handoff", "artifacts", "updated"}
+valid_status = {"pending", "in_progress", "blocked", "proven", "abandoned"}
+valid_lane = {"claude", "codex"}
+seen = set()
+
+for a in assignments:
+    missing = required - a.keys()
+    if missing:
+        print(f"assignment {a.get('id')!r} missing fields: {sorted(missing)}", file=sys.stderr)
+        sys.exit(1)
+    if a["id"] in seen:
+        print(f"duplicate assignment id: {a['id']}", file=sys.stderr)
+        sys.exit(1)
+    seen.add(a["id"])
+    if a["status"] not in valid_status:
+        print(f"assignment {a['id']} has invalid status: {a['status']}", file=sys.stderr)
+        sys.exit(1)
+    if a["leader"] not in valid_lane:
+        print(f"assignment {a['id']} has invalid leader lane: {a['leader']}", file=sys.stderr)
+        sys.exit(1)
+    if not isinstance(a["workers"], list):
+        print(f"assignment {a['id']} workers must be a list", file=sys.stderr)
+        sys.exit(1)
+    if not isinstance(a["artifacts"], list):
+        print(f"assignment {a['id']} artifacts must be a list", file=sys.stderr)
+        sys.exit(1)
+    # A proven assignment must have at least one artifact.
+    if a["status"] == "proven" and not a["artifacts"]:
+        print(f"assignment {a['id']} is proven but has no artifacts", file=sys.stderr)
+        sys.exit(1)
+
+print(f"assignments OK: {len(assignments)} entries")
+PY
+
+# --- handoffs are well-named and reference required sections ---
+handoff_count=0
+while IFS= read -r note; do
+  base="$(basename "$note")"
+  [ "$base" = "README.md" ] && continue
+  if ! printf '%s' "$base" | grep -qE '^[0-9]{8}-[0-9]{4}-(claude|codex)-to-(claude|codex)-[a-z0-9-]+\.md$'; then
+    fail "handoff name does not match YYYYMMDD-HHMM-<from>-to-<to>-<slug>.md: $base"
+  fi
+  for section in '^## Task$' '^## Request$' '^## Expected Artifacts$' '^## Verification$'; do
+    has "$section" "$note" || fail "handoff $base missing section: $section"
+  done
+  handoff_count=$((handoff_count + 1))
+done < <(find "$HANDOFF_DIR" -maxdepth 1 -name '*.md' -type f | sort)
+
+printf 'Protocol: ok\n'
+printf 'Assignments: %s\n' "$ASSIGNMENTS"
+printf 'Handoffs: %s\n' "$handoff_count"
+printf 'OK: collaboration surfaces are valid\n'

@@ -10,7 +10,7 @@ The governing rule: **the user (or a slash command) is the orchestrator. Persona
 
 ### 1. Direct invocation (no orchestration)
 
-Single persona, single perspective, single artifact. The default and the cheapest option.
+Single persona, single perspective, single artifact. The default and simplest option.
 
 ```
 user → code-reviewer → report → user
@@ -89,7 +89,7 @@ user runs:  /spec  →  /plan  →  /build  →  /test  →  /review  →  /ship
 
 **Cost:** one sub-agent context per step. Free for the orchestration layer because there is no orchestrator agent.
 
-**Why not automate it:** an LLM "lifecycle orchestrator" would (a) lose nuance between steps because it has to summarize for hand-off, (b) skip the human checkpoints that catch wrong-direction work early, and (c) double the token cost via paraphrasing turns.
+**Why not automate it:** an LLM "lifecycle orchestrator" would (a) lose nuance between steps because it has to summarize for hand-off, (b) skip the human checkpoints that catch wrong-direction work early, and (c) add coordination overhead via paraphrasing turns.
 
 ---
 
@@ -163,7 +163,7 @@ Don't redefine these. Layer your specialist personas (code-reviewer, security-au
 
 Plugin subagents do **not** support the `hooks`, `mcpServers`, or `permissionMode` frontmatter fields — these are silently ignored. If a future persona needs any of those, the user must copy the file into `.claude/agents/` or `~/.claude/agents/` instead.
 
-The fields that DO work in plugin agents are: `name`, `description`, `tools`, `disallowedTools`, `model`, `maxTurns`, `skills`, `memory`, `background`, `effort`, `isolation`, `color`, `initialPrompt`. Use `model` per-persona if you want to optimize cost (e.g. Haiku for `test-engineer` coverage scans, Sonnet for `code-reviewer`, Opus for `security-auditor`).
+The fields that DO work in plugin agents are: `name`, `description`, `tools`, `disallowedTools`, `model`, `maxTurns`, `skills`, `memory`, `background`, `effort`, `isolation`, `color`, `initialPrompt`. Use `model` per-persona to match capability to role (for example, faster models for simple coverage scans and stronger models for review or security judgment).
 
 ### Spawning multiple subagents in parallel
 
@@ -291,7 +291,7 @@ A persona whose job is to decide which other persona to call.
 
 **Why it fails:**
 - Pure routing layer with no domain value
-- Adds two paraphrasing hops → information loss + roughly 2× token cost
+- Adds two paraphrasing hops -> information loss plus coordination overhead
 - The user already knew they wanted a review; they could have called `/review` directly
 - Replicates the work that slash commands and intent mapping in `AGENTS.md` already do
 
@@ -320,7 +320,7 @@ An agent that calls `/spec`, then `/plan`, then `/build`, etc. on the user's beh
 **Why it fails:**
 - Loses the human checkpoints that catch wrong-direction work
 - Each hand-off summarizes context — accumulated drift over a long pipeline
-- Doubles token cost: orchestrator turn + sub-agent turn for every step
+- Adds coordination overhead: orchestrator turn + sub-agent turn for every step
 - Removes user agency at exactly the points where judgment matters most
 
 **What to do instead:** keep the user as the orchestrator. Document the recommended sequence in `README.md` and let users invoke it.

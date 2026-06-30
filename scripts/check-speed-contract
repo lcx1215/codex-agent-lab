@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LAB_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+fail() {
+  printf 'FAIL: %s\n' "$*" >&2
+  exit 1
+}
+
+check_file() {
+  local file="$1"
+  test -f "$file" || fail "missing file: $file"
+}
+
+check_pattern() {
+  local file="$1"
+  local pattern="$2"
+  local label="$3"
+  rg -q "$pattern" "$file" || fail "$label missing in $file"
+}
+
+CONTRACT="$LAB_ROOT/docs/waterflow-speed-contract.md"
+SPEED_PLAYBOOK="$LAB_ROOT/docs/reasoning-speed-playbook.md"
+WATERFLOW_SKILL="$LAB_ROOT/.agents/skills/waterflow-auditor/SKILL.md"
+ASYNC_CHECK="$LAB_ROOT/scripts/check-async-execution"
+
+check_file "$CONTRACT"
+check_file "$SPEED_PLAYBOOK"
+check_file "$WATERFLOW_SKILL"
+check_file "$ASYNC_CHECK"
+test -x "$LAB_ROOT/scripts/check-speed-contract" || fail "speed contract check script is not executable"
+
+check_pattern "$CONTRACT" '^## Operating Contract$' "operating contract section"
+check_pattern "$CONTRACT" '^## Fast Path$' "fast path section"
+check_pattern "$CONTRACT" '^## Boundary Path$' "boundary path section"
+check_pattern "$CONTRACT" '^## Stress Path$' "stress path section"
+check_pattern "$CONTRACT" '^## Blocking Rules$' "blocking rules section"
+check_pattern "$CONTRACT" '^## Performance Budgets$' "performance budgets section"
+check_pattern "$CONTRACT" 'Default Waterflow supervision is advisory and non-blocking' "non-blocking default rule"
+check_pattern "$CONTRACT" 'changed-only validation plans' "changed-only rule"
+check_pattern "$CONTRACT" 'route indexes' "route-index rule"
+check_pattern "$CONTRACT" 'No default gate may invoke stress fixtures, incident fixtures, full Waterflow verification, broad unit discovery, or async fan-out' "default gate budget"
+
+check_pattern "$LAB_ROOT/AGENTS.md" 'docs/waterflow-speed-contract.md' "AGENTS speed contract reference"
+check_pattern "$LAB_ROOT/AGENTS.md" 'scripts/check-speed-contract' "AGENTS speed gate reference"
+check_pattern "$LAB_ROOT/README.md" 'docs/waterflow-speed-contract.md' "README speed contract reference"
+check_pattern "$LAB_ROOT/README.md" 'scripts/check-speed-contract' "README speed gate reference"
+check_pattern "$SPEED_PLAYBOOK" 'waterflow-speed-contract.md' "speed playbook contract reference"
+
+check_pattern "$WATERFLOW_SKILL" '^## Speed Contract$' "waterflow skill speed contract section"
+check_pattern "$WATERFLOW_SKILL" 'non-blocking' "waterflow skill non-blocking rule"
+check_pattern "$WATERFLOW_SKILL" 'changed-only' "waterflow skill changed-only rule"
+check_pattern "$WATERFLOW_SKILL" 'route index' "waterflow skill route-index rule"
+check_pattern "$ASYNC_CHECK" 'waterflow-a' "async waterflow isolated output a"
+check_pattern "$ASYNC_CHECK" 'waterflow-b' "async waterflow isolated output b"
+check_pattern "$ASYNC_CHECK" 'TMPDIR' "async per-task TMPDIR"
+
+check_pattern "$LAB_ROOT/scripts/check-lab" 'SPEED_CHECK' "check-lab speed gate hook"
+check_pattern "$LAB_ROOT/scripts/check-project-rules" 'waterflow-speed-contract' "project rules speed contract hook"
+
+if rg -n 'waterflow-(stress|incident|verify)|python3 -m unittest discover' \
+  "$LAB_ROOT/scripts/check-lab" "$LAB_ROOT/scripts/check-project-rules"; then
+  fail "default lab gates must not invoke heavy Waterflow, stress, incident, or broad unit checks"
+fi
+
+if rg -n '^[[:space:]]*"\$ASYNC_CHECK"([[:space:]]|$)|^[[:space:]]*\$\{ASYNC_CHECK\}([[:space:]]|$)' \
+  "$LAB_ROOT/scripts/check-lab" "$LAB_ROOT/scripts/check-project-rules"; then
+  fail "default lab gates must not run async fan-out inline"
+fi
+
+printf 'OK: Waterflow speed contract is valid\n'

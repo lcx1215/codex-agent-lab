@@ -1,0 +1,667 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import csv
+import json
+import os
+import re
+import subprocess
+import sys
+import textwrap
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+
+
+LAB_ROOT = Path(__file__).resolve().parents[1]
+BENCH_ROOT = LAB_ROOT / "outputs" / "shared" / "benchmarks" / "ide-loop"
+RUNS_DIR = BENCH_ROOT / "runs"
+HISTORY_JSONL = BENCH_ROOT / "history.jsonl"
+HISTORY_CSV = BENCH_ROOT / "history.csv"
+HISTORY_MD = BENCH_ROOT / "history.md"
+MAX_OUTPUT_CHARS = 12000
+
+
+BROKEN_ROUTER = """\
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Iterable
+
+
+RISK_RANK = {
+    "P0": 0,
+    "P1": 1,
+    "P2": 2,
+    "P3": 3,
+}
+
+
+@dataclass(frozen=True)
+class RouteRecord:
+    route: str
+    risk: str
+    changed: bool
+    seconds: float
+    owner: str
+
+
+@dataclass(frozen=True)
+class RouteSummary:
+    route: str
+    total: int
+    changed: int
+    max_risk: str
+    total_seconds: float
+    owners: tuple[str, ...]
+    validation_mode: str
+
+
+def parse_route_line(line: str) -> RouteRecord:
+    parts = [part.strip() for part in line.split(",")]
+    if len(parts) != 5:
+        raise ValueError(f"expected 5 fields, got {len(parts)}")
+
+    route, risk, changed_text, seconds_text, owner = parts
+    if not route:
+        raise ValueError("route is required")
+    if risk not in RISK_RANK:
+        raise ValueError(f"unknown risk: {risk}")
+    if changed_text not in {"0", "1", "false", "true"}:
+        raise ValueError(f"unknown changed flag: {changed_text}")
+
+    return RouteRecord(
+        route=route,
+        risk=risk,
+        changed=changed_text in {"1", "true"},
+        seconds=float(seconds_text),
+        owner=owner or "unassigned",
+    )
+
+
+def parse_routes(lines: Iterable[str]) -> list[RouteRecord]:
+    records = []
+    for line in lines:
+        clean = line.strip()
+        if clean and not clean.startswith("#"):
+            records.append(parse_route_line(clean))
+    return records
+
+
+def summarize_routes(records: Iterable[RouteRecord]) -> list[RouteSummary]:
+    grouped: dict[str, dict[str, object]] = {}
+    for record in records:
+        bucket = grouped.setdefault(
+            record.route,
+            {
+                "total": 0,
+                "changed": 0,
+                "max_risk": record.risk,
+                "total_seconds": 0.0,
+                "owners": set(),
+            },
+        )
+        bucket["total"] = int(bucket["total"]) + 1
+        bucket["changed"] = int(bucket["changed"]) + int(record.changed)
+        bucket["total_seconds"] = float(bucket["total_seconds"]) + record.seconds
+        bucket["owners"].add(record.owner)
+        if RISK_RANK[record.risk] > RISK_RANK[str(bucket["max_risk"])]:
+            bucket["max_risk"] = record.risk
+
+    summaries = []
+    for route, bucket in grouped.items():
+        total = int(bucket["total"])
+        changed = int(bucket["changed"])
+        max_risk = str(bucket["max_risk"])
+        if max_risk in {"P0", "P1"} or changed:
+            validation_mode = "boundary"
+        elif total >= 1000:
+            validation_mode = "sampled"
+        else:
+            validation_mode = "fast"
+        summaries.append(
+            RouteSummary(
+                route=route,
+                total=total,
+                changed=changed,
+                max_risk=max_risk,
+                total_seconds=round(float(bucket["total_seconds"]), 3),
+                owners=tuple(sorted(bucket["owners"])),
+                validation_mode=validation_mode,
+            )
+        )
+
+    return sorted(summaries, key=lambda summary: (-RISK_RANK[summary.max_risk], summary.route))
+"""
+
+
+FIXED_ROUTER = BROKEN_ROUTER.replace(
+    '"P0": 0,\n    "P1": 1,\n    "P2": 2,\n    "P3": 3,',
+    '"P3": 0,\n    "P2": 1,\n    "P1": 2,\n    "P0": 3,',
+)
+
+
+TEST_ROUTER = """\
+import time
+import unittest
+
+from lane_router import parse_route_line, parse_routes, summarize_routes
+
+
+class LaneRouterTest(unittest.TestCase):
+    def test_groups_changed_route_and_keeps_highest_risk(self) -> None:
+        records = parse_routes(
+            [
+                "waterflow.docs,P3,0,0.010,writer",
+                "waterflow.docs,P1,1,0.020,auditor",
+                "sandbox.skills,P2,0,0.030,auditor",
+            ]
+        )
+
+        summaries = {summary.route: summary for summary in summarize_routes(records)}
+
+        self.assertEqual(summaries["waterflow.docs"].total, 2)
+        self.assertEqual(summaries["waterflow.docs"].changed, 1)
+        self.assertEqual(summaries["waterflow.docs"].max_risk, "P1")
+        self.assertEqual(summaries["waterflow.docs"].validation_mode, "boundary")
+        self.assertEqual(summaries["waterflow.docs"].owners, ("auditor", "writer"))
+
+    def test_low_risk_unchanged_route_stays_fast(self) -> None:
+        records = parse_routes(
+            [
+                "readme,P3,0,0.010,writer",
+                "readme,P3,false,0.011,writer",
+            ]
+        )
+
+        summary = summarize_routes(records)[0]
+
+        self.assertEqual(summary.max_risk, "P3")
+        self.assertEqual(summary.changed, 0)
+        self.assertEqual(summary.validation_mode, "fast")
+
+    def test_large_unchanged_route_uses_sampled_mode_quickly(self) -> None:
+        lines = [
+            f"route-large,P3,0,0.001,worker-{index % 4}"
+            for index in range(10000)
+        ]
+
+        started = time.perf_counter()
+        summaries = summarize_routes(parse_routes(lines))
+        elapsed = time.perf_counter() - started
+
+        self.assertEqual(len(summaries), 1)
+        self.assertEqual(summaries[0].total, 10000)
+        self.assertEqual(summaries[0].validation_mode, "sampled")
+        self.assertLess(elapsed, 1.0)
+
+    def test_rejects_malformed_line(self) -> None:
+        with self.assertRaises(ValueError):
+            parse_route_line("missing,fields")
+
+
+if __name__ == "__main__":
+    unittest.main()
+"""
+
+
+OMX_PROMPT = """\
+You are running inside a generated Codex Agent Lab benchmark fixture.
+
+Task:
+- Read README.md, lane_router.py, and tests/test_lane_router.py.
+- Write omx-smoke.md in this same directory only.
+- Keep it concise.
+
+Required omx-smoke.md sections:
+- Summary
+- Evidence
+- Gaps
+
+Constraints:
+- Do not modify files outside this directory.
+- Do not read or print secrets.
+- Do not run broad tests.
+- Mention whether the local unit-test loop appears verifiable from the files.
+"""
+
+
+def utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def truncate(text: str) -> str:
+    if len(text) <= MAX_OUTPUT_CHARS:
+        return text
+    return text[:MAX_OUTPUT_CHARS] + "\n...<truncated>..."
+
+
+def write_text(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def run_command(
+    name: str,
+    command: list[str],
+    cwd: Path,
+    output_dir: Path,
+    *,
+    expect_failure: bool = False,
+    timeout: int = 300,
+    stdin_text: str | None = None,
+    env_extra: dict[str, str] | None = None,
+    post_check: callable | None = None,
+) -> dict[str, object]:
+    env = os.environ.copy()
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
+    if env_extra:
+        env.update(env_extra)
+
+    started = time.monotonic()
+    timed_out = False
+    try:
+        completed = subprocess.run(
+            command,
+            cwd=str(cwd),
+            text=True,
+            input=stdin_text,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=env,
+            timeout=timeout,
+        )
+        exit_code = completed.returncode
+        stdout = completed.stdout
+        stderr = completed.stderr
+    except subprocess.TimeoutExpired as exc:
+        timed_out = True
+        exit_code = 124
+        stdout = exc.stdout or ""
+        stderr = exc.stderr or ""
+        if isinstance(stdout, bytes):
+            stdout = stdout.decode("utf-8", errors="replace")
+        if isinstance(stderr, bytes):
+            stderr = stderr.decode("utf-8", errors="replace")
+
+    duration = round(time.monotonic() - started, 3)
+    stdout_path = output_dir / f"{name}.stdout.txt"
+    stderr_path = output_dir / f"{name}.stderr.txt"
+    write_text(stdout_path, truncate(stdout))
+    write_text(stderr_path, truncate(stderr))
+
+    if expect_failure:
+        passed = exit_code != 0 and not timed_out
+    else:
+        passed = exit_code == 0 and not timed_out
+
+    post_error = None
+    if passed and post_check is not None:
+        try:
+            post_check()
+        except Exception as exc:  # noqa: BLE001 - surfaced in benchmark artifact.
+            passed = False
+            post_error = str(exc)
+
+    return {
+        "name": name,
+        "command": " ".join(command),
+        "cwd": str(cwd.relative_to(LAB_ROOT)) if cwd.is_relative_to(LAB_ROOT) else str(cwd),
+        "exit_code": exit_code,
+        "passed": passed,
+        "expected_failure": expect_failure,
+        "timed_out": timed_out,
+        "duration_seconds": duration,
+        "stdout_path": str(stdout_path.relative_to(LAB_ROOT)),
+        "stderr_path": str(stderr_path.relative_to(LAB_ROOT)),
+        "post_error": post_error,
+    }
+
+
+def create_fixture(fixture: Path) -> None:
+    write_text(
+        fixture / "README.md",
+        textwrap.dedent(
+            """\
+            # Generated IDE Benchmark Fixture
+
+            This fixture is generated by `scripts/benchmark-ide-loop`.
+            It intentionally starts with a risk-ordering bug so the RED test
+            can prove the loop catches a real defect.
+            """
+        ),
+    )
+    write_text(fixture / "lane_router.py", BROKEN_ROUTER)
+    write_text(fixture / "tests" / "test_lane_router.py", TEST_ROUTER)
+
+
+def fix_fixture(fixture: Path) -> None:
+    write_text(fixture / "lane_router.py", FIXED_ROUTER)
+
+
+def parse_waterflow_summary() -> dict[str, object]:
+    report_path = LAB_ROOT / "outputs" / "shared" / "waterflow" / "waterflow-report.json"
+    diff_path = LAB_ROOT / "outputs" / "shared" / "waterflow" / "waterflow-path-diff.json"
+    changed_plan_path = LAB_ROOT / "outputs" / "shared" / "waterflow" / "waterflow-validation-plan-changed.json"
+    summary: dict[str, object] = {}
+    if report_path.exists():
+        summary["report"] = json.loads(report_path.read_text(encoding="utf-8")).get("summary", {})
+    if diff_path.exists():
+        summary["diff"] = json.loads(diff_path.read_text(encoding="utf-8")).get("summary", {})
+    if changed_plan_path.exists():
+        summary["changed_plan"] = json.loads(changed_plan_path.read_text(encoding="utf-8")).get("summary", {})
+    return summary
+
+
+def latest_async_summary() -> dict[str, object] | None:
+    async_root = LAB_ROOT / "outputs" / "shared" / "async-execution"
+    if not async_root.exists():
+        return None
+    candidates = sorted(async_root.glob("*/async-execution-results.json"), key=lambda path: path.stat().st_mtime)
+    if not candidates:
+        return None
+    data = json.loads(candidates[-1].read_text(encoding="utf-8"))
+    return {
+        "path": str(candidates[-1].relative_to(LAB_ROOT)),
+        "run_id": data.get("run_id"),
+        "summary": data.get("summary", {}),
+    }
+
+
+def tokens_from_text(text: str) -> int | None:
+    match = re.search(r"tokens used\s+([0-9,]+)", text)
+    if not match:
+        return None
+    return int(match.group(1).replace(",", ""))
+
+
+def summarize_run(run: dict[str, object]) -> dict[str, object]:
+    checks = run["checks"]
+    assert isinstance(checks, list)
+    failed = [check for check in checks if not check.get("passed")]
+    durations = {check["name"]: check["duration_seconds"] for check in checks}
+    local_names = {"red_unit_test", "green_unit_test", "compile_check"}
+    gate_names = {"speed_contract", "project_rules", "secret_guard", "check_lab", "lab_unit_tests", "async_execution"}
+    waterflow_names = {"waterflow_scan", "waterflow_verify"}
+    omx = next((check for check in checks if check["name"] == "omx_model_smoke"), None)
+    total_seconds = round(sum(float(check["duration_seconds"]) for check in checks), 3)
+    return {
+        "schema_version": 1,
+        "run_id": run["run_id"],
+        "generated_at": run["generated_at"],
+        "status": "pass" if not failed else "fail",
+        "with_omx": bool(run["with_omx"]),
+        "total_seconds": total_seconds,
+        "local_seconds": round(sum(float(durations.get(name, 0)) for name in local_names), 3),
+        "gate_seconds": round(sum(float(durations.get(name, 0)) for name in gate_names), 3),
+        "waterflow_seconds": round(sum(float(durations.get(name, 0)) for name in waterflow_names), 3),
+        "omx_seconds": None if omx is None else omx.get("duration_seconds"),
+        "omx_tokens": None if omx is None else omx.get("tokens_used"),
+        "failed_checks": [check["name"] for check in failed],
+        "run_json": run["run_json"],
+        "run_markdown": run["run_markdown"],
+    }
+
+
+def load_history() -> list[dict[str, object]]:
+    if not HISTORY_JSONL.exists():
+        return []
+    history = []
+    for line in HISTORY_JSONL.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            history.append(json.loads(line))
+    return history
+
+
+def write_history(summary: dict[str, object]) -> None:
+    BENCH_ROOT.mkdir(parents=True, exist_ok=True)
+    with HISTORY_JSONL.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(summary, sort_keys=True) + "\n")
+
+    history = load_history()
+    with HISTORY_CSV.open("w", encoding="utf-8", newline="") as handle:
+        fieldnames = [
+            "generated_at",
+            "run_id",
+            "status",
+            "with_omx",
+            "total_seconds",
+            "local_seconds",
+            "gate_seconds",
+            "waterflow_seconds",
+            "omx_seconds",
+            "omx_tokens",
+            "failed_checks",
+        ]
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        for item in history:
+            row = {key: item.get(key) for key in fieldnames}
+            row["failed_checks"] = ",".join(item.get("failed_checks", []))
+            writer.writerow(row)
+
+    write_text(HISTORY_MD, build_history_markdown(history))
+
+
+def build_history_markdown(history: list[dict[str, object]]) -> str:
+    recent = history[-12:]
+    if not recent:
+        return "# IDE Benchmark History\n\nNo benchmark runs recorded.\n"
+    max_total = max(float(item.get("total_seconds") or 0) for item in recent) or 1.0
+    lines = [
+        "# IDE Benchmark History",
+        "",
+        f"- Runs recorded: `{len(history)}`",
+        f"- Latest run: `{recent[-1].get('run_id')}`",
+        "",
+        "| Run | Status | OMX | Total | Local | Gates | Waterflow | Model | Curve |",
+        "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |",
+    ]
+    for item in recent:
+        total = float(item.get("total_seconds") or 0)
+        bar_width = max(1, round((total / max_total) * 18))
+        bar = "#" * bar_width
+        model = item.get("omx_seconds")
+        lines.append(
+            "| {run} | {status} | {with_omx} | {total:.3f}s | {local:.3f}s | {gates:.3f}s | {waterflow:.3f}s | {model} | `{bar}` |".format(
+                run=item.get("run_id"),
+                status=item.get("status"),
+                with_omx="yes" if item.get("with_omx") else "no",
+                total=total,
+                local=float(item.get("local_seconds") or 0),
+                gates=float(item.get("gate_seconds") or 0),
+                waterflow=float(item.get("waterflow_seconds") or 0),
+                model="-" if model is None else f"{float(model):.3f}s",
+                bar=bar,
+            )
+        )
+    lines.append("")
+    lines.append(f"CSV: `{HISTORY_CSV.relative_to(LAB_ROOT)}`")
+    return "\n".join(lines) + "\n"
+
+
+def build_run_markdown(run: dict[str, object], summary: dict[str, object]) -> str:
+    lines = [
+        "# IDE Loop Benchmark Run",
+        "",
+        f"- Run id: `{run['run_id']}`",
+        f"- Generated: `{run['generated_at']}`",
+        f"- Status: `{summary['status']}`",
+        f"- With OMX: `{str(run['with_omx']).lower()}`",
+        f"- Run dir: `{Path(str(run['run_dir'])).relative_to(LAB_ROOT)}`",
+        "",
+        "## Checks",
+        "",
+        "| Check | Result | Seconds | Exit | Note |",
+        "| --- | --- | ---: | ---: | --- |",
+    ]
+    for check in run["checks"]:
+        note = "expected failure" if check.get("expected_failure") else ""
+        if check.get("post_error"):
+            note = str(check["post_error"])
+        lines.append(
+            f"| `{check['name']}` | {'pass' if check['passed'] else 'fail'} | {float(check['duration_seconds']):.3f} | {check['exit_code']} | {note} |"
+        )
+    lines.extend(
+        [
+            "",
+            "## Summary",
+            "",
+            f"- Total seconds: `{summary['total_seconds']}`",
+            f"- Local seconds: `{summary['local_seconds']}`",
+            f"- Gate seconds: `{summary['gate_seconds']}`",
+            f"- Waterflow seconds: `{summary['waterflow_seconds']}`",
+            f"- OMX seconds: `{summary['omx_seconds']}`",
+            f"- OMX tokens: `{summary['omx_tokens']}`",
+            "",
+            "## Artifacts",
+            "",
+            f"- History JSONL: `{HISTORY_JSONL.relative_to(LAB_ROOT)}`",
+            f"- History CSV: `{HISTORY_CSV.relative_to(LAB_ROOT)}`",
+            f"- History Markdown: `{HISTORY_MD.relative_to(LAB_ROOT)}`",
+            f"- Dashboard: `outputs/shared/dashboard/lab-dashboard.md`",
+        ]
+    )
+    return "\n".join(lines) + "\n"
+
+
+def run_benchmark(args: argparse.Namespace) -> tuple[dict[str, object], dict[str, object]]:
+    run_id = args.run_id or datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    run_dir = RUNS_DIR / run_id
+    fixture = run_dir / "fixture"
+    logs = run_dir / "logs"
+    logs.mkdir(parents=True, exist_ok=True)
+    create_fixture(fixture)
+
+    checks: list[dict[str, object]] = []
+    checks.append(
+        run_command(
+            "red_unit_test",
+            ["python3", "-m", "unittest", "discover", "-s", "tests"],
+            fixture,
+            logs,
+            expect_failure=True,
+            timeout=60,
+        )
+    )
+    fix_fixture(fixture)
+    checks.append(
+        run_command(
+            "green_unit_test",
+            ["python3", "-m", "unittest", "discover", "-s", "tests"],
+            fixture,
+            logs,
+            timeout=60,
+        )
+    )
+    checks.append(
+        run_command(
+            "compile_check",
+            ["python3", "-m", "py_compile", "lane_router.py"],
+            fixture,
+            logs,
+            timeout=60,
+        )
+    )
+
+    lab_checks = [
+        ("speed_contract", ["./scripts/check-speed-contract"], 60),
+        ("project_rules", ["./scripts/check-project-rules"], 60),
+        ("secret_guard", ["./scripts/check-secrets"], 60),
+        ("check_lab", ["./scripts/check-lab"], 120),
+        ("lab_unit_tests", ["python3", "-m", "unittest", "discover", "-s", "tests"], 120),
+        ("async_execution", ["./scripts/check-async-execution"], 180),
+        ("waterflow_scan", ["./scripts/waterflow-scan", "--root", ".", "--compare-last"], 120),
+    ]
+    if not args.skip_waterflow_verify:
+        lab_checks.append(("waterflow_verify", ["./scripts/waterflow-verify"], 180))
+    for name, command, timeout in lab_checks:
+        checks.append(run_command(name, command, LAB_ROOT, logs, timeout=timeout))
+
+    omx_check = None
+    if args.with_omx:
+        prompt_path = fixture / "omx-smoke-prompt.md"
+        write_text(prompt_path, OMX_PROMPT)
+        omx_path = Path.home() / ".local" / "bin" / "omx-api"
+
+        def verify_omx_output() -> None:
+            output = fixture / "omx-smoke.md"
+            text = output.read_text(encoding="utf-8")
+            missing = [section for section in ("## Summary", "## Evidence", "## Gaps") if section not in text]
+            if missing:
+                raise RuntimeError(f"omx-smoke.md missing sections: {missing}")
+
+        omx_check = run_command(
+            "omx_model_smoke",
+            [str(omx_path), "exec", "-C", str(fixture), "-"],
+            fixture,
+            logs,
+            timeout=args.omx_timeout,
+            stdin_text=OMX_PROMPT,
+            env_extra={"OMX_GREEN_LIGHT_NOTIFY": "0"},
+            post_check=verify_omx_output,
+        )
+        stdout_text = (logs / "omx_model_smoke.stdout.txt").read_text(encoding="utf-8")
+        stderr_text = (logs / "omx_model_smoke.stderr.txt").read_text(encoding="utf-8")
+        omx_check["tokens_used"] = tokens_from_text(stdout_text + "\n" + stderr_text)
+        checks.append(omx_check)
+
+    waterflow_summary = parse_waterflow_summary()
+    async_summary = latest_async_summary()
+    run: dict[str, object] = {
+        "schema_version": 1,
+        "run_id": run_id,
+        "generated_at": utc_now(),
+        "with_omx": args.with_omx,
+        "skip_waterflow_verify": args.skip_waterflow_verify,
+        "run_dir": str(run_dir),
+        "fixture": str(fixture),
+        "checks": checks,
+        "waterflow_summary": waterflow_summary,
+        "async_summary": async_summary,
+    }
+    run_json = run_dir / "run.json"
+    run_md = run_dir / "run.md"
+    run["run_json"] = str(run_json.relative_to(LAB_ROOT))
+    run["run_markdown"] = str(run_md.relative_to(LAB_ROOT))
+    summary = summarize_run(run)
+    write_text(run_json, json.dumps(run, indent=2, sort_keys=True) + "\n")
+    write_text(run_md, build_run_markdown(run, summary))
+    write_history(summary)
+    return run, summary
+
+
+def parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run the Codex Agent Lab IDE-loop benchmark.")
+    parser.add_argument("--skip-omx", action="store_true", help="Skip the real API-relay OMX model smoke test.")
+    parser.add_argument("--with-omx", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--skip-waterflow-verify", action="store_true", help="Skip boundary-level Waterflow verification.")
+    parser.add_argument("--omx-timeout", type=int, default=300, help="Timeout seconds for the OMX smoke test.")
+    parser.add_argument("--run-id", help="Optional run id for deterministic test runs.")
+    args = parser.parse_args(argv)
+    args.with_omx = not args.skip_omx or bool(args.with_omx)
+    return args
+
+
+def main(argv: list[str]) -> int:
+    args = parse_args(argv)
+    run, summary = run_benchmark(args)
+
+    dashboard = LAB_ROOT / "scripts" / "lab-dashboard"
+    if dashboard.exists():
+        subprocess.run([str(dashboard)], cwd=str(LAB_ROOT), check=False)
+
+    print(f"run_id: {run['run_id']}")
+    print(f"status: {summary['status']}")
+    print(f"with_omx: {str(summary['with_omx']).lower()}")
+    print(f"total_seconds: {summary['total_seconds']}")
+    print(f"history: {HISTORY_MD.relative_to(LAB_ROOT)}")
+    print(f"run_json: {summary['run_json']}")
+    print(f"run_markdown: {summary['run_markdown']}")
+    print("failed_checks:", ",".join(summary["failed_checks"]) or "none")
+    return 0 if summary["status"] == "pass" else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

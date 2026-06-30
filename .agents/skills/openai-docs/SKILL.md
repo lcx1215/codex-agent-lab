@@ -126,7 +126,7 @@ If MCP tools fail or no OpenAI docs resources are available:
    - If direct guide fetch fails, use the developer-docs MCP tools or official OpenAI-domain search to find the same guide content.
    - If remote docs are unavailable, use bundled fallback references and say that fallback guidance was used.
 4. For model upgrades, keep changes narrow: update active OpenAI API model defaults and directly related prompts only when safe.
-5. Leave historical docs, examples, eval baselines, fixtures, provider comparisons, provider registries, pricing tables, alias defaults, low-cost fallback paths, and ambiguous older model usage unchanged unless the user explicitly asks to upgrade them.
+5. Leave historical docs, examples, eval baselines, fixtures, provider comparisons, provider registries, pricing tables, alias defaults, fallback/routing paths, and ambiguous older model usage unchanged unless the user explicitly asks to upgrade them.
 6. Keep SDK, tooling, IDE, plugin, shell, auth, and provider-environment migrations out of a model-and-prompt upgrade unless the user explicitly asks for them.
 7. If an upgrade needs API-surface changes, schema rewiring, tool-handler changes, or implementation work beyond a literal model-string replacement and prompt edits, report it as blocked or confirmation-needed.
 8. For general docs lookup, start with a compact, title-like search query of 2-6 essential terms. Do not turn the full user question into a keyword list. Fetch the best page and exact section needed, and answer with concise citations.

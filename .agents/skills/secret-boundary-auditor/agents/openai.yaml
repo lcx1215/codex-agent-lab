@@ -1,0 +1,4 @@
+interface:
+  display_name: "Secret Boundary Auditor"
+  short_description: "Audit sandbox artifacts for secret and local path leakage"
+  default_prompt: "Audit this sandbox change for secret leakage and local boundary violations."

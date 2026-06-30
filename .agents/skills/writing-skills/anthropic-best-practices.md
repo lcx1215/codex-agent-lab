@@ -25,7 +25,7 @@ Only add context agents don't already have. Challenge each piece of information:
 
 * "Does the agent really need this explanation?"
 * "Can I assume the agent knows this?"
-* "Does this paragraph justify its token cost?"
+* "Does this paragraph justify its context weight?"
 
 **Good example: Concise** (approximately 50 tokens):
 
@@ -296,7 +296,7 @@ Agents load FORMS.md, REFERENCE.md, or EXAMPLES.md only when needed.
 
 #### Pattern 2: Domain-specific organization
 
-For Skills with multiple domains, organize content by domain to avoid loading irrelevant context. When a user asks about sales metrics, the agent only needs to read sales-related schemas, not finance or marketing data. This keeps token usage low and context focused.
+For Skills with multiple domains, organize content by domain to avoid loading irrelevant context. When a user asks about sales metrics, the agent only needs to read sales-related schemas, not finance or marketing data. This keeps context focused.
 
 ```
 bigquery-skill/
@@ -912,7 +912,7 @@ Even if your agent could write a script, pre-made scripts offer advantages:
 **Benefits of utility scripts**:
 
 * More reliable than generated code
-* Save tokens (no need to include code in context)
+* Keep context focused (no need to include code inline)
 * Save time (no code generation required)
 * Ensure consistency across uses
 
@@ -1094,7 +1094,7 @@ reader = PdfReader("file.pdf")
 
 The SKILL.md frontmatter requires `name` (64 characters max) and `description` (1024 characters max) fields. See the [Skills overview](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview#skill-structure) for complete structure details.
 
-### Token budgets
+### Skill file size
 
 Keep SKILL.md body under 500 lines for optimal performance. If your content exceeds this, split it into separate files using the progressive disclosure patterns described earlier. For architectural details, see the [Skills overview](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview#how-skills-work).
 

@@ -48,7 +48,7 @@ This skill covers goal definition and goal-tool creation only. Do not create int
    - Use a single concise objective string.
    - Include the verification evidence in the objective itself.
    - Include scope bounds when they constrain the work.
-   - Include a token budget only when the user explicitly requested one.
+   - Include optional resource-limit fields only when the user explicitly requested them.
    - Do not call `create_goal` for an ordinary multi-step task unless the user explicitly asked for goal-backed work.
 
 ## Goal Quality Bar

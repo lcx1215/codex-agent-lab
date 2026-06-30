@@ -1,0 +1,4 @@
+generated_at,run_id,status,with_omx,total_seconds,local_seconds,gate_seconds,waterflow_seconds,omx_seconds,omx_tokens,failed_checks
+2026-06-30T02:20:29.972921+00:00,20260630T022007Z,pass,False,22.005,0.57,13.088,8.347,,,
+2026-06-30T03:29:45.016838+00:00,20260630T032925Z,pass,False,19.335,0.281,10.921,8.133,,,
+2026-06-30T03:52:47.437755+00:00,20260630T035103Z,pass,True,103.59,0.356,9.969,8.306,84.959,,

@@ -1,0 +1,313 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import subprocess
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
+
+
+DEFAULT_LAB_ROOT = Path(__file__).resolve().parents[1]
+SECRET_PATH_RE = re.compile(
+    r"(^|/)(auth\.json|\.env($|\.)|.*\.(pem|key|p12|pfx|token|secret)$|.*_(token|secret)$)"
+)
+LOCAL_PATH_RE = re.compile(r"/Users/[^/\s`\"']+")
+RUNTIME_DIRS = {".omx", ".omc", ".codex-home"}
+SCAFFOLD_FILES = ["AGENTS.md", "brief.md", "progress.md"]
+
+
+@dataclass
+class WorkspaceIssue:
+    severity: str
+    code: str
+    message: str
+    evidence: list[str] = field(default_factory=list)
+
+
+@dataclass
+class WorkspaceReport:
+    path: str
+    status: str
+    issues: list[WorkspaceIssue]
+
+
+def rel(path: Path, root: Path) -> str:
+    try:
+        return path.relative_to(root).as_posix()
+    except ValueError:
+        return str(path)
+
+
+def git_ignored(path: Path, root: Path) -> bool:
+    completed = subprocess.run(
+        ["git", "check-ignore", "-q", rel(path, root)],
+        cwd=str(root),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=False,
+    )
+    return completed.returncode == 0
+
+
+def iter_files(root: Path) -> list[Path]:
+    skip = {".git", "__pycache__"}
+    files: list[Path] = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [name for name in dirnames if name not in skip]
+        current = Path(dirpath)
+        for filename in filenames:
+            files.append(current / filename)
+    return files
+
+
+def is_git_ignored(path: Path, root: Path) -> bool:
+    return (root / ".git").is_dir() and git_ignored(path, root)
+
+
+def check_workspace(workspace: Path, lab_root: Path) -> WorkspaceReport:
+    issues: list[WorkspaceIssue] = []
+    workspace_real = workspace.resolve()
+    lab_real = lab_root.resolve()
+
+    if not str(workspace_real).startswith(str(lab_real) + os.sep):
+        issues.append(
+            WorkspaceIssue(
+                "fail",
+                "WORKSPACE_OUTSIDE_LAB",
+                "Workspace resolves outside the lab root.",
+                [str(workspace_real)],
+            )
+        )
+
+    missing_scaffold = [name for name in SCAFFOLD_FILES if not (workspace / name).is_file()]
+    if missing_scaffold:
+        issues.append(
+            WorkspaceIssue(
+                "warn",
+                "WORKSPACE_SCAFFOLD_INCOMPLETE",
+                "Workspace is missing standard scaffold files; this is allowed for active in-progress creation but should be repaired before promotion.",
+                missing_scaffold,
+            )
+        )
+
+    if not (workspace / ".gitignore").is_file():
+        issues.append(
+            WorkspaceIssue(
+                "warn",
+                "WORKSPACE_GITIGNORE_MISSING",
+                "Workspace has no local .gitignore for temp/runtime artifacts.",
+                [rel(workspace, lab_root)],
+            )
+        )
+
+    validation_surface = any(
+        (workspace / candidate).is_file()
+        for candidate in ("validation.md", "VALIDATION.md", "registry/VALIDATION.md")
+    )
+    tests_dir = workspace / "tests"
+    if not validation_surface and not tests_dir.is_dir():
+        issues.append(
+            WorkspaceIssue(
+                "warn",
+                "WORKSPACE_VALIDATION_SURFACE_MISSING",
+                "Workspace has no validation file or tests directory yet.",
+                [rel(workspace, lab_root)],
+            )
+        )
+
+    for path in iter_files(workspace):
+        relative = rel(path, lab_root)
+        ignored = is_git_ignored(path, lab_root)
+        if SECRET_PATH_RE.search(relative):
+            severity = "warn" if ignored else "fail"
+            issues.append(
+                WorkspaceIssue(
+                    severity,
+                    "WORKSPACE_SECRET_LIKE_PATH",
+                    "Secret-like workspace file path detected.",
+                    [relative, f"git_ignored={str(ignored).lower()}"],
+                )
+            )
+            continue
+
+        if ignored:
+            continue
+
+        if path.stat().st_size <= 512_000:
+            text = path.read_text(encoding="utf-8", errors="ignore")
+            matches = sorted(set(LOCAL_PATH_RE.findall(text)))
+            if matches:
+                issues.append(
+                    WorkspaceIssue(
+                        "warn",
+                        "WORKSPACE_MACHINE_LOCAL_PATH",
+                        "Workspace file contains machine-local /Users paths; prefer relative paths for reusable artifacts.",
+                        [relative, *matches[:5]],
+                    )
+                )
+
+    for dirpath, dirnames, _filenames in os.walk(workspace):
+        current = Path(dirpath)
+        for dirname in list(dirnames):
+            if dirname not in RUNTIME_DIRS:
+                continue
+            runtime_dir = current / dirname
+            relative = rel(runtime_dir, lab_root)
+            ignored = git_ignored(runtime_dir, lab_root) if (lab_root / ".git").is_dir() else False
+            if not ignored and dirname != ".codex-home":
+                issues.append(
+                    WorkspaceIssue(
+                        "fail",
+                        "WORKSPACE_RUNTIME_NOT_IGNORED",
+                        "Workspace runtime state is not ignored by git.",
+                        [relative],
+                    )
+                )
+            elif dirname == ".codex-home":
+                if (runtime_dir / "auth.json").exists():
+                    issues.append(
+                        WorkspaceIssue(
+                            "fail",
+                            "WORKSPACE_CODEX_HOME_AUTH",
+                            "Workspace-local Codex home contains auth.json.",
+                            [rel(runtime_dir / "auth.json", lab_root)],
+                        )
+                    )
+                else:
+                    issues.append(
+                        WorkspaceIssue(
+                            "warn",
+                            "WORKSPACE_CODEX_HOME_RUNTIME",
+                            "Workspace-local .codex-home runtime directory exists; confirm it is intentional and secret-free.",
+                            [relative],
+                        )
+                    )
+
+    for path in workspace.rglob("*"):
+        if not path.is_symlink():
+            continue
+        target = path.resolve()
+        if not str(target).startswith(str(lab_real) + os.sep):
+            issues.append(
+                WorkspaceIssue(
+                    "fail",
+                    "WORKSPACE_SYMLINK_ESCAPE",
+                    "Workspace symlink resolves outside the lab root.",
+                    [rel(path, lab_root), str(target)],
+                )
+            )
+
+    status = "fail" if any(issue.severity == "fail" for issue in issues) else "warn" if issues else "pass"
+    return WorkspaceReport(path=rel(workspace, lab_root), status=status, issues=issues)
+
+
+def build_report(lab_root: Path) -> dict[str, object]:
+    workspaces_root = lab_root / "workspaces"
+    workspaces = sorted(item for item in workspaces_root.iterdir() if item.is_dir()) if workspaces_root.exists() else []
+    workspace_reports = [check_workspace(workspace, lab_root) for workspace in workspaces]
+    issues = [issue for report in workspace_reports for issue in report.issues]
+    failed = [issue for issue in issues if issue.severity == "fail"]
+    warnings = [issue for issue in issues if issue.severity == "warn"]
+    status = "fail" if failed else "warn" if warnings else "pass"
+    return {
+        "schema_version": 1,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "lab_root": str(lab_root),
+        "status": status,
+        "summary": {
+            "workspace_count": len(workspace_reports),
+            "passed_count": sum(1 for item in workspace_reports if item.status == "pass"),
+            "warning_count": len(warnings),
+            "failed_count": len(failed),
+        },
+        "workspaces": [
+            {
+                "path": report.path,
+                "status": report.status,
+                "issues": [
+                    {
+                        "severity": issue.severity,
+                        "code": issue.code,
+                        "message": issue.message,
+                        "evidence": issue.evidence,
+                    }
+                    for issue in report.issues
+                ],
+            }
+            for report in workspace_reports
+        ],
+    }
+
+
+def render_markdown(report: dict[str, object]) -> str:
+    summary = report["summary"]
+    lines = [
+        "# Workspace Safety Report",
+        "",
+        f"- Generated: `{report['generated_at']}`",
+        f"- Status: `{report['status']}`",
+        f"- Workspaces: `{summary['workspace_count']}`",
+        f"- Passed workspaces: `{summary['passed_count']}`",
+        f"- Warnings: `{summary['warning_count']}`",
+        f"- Failed: `{summary['failed_count']}`",
+        "",
+    ]
+    for workspace in report["workspaces"]:
+        lines.extend([f"## {workspace['path']}: {workspace['status']}", ""])
+        if not workspace["issues"]:
+            lines.extend(["No issues.", ""])
+            continue
+        for issue in workspace["issues"]:
+            lines.extend(
+                [
+                    f"### {issue['severity']} {issue['code']}",
+                    "",
+                    issue["message"],
+                    "",
+                ]
+            )
+            for evidence in issue.get("evidence") or []:
+                lines.append(f"- `{evidence}`")
+            lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Check workspace-level safety and in-progress scaffold drift.")
+    parser.add_argument("--root", default=str(DEFAULT_LAB_ROOT), help="Lab root to inspect.")
+    parser.add_argument("--json", action="store_true", help="Print report JSON to stdout.")
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    lab_root = Path(args.root).expanduser().resolve()
+    report = build_report(lab_root)
+    output_root = lab_root / "outputs" / "shared" / "workspace-safety"
+    output_root.mkdir(parents=True, exist_ok=True)
+    json_path = output_root / "workspace-safety.json"
+    markdown_path = output_root / "workspace-safety.md"
+    json_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    markdown_path.write_text(render_markdown(report), encoding="utf-8")
+
+    if args.json:
+        print(json.dumps(report, indent=2, sort_keys=True))
+    else:
+        summary = report["summary"]
+        print(f"status: {report['status']}")
+        print(f"workspaces: {summary['workspace_count']}")
+        print(f"warnings: {summary['warning_count']}")
+        print(f"failed: {summary['failed_count']}")
+        print(f"json: {json_path}")
+        print(f"markdown: {markdown_path}")
+
+    return 1 if report["status"] == "fail" else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

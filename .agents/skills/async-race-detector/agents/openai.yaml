@@ -1,0 +1,4 @@
+interface:
+  display_name: "Async Race Detector"
+  short_description: "Find hidden races in concurrent sandbox checks"
+  default_prompt: "Check this sandbox workflow for async races, shared outputs, and hidden stderr."

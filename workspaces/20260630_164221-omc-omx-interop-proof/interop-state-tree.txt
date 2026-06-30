@@ -1,0 +1,2 @@
+/Users/liuchengxu/Desktop/codex-agent-lab/.omc/state/interop/config.json
+/Users/liuchengxu/Desktop/codex-agent-lab/.omc/state/interop/tasks/task-1782809987353-7b9a7e408.json
