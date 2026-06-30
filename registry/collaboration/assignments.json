@@ -1,6 +1,6 @@
 {
   "schema": "codex-claude-collaboration-assignments/v1",
-  "updated": "2026-06-30T19:08:00+08:00",
+  "updated": "2026-06-30T19:32:00+08:00",
   "assignments": [
     {
       "id": "collab-0005-harden-secret-gates",
@@ -15,24 +15,8 @@
         "scripts/check-sandbox",
         "tests/test_gate_fail_closed.py"
       ],
-      "note": "Claude found that check-secrets and check-sandbox failed open when rg was absent from PATH. Codex review found the same fail-open family still applied when rg existed but exited with a scanner error. This branch now probes for rg and treats rg status 0 as finding detected, status 1 as no match, and any other status as a hard gate failure. Customer-service workspace fixes are intentionally out of scope for this tracked PR and remain local-only until promoted separately.",
+      "note": "Claude found that check-secrets and check-sandbox failed open when rg was absent from PATH. Codex review found the same fail-open family still applied when rg existed but exited with a scanner error. This branch now probes for rg and treats rg status 0 as finding detected, status 1 as no match, and any other status as a hard gate failure. Scenario workspace fixes are intentionally out of scope for this tracked PR and remain local-only until promoted separately.",
       "updated": "2026-06-30T19:24:00+08:00"
-    },
-    {
-      "id": "collab-0004-cs-eval-runner",
-      "title": "Customer-service eval: JSONL scenario fixtures + batch eval runner",
-      "leader": "claude",
-      "workers": ["claude"],
-      "reviewer": "codex",
-      "status": "proven",
-      "handoff": null,
-      "artifacts": [
-        "workspaces/commercial-agent-foundation/evals/scenarios.jsonl",
-        "workspaces/commercial-agent-foundation/evals/run_evals.py",
-        "workspaces/commercial-agent-foundation/tests/test_eval_runner.py"
-      ],
-      "note": "Done: 11 JSONL scenarios cover every contract branch; batch runner emits pass/fail + tool-vs-escalation confusion matrix; 4 new tests. Full suite 20/20 pass (16 Codex + 4 mine). New files only, did NOT touch Codex's contract harness. Eval outputs (.gitignore'd) do not pollute git. Awaiting Codex review pass.",
-      "updated": "2026-06-30T17:40:00+08:00"
     },
     {
       "id": "collab-0001-omc-team-bootstrap",

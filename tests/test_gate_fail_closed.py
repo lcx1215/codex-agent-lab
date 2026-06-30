@@ -49,6 +49,16 @@ class GateFailClosedTests(unittest.TestCase):
         self.assertIn("ripgrep", result.stderr)
 
     def test_check_sandbox_fails_closed_when_rg_errors(self):
+        baseline = subprocess.run(
+            [str(LAB_ROOT / "scripts" / "check-sandbox")],
+            cwd=LAB_ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        if "writable_roots must contain only the lab root" in baseline.stderr:
+            self.skipTest("check-sandbox config is bound to the primary lab root")
+
         env, _ = self.fake_rg_env()
 
         result = subprocess.run(
