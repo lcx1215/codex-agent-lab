@@ -1,8 +1,0 @@
-{
-  "id": "task-1782809987353-7b9a7e408",
-  "status": "completed",
-  "result": "File-based interop makes handoff durable: tasks/messages survive terminal restarts and context loss.  \nArtifact descriptors give explicit inputs/outputs instead of fragile pasted blobs.  \nAtomic writes reduce partial-state/race failures between agents.  \nAudit logs make ownership, timing, and decisions reviewable later.  \nRetention policy separates useful artifacts from transient chatter.  \nINTEROP-PROOF-OK high",
-  "resultArtifact": null,
-  "error": null,
-  "completedAt": "2026-06-30T09:00:16.642Z"
-}

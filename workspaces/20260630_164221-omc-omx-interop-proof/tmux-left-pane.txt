@@ -1,5 +1,0 @@
-nterop-proof/omc-interop-launch.log' 2>&1
-(base) liuchengxu@dashuaibiliuchengxudeMacBook-Air codex-agent-lab % export PATH="/Applications/Codex.app/Cont
-ents/Resources:$PATH"; export OMX_OMC_INTEROP_ENABLED=1 OMX_OMC_INTEROP_MODE=observe; omc interop > '/Users/li
-uchengxu/Desktop/codex-agent-lab/workspaces/20260630_164221-omc-omx-interop-proof/omc-interop-launch.log' 2>&1
-(base) liuchengxu@dashuaibiliuchengxudeMacBook-Air codex-agent-lab %

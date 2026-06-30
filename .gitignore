@@ -27,10 +27,13 @@
 .agents/skills/.system/
 __pycache__/
 *.pyc
+outputs/
 outputs/**/*.log
 outputs/**/*.tmp
 outputs/**/*.stdout.txt
 outputs/**/*.stderr.txt
+workspaces/*
+!workspaces/README.md
 workspaces/**/.env
 workspaces/**/.env.*
 workspaces/**/*.log

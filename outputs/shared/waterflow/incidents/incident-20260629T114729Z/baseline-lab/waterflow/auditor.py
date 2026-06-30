@@ -1,2 +1,0 @@
-def baseline():
-    return True
