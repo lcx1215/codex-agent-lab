@@ -132,9 +132,17 @@ if find "$LAB_ROOT" \
 fi
 
 local_user_path="/Users/${USER}"
-if rg -n -F "$local_user_path" "$LAB_ROOT/scripts" >"$TMP_ROOT/script-local-paths"; then
+set +e
+rg -n -F "$local_user_path" "$LAB_ROOT/scripts" >"$TMP_ROOT/script-local-paths" 2>"$TMP_ROOT/script-local-paths.err"
+rg_status=$?
+set -e
+if [ "$rg_status" -eq 0 ]; then
   cat "$TMP_ROOT/script-local-paths" >&2
   fail "scripts contain machine-local paths"
+fi
+if [ "$rg_status" -ne 1 ]; then
+  cat "$TMP_ROOT/script-local-paths.err" >&2
+  fail "ripgrep script-local-path scan failed"
 fi
 
 for dir in "$LAB_ROOT/.codex-home" "$LAB_ROOT/.codex" "$LAB_ROOT/.agents" "$LAB_ROOT/.tmp" "$LAB_ROOT/workspaces" "$LAB_ROOT/outputs" "$LAB_ROOT/registry" "$LAB_ROOT/scripts"; do

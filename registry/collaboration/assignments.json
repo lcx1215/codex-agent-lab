@@ -4,20 +4,19 @@
   "assignments": [
     {
       "id": "collab-0005-harden-secret-gates",
-      "title": "Fix fail-open security gates (rg-missing) + comma-amount refund bypass",
+      "title": "Fix fail-open security gates when ripgrep is missing or errors",
       "leader": "claude",
       "workers": ["claude", "code-reviewer"],
       "reviewer": "codex",
-      "status": "proven",
+      "status": "in_progress",
       "handoff": null,
       "artifacts": [
         "scripts/check-secrets",
         "scripts/check-sandbox",
-        "workspaces/commercial-agent-foundation/customer_service_agent_contract.py",
-        "workspaces/commercial-agent-foundation/evals/scenarios.jsonl"
+        "tests/test_gate_fail_closed.py"
       ],
-      "note": "Parallel code-reviewer audit found 3 real bugs. (1) CRITICAL: check-secrets failed OPEN when rg absent (the default state on this Mac) - set -e does not abort on rg in an if-condition, so the gate printed OK and exit 0 while scanning nothing; reproduced empirically. (2) HIGH: check-sandbox boundary scan same fail-open. Both fixed by probing for rg (incl. Codex.app path) and failing CLOSED if truly absent. (3) HIGH: customer-service contract _is_high_value_refund let comma amounts ('1,200 USD') bypass the $500 escalation (tokenized to 1+200) and misread order-id digits as amounts; fixed regex + added regression scenarios cs-012/cs-013. Contract file is git-excluded by Codex so the contract fix stays in the working tree for Codex to commit; the two script fixes are pushed on branch claude/harden-secret-gates. All 7 gates + 20 tests + Waterflow 0 findings green.",
-      "updated": "2026-06-30T19:08:00+08:00"
+      "note": "Claude found that check-secrets and check-sandbox failed open when rg was absent from PATH. Codex review found the same fail-open family still applied when rg existed but exited with a scanner error. This branch now probes for rg and treats rg status 0 as finding detected, status 1 as no match, and any other status as a hard gate failure. Customer-service workspace fixes are intentionally out of scope for this tracked PR and remain local-only until promoted separately.",
+      "updated": "2026-06-30T19:24:00+08:00"
     },
     {
       "id": "collab-0004-cs-eval-runner",
