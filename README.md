@@ -6,6 +6,8 @@ This lab is a scenario-neutral development environment for arbitrarily large age
 
 The environment is a force multiplier for Codex and Claude: durable progress, isolated workspaces, Waterflow supervision, benchmarks, skills, prompts, and verification gates should help them work faster and more safely. They do not replace the model agents' reasoning, coding, review, or recovery responsibilities.
 
+Under equal effectiveness, the lab should stay lean: fewer rules, fewer generated artifacts, fewer default checks, and fewer always-on processes are preferred when safety, isolation, speed, and verification stay intact.
+
 See `docs/agent-lab-mission.md` for the mission, quality bar, and promotion rules used to grow this environment.
 
 ## Autonomy

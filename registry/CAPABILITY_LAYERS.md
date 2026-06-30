@@ -10,6 +10,8 @@ This file keeps upper-layer expansion separate from the global Codex base. Promo
 
 The lab is scenario-neutral. UCP, commercial customer-service, research, code-maintenance, workflow, evaluation, and future agent families should enter as workspaces first. Shared capabilities should be promoted only when they amplify Codex/Claude work across more than one scenario.
 
+Equivalent-effect simplicity is part of the quality bar. Before adding or promoting a capability, check whether the same outcome can be achieved by an existing rule, script, skill, workspace note, or on-demand check. Prefer the smaller surface unless the larger one proves better safety, speed, isolation, or verification.
+
 ## Layer 0: Clean Base
 
 Status: complete
@@ -79,6 +81,7 @@ Required surfaces:
 - Boundary and safety notes.
 - Verification command or evidence requirement.
 - Example handoff or usage note.
+- Leanness check showing why an existing skill, prompt, or script is insufficient.
 
 Implementation in this lab:
 

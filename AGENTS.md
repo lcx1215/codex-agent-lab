@@ -19,6 +19,7 @@ Global Codex rules remain in `/Users/liuchengxu/.codex/AGENTS.md`; do not duplic
 - The lab should amplify Codex and Claude with durable state, harnesses, supervision, verification, and handoffs. It should not replace their reasoning, coding, review, or recovery responsibilities with rigid automation.
 - Use `docs/agent-lab-mission.md` as the durable mission and capability-quality bar.
 - Build the environment richly, but only through layered, documented, verifiable capabilities.
+- Prefer the leanest design with equal effect: fewer files, fewer rules, fewer default checks, and fewer always-on processes when safety, speed, isolation, and verification stay equivalent.
 - Every promoted capability should have a purpose, boundary, entrypoint, expected artifacts, verification path, failure mode, and promotion gate.
 - Prefer durable files, health gates, harnesses, and handoffs over relying on conversation memory.
 
@@ -79,6 +80,7 @@ Global Codex rules remain in `/Users/liuchengxu/.codex/AGENTS.md`; do not duplic
   - `VALIDATION.md` or task-specific validation notes for completion evidence.
 - Use `docs/project-rule-template.md` as the starting point for project-local rules.
 - Track capability-layer decisions in `registry/CAPABILITY_LAYERS.md` before promoting a pattern into scripts, skills, or global rules.
+- Do not promote a helper, skill, workflow, or gate when an existing surface can provide the same effect with clear documentation and validation.
 - Run `scripts/check-project-rules` after adding or changing project-level rule surfaces.
 
 ## Workflow Modes
