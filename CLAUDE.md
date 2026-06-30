@@ -26,6 +26,26 @@ duplicate them here unless this lab needs a narrower local rule.
 - When Claude and Codex collaborate, route work through the files in `## Collaboration`, not through copied
   conversation context or copied secrets.
 
+## Environment Scale Placement
+
+This is the Claude-lane counterpart to the same section in `AGENTS.md`; both lanes follow one placement contract.
+
+- Use `docs/environment-layering.md` as the authoritative placement contract for maximum, medium, and small
+  environments. Consult it before deciding whether a new skill, protocol, interface, kernel, or check belongs in
+  the lab root, a workspace, or an agent package.
+- Use `docs/rule-inheritance.md` as the rule-chain contract when starting work from a workspace or a small agent
+  package. Local rules can only add detail or narrow scope; they must not weaken parent safety, lane, sandbox,
+  collaboration, or promotion rules.
+- Maximum environment is this lab root: keep it open, scenario-neutral, and shared across arbitrary agent families.
+- Medium environments live under `workspaces/<scenario>/`; small agent packages live inside them under
+  `agents/<package>/`. Place each surface at the narrowest level that still has the right reuse scope.
+- All three levels are sandboxed work surfaces. Do not name one medium environment as if it alone were the
+  sandbox.
+- Claude enters the same maximum environment Codex uses: read this file, `docs/environment-layering.md`, and
+  `docs/codex-claude-collaboration-protocol.md` before changing lab structure.
+- Promote upward only after repeated cross-scenario value and fresh validation; one scenario must not redefine the
+  maximum environment. This matches the leanness rule in `## Verification` and the lab mission's equivalent-effect bar.
+
 ## Isolation (Hard Limits)
 
 - Lab root: `/Users/liuchengxu/Desktop/codex-agent-lab`. Do not write outside it unless the user names the

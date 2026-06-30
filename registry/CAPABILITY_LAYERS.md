@@ -1,6 +1,6 @@
 # Codex Capability Layers
 
-Last updated: 2026-06-29 20:52 +0800
+Last updated: 2026-06-30 20:30 +0800
 
 This file keeps upper-layer expansion separate from the global Codex base. Promote patterns upward only when they have repeated value and clear verification.
 
@@ -8,9 +8,19 @@ This file keeps upper-layer expansion separate from the global Codex base. Promo
 
 `docs/agent-lab-mission.md` is the quality bar for this lab. Capability expansion should make the environment richer by adding documented, bounded, verifiable surfaces, not by accumulating unreviewed tools or implicit conventions.
 
-The lab is scenario-neutral. UCP, commercial customer-service, research, code-maintenance, workflow, evaluation, and future agent families should enter as workspaces first. Shared capabilities should be promoted only when they amplify Codex/Claude work across more than one scenario.
+The lab is scenario-neutral. UCP, support-oriented, research, code-maintenance, workflow, evaluation, and future agent families should enter as workspaces first. Shared capabilities should be promoted only when they amplify Codex/Claude work across more than one scenario.
 
 Equivalent-effect simplicity is part of the quality bar. Before adding or promoting a capability, check whether the same outcome can be achieved by an existing rule, script, skill, workspace note, or on-demand check. Prefer the smaller surface unless the larger one proves better safety, speed, isolation, or verification.
+
+`docs/environment-layering.md` is the placement contract for scale. Root lab
+surfaces are maximum-environment assets; scenario folders under `workspaces/`
+are medium environments; concrete agent packages inside them are small
+environments. Skills, plugins, protocols, interfaces, and Waterflow surfaces must
+live at the narrowest level that matches their reuse scope.
+
+`docs/rule-inheritance.md` is the rule-chain contract for nested work. Local
+workspace and package rules can add detail or narrow scope, but they cannot
+weaken parent safety, lane, sandbox, collaboration, or promotion rules.
 
 ## Layer 0: Clean Base
 
@@ -40,7 +50,8 @@ Implementation in this lab:
 - `AGENTS.md` now names project-level rule expansion as the first upper-layer capability.
 - `docs/project-rule-template.md` provides the reusable project-local rule template.
 - `docs/scenario-workspace-contract.md` defines how arbitrary future agent scenarios stay local while amplifying Codex/Claude capability.
-- `scripts/new-workspace` creates a local `AGENTS.md` for new workspaces.
+- `docs/rule-inheritance.md` defines the effective rule chain from root lab to workspace to small agent package.
+- `scripts/new-workspace` creates a local `AGENTS.md`, `CLAUDE.md`, and `agents/README.md` for new workspaces.
 - `scripts/check-project-rules` verifies the rule surfaces exist.
 
 ## Layer 2: Workflow Modes
@@ -133,13 +144,13 @@ Implementation in this lab:
 
 - `scripts/check-sandbox` verifies clean-home sandbox config, writable roots, tmp exclusion, secret-like files, symlink escape boundaries, script portability, and directory permissions.
 - `scripts/check-runtime-compatibility` verifies required local commands, Python capabilities, script hygiene, runtime ignore rules, clean-home auth absence, and compatibility documentation wiring.
-- `scripts/check-workspace-safety` verifies workspace-level hard safety boundaries while reporting active in-progress scaffolding gaps as warnings instead of blocking another agent mid-creation.
+- `scripts/check-workspace-safety` verifies workspace-level hard safety boundaries while reporting active in-progress scaffolding gaps as warnings instead of blocking another agent mid-creation. It is an explicit workspace/promotion boundary gate, not a root default fast-path sweep.
 - `scripts/check-async-execution` verifies independent checks can run concurrently with isolated temp and output directories.
 - `scripts/check-secrets` uses lab-local `.tmp/` scratch space and redacts token contents from output.
 - `scripts/check-speed-contract` verifies Waterflow supervision stays non-blocking by default and that default lab gates do not invoke heavy Waterflow, stress, incident, broad unit, or async fan-out checks.
 - `scripts/benchmark-ide-loop` records repeatable RED/GREEN, health-gate, Waterflow, and optional OMX model-smoke timings under `outputs/shared/benchmarks/ide-loop/`.
 - `scripts/lab-dashboard` renders the latest benchmark, Waterflow, async, and git state into one compact Markdown and JSON dashboard.
-- `scripts/check-lab` runs project-rule, workflow-mode, and sandbox gates together.
+- `scripts/check-lab` runs root fast-path gates together while avoiding workspace-wide sweeps that can slow or disturb active Codex/Claude workspace work.
 - `docs/sandbox-boundaries.md` records the local sandbox contract.
 - `docs/runtime-compatibility.md` records the required checks, warning checks, runtime state rules, and error-reduction contract for environment drift.
 - `docs/workspace-safety-contract.md` records hard workspace failures, warning-only in-progress states, runtime-state policy, and the new workspace template contract.
@@ -178,3 +189,35 @@ Honest status:
 Promotion gate:
 
 - A collaboration capability is promoted to `proven` only when a real runtime artifact exists under `outputs/shared/` and the assignment entry records it. Installed-but-unproven capabilities stay `pending`/`blocked` with the failure reason.
+
+## Layer 7: Domain-Neutral Agent Kernel
+
+Status: active
+
+Purpose: give every large-agent family a shared, scenario-neutral behavior core so the lab can develop *any* large agent, not re-implement safety guards per domain. This is the promoted form of the agent-behavior primitives that first lived inside a single scenario contract.
+
+Required surfaces:
+
+- A neutral type layer with no product-domain vocabulary.
+- A library of composable, configurable decision/safety policies.
+- An ordered decision engine with an auditable trace and a fallback.
+- A neutral eval harness that runs against any family.
+- Cross-domain proof that more than one unrelated family composes the same primitives.
+
+Implementation in this lab:
+
+- `lab_agents/agent_kernel/core.py` defines neutral `Principal`, `ContextItem`, `Tool`, `ToolCall`, `Turn`, `Decision`, `PolicyContext`, and the shared risk ladder.
+- `lab_agents/agent_kernel/policies.py` provides the primitive factories (input-size limit, sensitive-data refusal, forbidden action, cross-scope signal, foreign-subject reference, value threshold, permissioned tool call, untrusted-instruction signal, grounded answer, insufficient-evidence fallback).
+- `lab_agents/agent_kernel/engine.py` runs the ordered policy chain (first terminating policy wins; advisory annotations fold into the audit trail; `decide_with_trace` exposes evaluation order).
+- `lab_agents/agent_kernel/eval_harness.py` is the neutral JSONL batch eval runner + disposition matrix for any `decide(turn) -> Decision` callable.
+- `tests/test_kernel_neutrality.py` builds two unrelated agent chains (infra-ops, research) inline on the kernel to prove it is not a single-domain engine; the lab keeps the kernel, not resident example products.
+- `docs/agent-behavior-kernel.md` documents the kernel, primitives, family-build pattern, neutrality proof, and boundary.
+- Tests: `tests/test_agent_kernel.py` (core + engine + eval harness), `tests/test_kernel_policies.py` (each primitive), `tests/test_kernel_neutrality.py` (two inline domains) — all pure Python, no external-binary dependency.
+
+Leanness:
+
+- A real agent builds its chain inside its own `workspaces/` scenario; the lab does not keep demo families or a family-scaffold script. Neutrality is proven by a test, not by resident example products.
+
+Promotion gate:
+
+- A new primitive enters the kernel only after it shows value in more than one scenario/family, has a neutral signature (no domain vocabulary), and ships with a test. Domain-specific logic stays in a scenario workspace until it meets that bar.

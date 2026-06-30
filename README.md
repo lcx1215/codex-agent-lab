@@ -2,13 +2,16 @@
 
 Clean, project-scoped environment for long-horizon Codex and Claude agent work.
 
-This lab is a scenario-neutral development environment for arbitrarily large agent projects. UCP and commercial customer-service agents are future scenario workspaces, not the boundary of the lab.
+This lab is a scenario-neutral development environment for arbitrarily large agent projects. UCP and other domain-specific agents are future scenario workspaces, not the boundary of the lab.
 
 The environment is a force multiplier for Codex and Claude: durable progress, isolated workspaces, Waterflow supervision, benchmarks, skills, prompts, and verification gates should help them work faster and more safely. They do not replace the model agents' reasoning, coding, review, or recovery responsibilities.
 
 Under equal effectiveness, the lab should stay lean: fewer rules, fewer generated artifacts, fewer default checks, and fewer always-on processes are preferred when safety, isolation, speed, and verification stay intact.
 
 See `docs/agent-lab-mission.md` for the mission, quality bar, and promotion rules used to grow this environment.
+
+See `docs/environment-layering.md` for where maximum-environment, workspace,
+and agent-package assets belong.
 
 ## Autonomy
 
@@ -29,6 +32,18 @@ This does not relax the safety boundaries in `AGENTS.md` (`## Isolation`): no se
 - Durable progress: `registry/current-progress.md`
 - Task workspaces: `workspaces`
 - Outputs: `outputs`
+
+## Environment Layers
+
+- Maximum environment: this lab root. It holds only scenario-neutral rules,
+  shared skills, protocols, interfaces, Waterflow engine code, health gates, and
+  durable registries.
+- Medium environments: `workspaces/<scenario>/`. They hold product/scenario
+  work, local contracts, local interfaces, local validation, and nested repos
+  when useful.
+- Small agent packages: folders inside a medium environment, typically
+  `agents/<package>/`. They hold concrete agent manifests, package-local skills,
+  knowledge, tool wiring, fixtures, and tests.
 
 ## Start
 
@@ -172,6 +187,20 @@ Validate the Codex-Claude collaboration surfaces:
 
 The clean-home lane does not copy secrets. If it needs model access, log in or add API auth to that isolated home separately.
 
+## Agent Behavior Kernel
+
+The lab ships a domain-neutral agent behavior kernel (`lab_agents/agent_kernel/`) so any large-agent family can reuse one verified safety/decision backbone instead of re-implementing guards per domain. A family composes primitives into a `DecisionEngine`:
+
+```python
+from lab_agents.agent_kernel import DecisionEngine, policies
+engine = DecisionEngine(
+    [policies.sensitive_data_request(terms=("api key",)), policies.grounded_answer(keyword="runbook")],
+    policies.insufficient_evidence_fallback(),
+)
+```
+
+`tests/test_kernel_neutrality.py` proves the kernel is not a single-domain engine by building two unrelated agent chains (infra-ops, research) on it. A real scenario builds its chain inside its own workspace under `workspaces/`. See `docs/agent-behavior-kernel.md`.
+
 ## Agents
 
 - `long-horizon-orchestrator`
@@ -198,8 +227,13 @@ Framework:
 
 - Global: `~/.codex/AGENTS.md`
 - Lab overlay: `AGENTS.md`
+- Claude lane overlay: `CLAUDE.md`
+- Environment layering (placement contract): `docs/environment-layering.md`
+- Rule inheritance chain: `docs/rule-inheritance.md`
+- Codex-Claude collaboration protocol (exchange contract): `docs/codex-claude-collaboration-protocol.md`
 - Lab operating notes: `README.md`
 - Lab mission and quality bar: `docs/agent-lab-mission.md`
+- Agent behavior kernel: `docs/agent-behavior-kernel.md` (`lab_agents/agent_kernel/`)
 - Sandbox boundary contract: `docs/sandbox-boundaries.md`
 - Runtime compatibility contract: `docs/runtime-compatibility.md`
 - Workspace safety contract: `docs/workspace-safety-contract.md`
@@ -244,7 +278,7 @@ Codex can use its normal global skills and plugins when they are available in th
 
 ## Scenario Workspaces
 
-Workspaces under `workspaces/` can target any large agent family. Current examples may include UCP-style or commercial customer-service foundations, but those examples do not define the lab's full scope. Promote only reusable patterns from a scenario workspace back into the shared lab.
+Workspaces under `workspaces/` can target any large agent family. Current examples may include UCP-style or support-oriented foundations, but those examples do not define the lab's full scope. Promote only reusable patterns from a scenario workspace back into the shared lab.
 
 Use `docs/scenario-workspace-contract.md` and `scripts/new-workspace` so every serious scenario declares its boundary and how it amplifies Codex/Claude work.
 

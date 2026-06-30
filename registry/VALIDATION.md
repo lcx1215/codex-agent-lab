@@ -517,7 +517,7 @@ Last updated: 2026-06-30 13:37 +0800
 - Open agent lab positioning correction
   - Updated docs: `README.md`, `AGENTS.md`, `docs/agent-lab-mission.md`, and `registry/CAPABILITY_LAYERS.md`.
   - Result: pass.
-  - Evidence: root lab now states that it is scenario-neutral and can host arbitrarily large agent families; UCP and commercial customer-service are future scenario workspaces only.
+  - Evidence: root lab now states that it is scenario-neutral and can host arbitrarily large agent families; UCP and other domain-specific agents are future scenario workspaces only.
   - Evidence: root lab now states that Waterflow, skills, scripts, benchmarks, and workspaces amplify Codex/Claude work rather than replacing model-agent reasoning, coding, review, or recovery.
   - Command: `scripts/check-project-rules`
   - Result: pass.
@@ -599,7 +599,7 @@ Last updated: 2026-06-30 13:37 +0800
   - Evidence: live invocation wrote `outputs/shared/foundation-amplifier/live-model-backed-20260630T034423Z.md`.
   - Evidence: subprocess verified the artifact has 34 lines and required sections `Summary`, `Evidence Read`, `Amplification Check`, `Problems Found`, and `Recommended Next Step`.
   - Evidence: subprocess reported `tokens used 96,651`.
-  - Boundary: the invocation did not read or change secrets, auth files, provider config, plugin state, API keys, cookies, tokens, or live customer data; it did not run tests or broad scans.
+  - Boundary: the invocation did not read or change secrets, auth files, provider config, plugin state, API keys, cookies, tokens, or live end-user data; it did not run tests or broad scans.
   - Boundary: this proof validates model-backed contract use and durable artifact creation, not native subagent dispatch, official OMX team reliability, or long-running autonomy.
 
 - Frugality guidance removal and benchmark real-smoke validation
@@ -880,6 +880,103 @@ Last updated: 2026-06-30 13:37 +0800
   - Boundary: no secrets read or copied; no `~/.codex` / `~/.codex-api-relay` / provider / plugin state touched; all writes inside lab root.
   - Honest status: collaboration commands are installed but real interop is not proven; assignment `collab-0003-interop-proof` stays `pending` until a real tmux run from a terminal produces an artifact.
 
+## Environment Layering Contract
+
+- Date: 2026-06-30
+- Owner lane: codex
+- Scope: maximum environment / medium environment / small agent package placement rules.
+  - Added contract: `docs/environment-layering.md`.
+  - Wired references into `AGENTS.md`, `README.md`, `docs/project-rule-template.md`, `docs/scenario-workspace-contract.md`, `workspaces/README.md`, and `registry/CAPABILITY_LAYERS.md`.
+  - Updated `scripts/check-project-rules` so the layering contract is part of the project-rule gate.
+  - Command: `scripts/check-project-rules`
+  - Result: pass.
+  - Evidence: command reported `OK: project rule surfaces are valid`.
+  - Command: `scripts/check-lab`
+  - Result: pass.
+  - Evidence: command reported `OK: lab structure is valid`.
+  - Command: `scripts/check-secrets`
+  - Result: pass.
+  - Evidence: command reported `OK: no committable secrets or README-local user paths detected`.
+  - Command: `scripts/check-collaboration`
+  - Result: pass.
+  - Evidence: command reported `assignments OK: 6 entries`, `Protocol: ok`, and `OK: collaboration surfaces are valid`.
+  - Command: `scripts/check-workspace-safety`
+  - Result: warn with no hard failures.
+  - Evidence: command reported `workspaces: 7`, `warnings: 10`, and `failed: 0`.
+  - Boundary: no global Codex/Claude auth, provider, plugin, or LaunchAgent state changed. The support scenario remains a medium workspace under `workspaces/support-agent-workspace/`; concrete support agents remain inside that workspace.
+
+## Codex-Claude Lane Alignment
+
+- Date: 2026-06-30
+- Owner lane: codex
+- Scope: align Codex/OMX and Claude/OMC understanding of the current development environment.
+  - Updated `docs/codex-claude-collaboration-protocol.md` with `Shared Environment Understanding`.
+  - Confirmed both root lane contracts now reference the same placement model:
+    `AGENTS.md` for Codex and `CLAUDE.md` for Claude.
+  - Clarified that `codex-agent-lab` is the single maximum environment;
+    `workspaces/<scenario>/` are medium workspaces/projects; and
+    `agents/<package>/` folders inside a workspace are small agent packages.
+  - Renamed the local medium support project to `workspaces/support-agent-workspace/`
+    because all three levels are sandboxed
+    work surfaces; `sandbox` is a safety property, not a single workspace name.
+  - Command: `scripts/check-collaboration`
+  - Result: pass.
+  - Evidence: command reported `assignments OK: 7 entries`, `Protocol: ok`, `Handoffs: 3`, and `OK: collaboration surfaces are valid`.
+  - Command: `scripts/check-project-rules`
+  - Result: pass.
+  - Evidence: command reported `OK: project rule surfaces are valid`.
+  - Command: `scripts/check-lab`
+  - Result: pass.
+  - Evidence: command reported `OK: lab structure is valid`.
+  - Command: `scripts/check-secrets`
+  - Result: pass.
+  - Evidence: command reported `OK: no committable secrets or README-local user paths detected`.
+  - Command: `scripts/check-workspace-safety`
+  - Result: warn with no hard failures.
+  - Evidence: command reported `workspaces: 7`, `warnings: 10`, and `failed: 0`.
+  - Command: `workspaces/support-agent-workspace/scripts/check-portable.sh`
+  - Result: pass.
+  - Evidence: command reported `Portable check passed`.
+  - Boundary: the nested support workspace git remote was not changed; only local
+    placement/name and protocol wording were corrected.
+
 ## Not Run
 
 - No additional model-backed team or long-running autonomy proof was run for this validation.
+
+## Rule Inheritance And Fast Root Gates
+
+- Date: 2026-06-30
+- Owner lane: codex
+- Scope: keep Codex and Claude aligned when entering nested workspaces or small agent packages, while keeping root default gates fast.
+  - Added contract: `docs/rule-inheritance.md`.
+  - Updated root lane contracts and docs: `AGENTS.md`, `CLAUDE.md`, `README.md`, `docs/environment-layering.md`, `docs/scenario-workspace-contract.md`, `docs/project-rule-template.md`, and `docs/codex-claude-collaboration-protocol.md`.
+  - Updated `scripts/new-workspace` so future workspaces include `AGENTS.md`, `CLAUDE.md`, `agents/README.md`, and explicit parent-rule-chain wording.
+  - Updated `scripts/check-workspace-safety` to warn when workspace or package rule inheritance is undeclared.
+  - Kept `scripts/check-workspace-safety` out of the root default fast path; `scripts/check-speed-contract` now guards against reintroducing workspace-wide sweeps into `scripts/check-lab` or `scripts/check-project-rules`.
+  - Added Codex-to-Claude handoff: `registry/collaboration/handoffs/20260630-2105-codex-to-claude-rule-inheritance-speed.md`.
+  - Command: `bash -n scripts/new-workspace scripts/check-project-rules scripts/check-workspace-safety scripts/check-lab`
+  - Result: pass.
+  - Evidence: Bash syntax checks exited 0.
+  - Command: `python3 -m unittest tests.test_workspace_contract tests.test_workspace_safety tests.test_runtime_compatibility`
+  - Result: pass.
+  - Evidence: `Ran 6 tests in 1.718s` and `OK`.
+  - Command: `scripts/check-project-rules`
+  - Result: pass.
+  - Evidence: command reported `OK: project rule surfaces are valid`.
+  - Command: `scripts/check-workspace-safety`
+  - Result: warn with no hard failures.
+  - Evidence: command reported `workspaces: 7`, `warnings: 10`, and `failed: 0`; remaining warnings are old proof/workspace scaffold issues and not rule-inheritance gaps.
+  - Command: `scripts/check-speed-contract`
+  - Result: pass.
+  - Evidence: command reported `OK: Waterflow speed contract is valid`.
+  - Command: `scripts/check-lab`
+  - Result: pass.
+  - Evidence: command reported 11 agents, 46 skills, Codex CLI found, and `OK: lab structure is valid`; final `/usr/bin/time -p` reported `real 2.36`.
+  - Command: `scripts/check-runtime-compatibility`
+  - Result: pass.
+  - Evidence: command reported 40 checks, 40 passed, 0 warnings, and 0 failures.
+  - Command: `scripts/check-collaboration`
+  - Result: pass.
+  - Evidence: command reported `assignments OK: 7 entries`, `Handoffs: 4`, and `OK: collaboration surfaces are valid`.
+  - Boundary: no global Codex/Claude auth, provider, plugin, LaunchAgent, or App state changed. The active nested agent-dev workspace was only given a package README inheritance anchor.

@@ -15,13 +15,27 @@ Global Codex rules remain in `/Users/liuchengxu/.codex/AGENTS.md`; do not duplic
 ## Mission And Quality Bar
 
 - This lab is a strict, long-horizon agent development environment, not a throwaway sandbox.
-- This lab is scenario-neutral. UCP, commercial customer-service, and other future agents belong in workspaces; none of them should redefine the lab's core identity.
+- This lab is scenario-neutral. UCP, support-oriented, and other future agents belong in workspaces; none of them should redefine the lab's core identity.
 - The lab should amplify Codex and Claude with durable state, harnesses, supervision, verification, and handoffs. It should not replace their reasoning, coding, review, or recovery responsibilities with rigid automation.
 - Use `docs/agent-lab-mission.md` as the durable mission and capability-quality bar.
 - Build the environment richly, but only through layered, documented, verifiable capabilities.
 - Prefer the leanest design with equal effect: fewer files, fewer rules, fewer default checks, and fewer always-on processes when safety, speed, isolation, and verification stay equivalent.
 - Every promoted capability should have a purpose, boundary, entrypoint, expected artifacts, verification path, failure mode, and promotion gate.
 - Prefer durable files, health gates, harnesses, and handoffs over relying on conversation memory.
+
+## Environment Scale Placement
+
+- Use `docs/environment-layering.md` as the placement contract for maximum, medium, and small environments.
+- Use `docs/rule-inheritance.md` as the rule-chain contract when starting work from a workspace or a small agent package.
+- Maximum environment means this lab root: keep it highly open, scenario-neutral, and shared across arbitrary future agent families.
+- Medium environments live under `workspaces/<scenario>/`: they may be independent repos, product workspaces, proofs, or long-horizon projects with narrower local rules.
+- Small agent packages live inside a medium environment, usually under `agents/<package>/`, with their own manifests, skills, tools, fixtures, and interfaces.
+- All three levels are sandboxed work surfaces. Do not name one medium environment as if it alone were the sandbox.
+- Claude enters this same maximum environment through `CLAUDE.md`; Codex enters through this file. Both lanes must share the same placement model from `docs/environment-layering.md`.
+- Cross-lane work follows `docs/codex-claude-collaboration-protocol.md` (roles, handoff format, ledger, proof bar); these four files — this one, `CLAUDE.md`, the layering doc, and the collaboration protocol — form the unified development-environment protocol.
+- Place skills, plugins, protocols, interfaces, and Waterflow artifacts at the narrowest level that still has the right reuse scope.
+- Local workspace or package rules can only add detail or narrow scope; they must not weaken the root lab's safety, lane, sandbox, collaboration, or promotion rules.
+- Promote upward only after repeated cross-scenario value and fresh validation; do not let one scenario redefine the maximum environment.
 
 ## Isolation
 
@@ -79,6 +93,8 @@ Global Codex rules remain in `/Users/liuchengxu/.codex/AGENTS.md`; do not duplic
   - `progress.md` or `registry/current-progress.md` for durable state.
   - `VALIDATION.md` or task-specific validation notes for completion evidence.
 - Use `docs/project-rule-template.md` as the starting point for project-local rules.
+- Use `docs/environment-layering.md` before deciding whether a new skill, protocol, interface, or Waterflow surface belongs in the lab root, a workspace, or an agent package.
+- Use `docs/rule-inheritance.md` to keep nested `AGENTS.md`, `CLAUDE.md`, package README files, and manifests aligned with parent rules.
 - Track capability-layer decisions in `registry/CAPABILITY_LAYERS.md` before promoting a pattern into scripts, skills, or global rules.
 - Do not promote a helper, skill, workflow, or gate when an existing surface can provide the same effect with clear documentation and validation.
 - Run `scripts/check-project-rules` after adding or changing project-level rule surfaces.
@@ -100,7 +116,7 @@ Global Codex rules remain in `/Users/liuchengxu/.codex/AGENTS.md`; do not duplic
 - Run `scripts/check-speed-contract` after changing Waterflow supervision, speed routing, async execution, or default health gates.
 - Use `scripts/benchmark-ide-loop` for measured RED/GREEN, gate, Waterflow, and OMX model-smoke timing; use `scripts/lab-dashboard` to summarize current health from artifacts.
 - Use `docs/runtime-compatibility.md` and `scripts/check-runtime-compatibility` to separate environment drift from agent implementation bugs before long work starts.
-- Use `scripts/check-workspace-safety` before promoting any workspace output into root lab patterns or before treating a large-agent workspace as stable.
+- Use `scripts/check-workspace-safety` after workspace changes, before promoting any workspace output into root lab patterns, or before treating a large-agent workspace as stable. It is an explicit boundary gate, not a root default fast-path sweep.
 
 ## Agent Roles
 

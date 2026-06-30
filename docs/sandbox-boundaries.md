@@ -26,6 +26,11 @@ Static recursive sandbox scans prune `.tmp/` because async checks may create
 and remove per-task scratch directories while the scan is running. The sandbox
 gate still checks the top-level `.tmp/` directory permissions.
 
+Static sandbox scans also prune `workspaces/`. Workspace projects are checked by
+`scripts/check-workspace-safety`, which can distinguish active in-progress
+workspace scaffolds from hard boundary failures without treating portable files
+such as `.env.example` as lab-root secret leaks.
+
 ## Allowed Symlinks
 
 Only these symlinks may leave their containing directory intentionally:

@@ -33,13 +33,21 @@ class WorkspaceContractTests(unittest.TestCase):
         self.assertEqual(workspace.parent, tmp_root)
 
         agents_text = (workspace / "AGENTS.md").read_text(encoding="utf-8")
+        claude_text = (workspace / "CLAUDE.md").read_text(encoding="utf-8")
+        package_readme_text = (workspace / "agents" / "README.md").read_text(encoding="utf-8")
         brief_text = (workspace / "brief.md").read_text(encoding="utf-8")
         gitignore_text = (workspace / ".gitignore").read_text(encoding="utf-8")
 
+        self.assertIn("## Rule Inheritance", agents_text)
         self.assertIn("## Scenario Boundary", agents_text)
         self.assertIn("## Codex Claude Amplification", agents_text)
+        self.assertIn("docs/rule-inheritance.md", agents_text)
+        self.assertIn("Root lab `CLAUDE.md`", claude_text)
+        self.assertIn("package-local", claude_text)
+        self.assertIn("small agent package", package_readme_text)
         self.assertIn("Scenario type: TBD", brief_text)
         self.assertIn("Codex/Claude amplification", brief_text)
+        self.assertIn("Rule inheritance", brief_text)
         self.assertIn(".omx/", gitignore_text)
         self.assertIn(".codex-home/auth.json", gitignore_text)
 

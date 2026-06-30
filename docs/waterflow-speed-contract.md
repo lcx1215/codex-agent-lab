@@ -53,7 +53,7 @@ All other findings should become repair briefs or next-check recommendations whi
 ## Performance Budgets
 
 - Default health checks stay metadata-only or changed-only.
-- No default gate may invoke stress fixtures, incident fixtures, full Waterflow verification, broad unit discovery, or async fan-out.
+- No default gate may invoke stress fixtures, incident fixtures, full Waterflow verification, broad unit discovery, async fan-out, or workspace-wide safety sweeps.
 - Async supervision must write per-run artifacts and per-task temp paths.
 - Route-index lookup comes before manual path inspection at large scale.
 - A scaling target such as 10000 paths is a pressure parameter, not permission to inspect every path inline.

@@ -1,6 +1,6 @@
 # Codex-Claude Collaboration Protocol
 
-Last updated: 2026-06-30 15:55 +0800
+Last updated: 2026-06-30 20:30 +0800
 
 This document defines how the Claude/OMC lane and the Codex/OMX lane collaborate inside this lab without
 crossing the isolation boundaries in `AGENTS.md` (Codex lane) and `CLAUDE.md` (Claude lane).
@@ -10,6 +10,34 @@ crossing the isolation boundaries in `AGENTS.md` (Codex lane) and `CLAUDE.md` (C
 The two lanes share one lab but run as separate agents with separate homes, auth, and provider config. This
 protocol makes their collaboration durable and auditable: work is exchanged through files in the repo, never
 through copied secrets or copied conversation context.
+
+## Related Contracts
+
+This protocol governs *how* the two lanes exchange work. It sits alongside:
+
+- `docs/environment-layering.md` — *where* a skill, protocol, interface, kernel, or check belongs (maximum /
+  medium / small environment) and the one-way promotion direction.
+- `docs/rule-inheritance.md` — how Codex and Claude keep root, workspace, and package rules active when work
+  starts from a nested directory.
+- `AGENTS.md` (`## Environment Scale Placement`, `## Isolation`) — the Codex/OMX lane-local contract.
+- `CLAUDE.md` (`## Environment Scale Placement`, `## Collaboration`) — the Claude/OMC lane-local contract.
+
+Together these are the unified development-environment protocol: placement (layering), inheritance, exchange
+(this doc), and the two lane-local operating contracts that adopt them.
+
+## Shared Environment Understanding
+
+Codex and Claude must describe the lab the same way:
+
+- `codex-agent-lab` is the single maximum environment.
+- `workspaces/<scenario>/` entries are medium workspaces/projects.
+- `workspaces/<scenario>/agents/<package>/` entries are small agent packages.
+- All three levels are sandboxed work surfaces; do not reserve the word
+  "sandbox" for one medium workspace.
+- A lane may enter the maximum environment by reading its lane-local root rules,
+  `docs/environment-layering.md`, `docs/rule-inheritance.md`, and this
+  protocol. It must not copy or infer the other lane's auth, secrets, provider
+  config, or runtime state.
 
 ## Roles
 

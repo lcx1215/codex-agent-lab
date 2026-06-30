@@ -18,6 +18,7 @@ SECRET_PATH_RE = re.compile(
 LOCAL_PATH_RE = re.compile(r"/Users/[^/\s`\"']+")
 RUNTIME_DIRS = {".omx", ".omc", ".codex-home"}
 SCAFFOLD_FILES = ["AGENTS.md", "brief.md", "progress.md"]
+RULE_INHERITANCE_RE = re.compile(r"(Rule Inheritance|rule-inheritance|Parent Environment|parent lab rules)", re.IGNORECASE)
 
 
 @dataclass
@@ -104,6 +105,19 @@ def check_workspace(workspace: Path, lab_root: Path) -> WorkspaceReport:
                 [rel(workspace, lab_root)],
             )
         )
+
+    agents_file = workspace / "AGENTS.md"
+    if agents_file.is_file():
+        agents_text = agents_file.read_text(encoding="utf-8", errors="ignore")
+        if not RULE_INHERITANCE_RE.search(agents_text):
+            issues.append(
+                WorkspaceIssue(
+                    "warn",
+                    "WORKSPACE_RULE_INHERITANCE_UNDECLARED",
+                    "Workspace rules do not explicitly declare the parent rule chain.",
+                    [rel(agents_file, lab_root)],
+                )
+            )
 
     validation_surface = any(
         (workspace / candidate).is_file()
@@ -201,6 +215,41 @@ def check_workspace(workspace: Path, lab_root: Path) -> WorkspaceReport:
                     [rel(path, lab_root), str(target)],
                 )
             )
+
+    agents_root = workspace / "agents"
+    if agents_root.is_dir():
+        for package_dir in sorted(item for item in agents_root.iterdir() if item.is_dir()):
+            local_surfaces = [
+                package_dir / "AGENTS.md",
+                package_dir / "CLAUDE.md",
+                package_dir / "README.md",
+            ]
+            manifest_surfaces = sorted(package_dir.glob("*.agent.json")) + sorted(package_dir.glob("manifest*.json"))
+            readable_surfaces = [surface for surface in [*local_surfaces, *manifest_surfaces] if surface.is_file()]
+            if not readable_surfaces:
+                issues.append(
+                    WorkspaceIssue(
+                        "warn",
+                        "AGENT_PACKAGE_RULE_SURFACE_MISSING",
+                        "Agent package has no local README, AGENTS.md, CLAUDE.md, or manifest.",
+                        [rel(package_dir, lab_root)],
+                    )
+                )
+                continue
+            surface_text = "\n".join(
+                surface.read_text(encoding="utf-8", errors="ignore")
+                for surface in readable_surfaces
+                if surface.stat().st_size <= 512_000
+            )
+            if not RULE_INHERITANCE_RE.search(surface_text):
+                issues.append(
+                    WorkspaceIssue(
+                        "warn",
+                        "AGENT_PACKAGE_RULE_INHERITANCE_UNDECLARED",
+                        "Agent package surface does not explicitly declare the parent rule chain.",
+                        [rel(package_dir, lab_root)],
+                    )
+                )
 
     status = "fail" if any(issue.severity == "fail" for issue in issues) else "warn" if issues else "pass"
     return WorkspaceReport(path=rel(workspace, lab_root), status=status, issues=issues)

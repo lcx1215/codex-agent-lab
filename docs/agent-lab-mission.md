@@ -6,7 +6,7 @@ This repository is a strict, long-horizon agent development environment, not a t
 
 Build a rich, isolated, evidence-driven environment where Codex, Claude, and future agents can plan, execute, audit, verify, and hand off very large engineering tasks without leaking secrets, breaking lane isolation, or losing durable progress.
 
-The lab is scenario-neutral. UCP agents, commercial customer-service agents, research agents, code-maintenance agents, workflow agents, evaluation agents, and future agent families should all fit here as workspaces, not as constraints on the environment.
+The lab is scenario-neutral. UCP agents, support-oriented agents, research agents, code-maintenance agents, workflow agents, evaluation agents, and future agent families should all fit here as workspaces, not as constraints on the environment.
 
 The lab amplifies Codex and Claude. It gives them durable memory surfaces, harnesses, route indexes, health gates, benchmarks, isolated workspaces, and handoff contracts. It must not pretend to replace their reasoning, coding, review, or recovery ability with rigid automation.
 

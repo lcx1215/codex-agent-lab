@@ -79,7 +79,8 @@ fi
 
 "$PROJECT_RULE_CHECK" >/dev/null
 "$RUNTIME_COMPAT_CHECK" >/dev/null
-"$WORKSPACE_SAFETY_CHECK" >/dev/null
+# Workspace safety is an explicit boundary gate. Do not sweep active
+# workspaces in the root fast path.
 "$WORKFLOW_MODE_CHECK" >/dev/null
 "$SANDBOX_CHECK" >/dev/null
 "$SANDBOX_SKILL_CHECK" >/dev/null

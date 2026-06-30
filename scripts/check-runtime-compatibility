@@ -229,7 +229,7 @@ def script_hygiene_checks() -> list[dict[str, object]]:
         check(
             "pass" if not missing_refs else "fail",
             "check-lab aggregation",
-            "check-lab references required lightweight gates" if not missing_refs else "check-lab is missing required gate references",
+            "check-lab references required fast-path and explicit boundary gates" if not missing_refs else "check-lab is missing required gate references",
             missing_refs,
         )
     )

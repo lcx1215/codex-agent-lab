@@ -4,7 +4,7 @@
 
 Workspaces are where large agents, proofs, scenario experiments, and long-horizon tasks happen. They must be flexible enough for Codex or Claude to create files while working, but strict enough to catch dangerous drift before it reaches the rest of the lab.
 
-`scripts/check-workspace-safety` is the workspace-level gate. It distinguishes active in-progress gaps from hard safety failures.
+`scripts/check-workspace-safety` is the workspace-level boundary gate. It distinguishes active in-progress gaps from hard safety failures, and it runs explicitly after workspace changes, before promotion, or when a workspace must be treated as stable. It is not part of the root default fast path.
 
 ## Hard Failures
 
@@ -23,6 +23,8 @@ The gate warns, but does not block, when a workspace appears in-progress:
 - missing `AGENTS.md`, `brief.md`, or `progress.md`;
 - missing local `.gitignore`;
 - no validation surface yet (`validation.md`, `VALIDATION.md`, `registry/VALIDATION.md`, or `tests/`);
+- missing explicit parent rule-chain declaration in a workspace `AGENTS.md`;
+- missing explicit parent rule-chain declaration in an agent package README, `AGENTS.md`, `CLAUDE.md`, or manifest;
 - machine-local `/Users/...` paths inside workspace source files;
 - intentional workspace-local `.codex-home` runtime without `auth.json`.
 
@@ -37,8 +39,10 @@ Workspace runtime state should not become source truth. Root `.gitignore` should
 `scripts/new-workspace` creates:
 
 - `AGENTS.md`
+- `CLAUDE.md`
 - `brief.md`
 - `progress.md`
+- `agents/README.md`
 - `.gitignore`
 
 Tests and harnesses may set `WORKSPACE_ROOT` to a lab-internal temporary directory. The script rejects outside-lab workspace roots before creating directories.

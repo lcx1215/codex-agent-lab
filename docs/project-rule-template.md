@@ -11,6 +11,15 @@ Use this as the starting point for a project-local `AGENTS.md`. Keep global poli
 - OMX level: `none`, `App-safe spine`, or `CLI runtime`
 - Durable state file: `TBD`
 - Output directory: `TBD`
+- Environment scale: `medium environment` or `small agent package`
+- Parent environment: `TBD`
+
+## Rule Inheritance
+
+- Effective rules are the machine/global rules, root lab rules, this local file, and any narrower package-local rules.
+- Parent lab contracts still apply: `../../AGENTS.md`, `../../CLAUDE.md`, `../../docs/environment-layering.md`, `../../docs/rule-inheritance.md`, and `../../docs/codex-claude-collaboration-protocol.md` when this file is in `workspaces/<scenario>/`.
+- Local rules can only add detail or narrow scope. They must not weaken parent rules for secrets, auth, provider config, plugin state, lane isolation, sandbox boundaries, collaboration, or promotion.
+- If Claude needs a local entrypoint, keep a `CLAUDE.md` pointer beside this file that tells Claude to read this local surface plus the root `CLAUDE.md`.
 
 ## Scenario Boundary
 
@@ -19,6 +28,7 @@ Use this as the starting point for a project-local `AGENTS.md`. Keep global poli
 - Keep scenario-specific assumptions local until they prove reusable across scenarios.
 - Do not promote UCP, commercial support, research, workflow, or any other single domain into root lab policy without cross-scenario value.
 - Use `docs/scenario-workspace-contract.md` as the shared contract for scenario workspaces.
+- Use `docs/environment-layering.md` to place skills, plugins, protocols, interfaces, Waterflow artifacts, and outputs at the correct scale.
 
 ## Codex Claude Amplification
 

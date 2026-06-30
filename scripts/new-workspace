@@ -22,7 +22,7 @@ mkdir -p "$workspace_root"
 
 workspace="$workspace_root/${stamp}-${safe_name:-task}"
 
-mkdir -p "$workspace"
+mkdir -p "$workspace/agents"
 cat > "$workspace/brief.md" <<EOF
 # Task Brief
 
@@ -38,6 +38,7 @@ TBD
 - Inside boundary: TBD
 - Outside boundary: TBD
 - Codex/Claude amplification: TBD
+- Rule inheritance: root lab rules + this workspace + package-local rules.
 
 ## Constraints
 
@@ -61,6 +62,13 @@ Use the lab template at ../../docs/project-rule-template.md when this workspace 
 - Workspace root: this directory.
 - Keep edits inside this workspace unless the parent lab rules or user task name another path.
 - Do not read, print, copy, or migrate secrets, auth files, session files, cookies, OTPs, or API keys.
+
+## Rule Inheritance
+
+- Effective rules are the machine/global rules, the root lab rules, this workspace file, and any narrower package-local rules.
+- Parent lab contracts still apply: ../../AGENTS.md, ../../CLAUDE.md, ../../docs/environment-layering.md, ../../docs/rule-inheritance.md, and ../../docs/codex-claude-collaboration-protocol.md.
+- Local rules can only add detail or narrow scope. They must not weaken parent rules for secrets, auth, provider config, plugin state, lane isolation, sandbox boundaries, collaboration, or promotion.
+- If work starts inside agents/<package>/, read this file and the package-local AGENTS.md, CLAUDE.md, README, or manifest before editing.
 
 ## Scenario Boundary
 
@@ -87,6 +95,39 @@ Use the lab template at ../../docs/project-rule-template.md when this workspace 
 - Keep current state in progress.md.
 - Record completion evidence in brief.md, progress.md, or a dedicated validation file.
 - Do not claim completion without fresh verification or an explicit validation gap.
+EOF
+
+cat > "$workspace/CLAUDE.md" <<'EOF'
+# Claude Workspace Entry
+
+Claude inherits the same local workspace rules as Codex here.
+
+Read in this order:
+
+1. Root lab `CLAUDE.md`.
+2. Root lab `docs/environment-layering.md`.
+3. Root lab `docs/rule-inheritance.md`.
+4. Root lab `docs/codex-claude-collaboration-protocol.md`.
+5. This workspace `AGENTS.md`.
+6. The nearest package-local `AGENTS.md`, `CLAUDE.md`, README, or manifest when working inside `agents/<package>/`.
+
+This file is a pointer, not a weaker override. Local rules can only add detail
+or narrow scope; parent safety, lane, sandbox, collaboration, and promotion
+rules still apply.
+EOF
+
+cat > "$workspace/agents/README.md" <<'EOF'
+# Agent Packages
+
+Each folder under this directory is a small agent package inside the parent
+workspace.
+
+Before editing a package, read the parent workspace `AGENTS.md`, the root lab
+`docs/rule-inheritance.md`, and the package-local operating surface (`AGENTS.md`,
+`CLAUDE.md`, README, manifest, skills, tools, fixtures, and tests).
+
+Package-local rules can only add detail or narrow scope. They must not weaken
+the parent workspace or root lab rules.
 EOF
 
 cat > "$workspace/progress.md" <<EOF

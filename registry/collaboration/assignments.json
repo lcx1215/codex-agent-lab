@@ -1,12 +1,59 @@
 {
   "schema": "codex-claude-collaboration-assignments/v1",
-  "updated": "2026-06-30T19:08:00+08:00",
+  "updated": "2026-06-30T20:35:00+08:00",
   "assignments": [
+    {
+      "id": "collab-0007-protocol-alignment",
+      "title": "Align both lanes on one unified development-environment protocol",
+      "leader": "claude",
+      "workers": [
+        "claude"
+      ],
+      "reviewer": "codex",
+      "status": "proven",
+      "handoff": "registry/collaboration/handoffs/20260630-2020-claude-to-codex-protocol-alignment.md",
+      "artifacts": [
+        "CLAUDE.md",
+        "docs/codex-claude-collaboration-protocol.md",
+        "docs/environment-layering.md",
+        "AGENTS.md",
+        "registry/collaboration/handoffs/20260630-2020-claude-to-codex-protocol-alignment.md"
+      ],
+      "note": "PROVEN 2026-06-30: both lanes aligned on one unified protocol = 4 files (placement=environment-layering.md, exchange=collaboration-protocol.md, + AGENTS.md & CLAUDE.md lane contracts). Claude added CLAUDE.md ## Environment Scale Placement + ## Related Contracts index in the protocol. Codex accepted the framing, added ## Shared Environment Understanding to the protocol, and unified the 'sandbox' wording across all three files. Final root-layer cleanup pass (Claude, user-authorized to touch AGENTS.md): added direct AGENTS.md->protocol reference (closing the last asymmetry), listed layering+protocol+CLAUDE.md in the README framework index, and refreshed stale timestamps (ledger top, protocol Last-updated, CAPABILITY_LAYERS Last-updated all -> 2026-06-30 20:30). Four-way cross-refs now closed both directions. All gates green: check-collaboration + check-secrets + check-lab OK.",
+      "updated": "2026-06-30T20:35:00+08:00"
+    },
+    {
+      "id": "collab-0006-neutral-agent-kernel",
+      "title": "Generalize lab to develop any large agent: domain-neutral agent behavior kernel",
+      "leader": "claude",
+      "workers": [
+        "claude"
+      ],
+      "reviewer": "codex",
+      "status": "in_progress",
+      "handoff": "registry/collaboration/handoffs/20260630-1930-claude-to-codex-agent-kernel.md",
+      "artifacts": [
+        "lab_agents/agent_kernel/core.py",
+        "lab_agents/agent_kernel/policies.py",
+        "lab_agents/agent_kernel/engine.py",
+        "lab_agents/agent_kernel/eval_harness.py",
+        "docs/agent-behavior-kernel.md",
+        "registry/CAPABILITY_LAYERS.md",
+        "tests/test_agent_kernel.py",
+        "tests/test_kernel_policies.py",
+        "tests/test_kernel_neutrality.py"
+      ],
+      "note": "Promoted a scenario contract's 9 hard-coded guards into a domain-neutral kernel (Layer 7): neutral types + 10 composable policy primitives + ordered DecisionEngine + neutral JSONL eval harness. Neutrality proven by tests/test_kernel_neutrality.py (two unrelated agent chains - infra-ops + research - built inline on the kernel). Kept lean: no resident demo families, no scaffold script; a real agent builds its chain in its own workspaces/ scenario. 29 pure-Python tests; check-secrets + check-lab + check-collaboration OK. Did NOT touch Codex's git-excluded support scenario contract - handoff asks Codex to optionally adopt the kernel there. On branch claude/neutral-agent-kernel, not merged. Awaiting Codex review.",
+      "updated": "2026-06-30T19:32:00+08:00"
+    },
     {
       "id": "collab-0005-harden-secret-gates",
       "title": "Fix fail-open security gates when ripgrep is missing or errors",
       "leader": "claude",
-      "workers": ["claude", "code-reviewer"],
+      "workers": [
+        "claude",
+        "code-reviewer"
+      ],
       "reviewer": "codex",
       "status": "in_progress",
       "handoff": null,
@@ -15,14 +62,16 @@
         "scripts/check-sandbox",
         "tests/test_gate_fail_closed.py"
       ],
-      "note": "Claude found that check-secrets and check-sandbox failed open when rg was absent from PATH. Codex review found the same fail-open family still applied when rg existed but exited with a scanner error. This branch now probes for rg and treats rg status 0 as finding detected, status 1 as no match, and any other status as a hard gate failure. Customer-service workspace fixes are intentionally out of scope for this tracked PR and remain local-only until promoted separately.",
+      "note": "Claude found that check-secrets and check-sandbox failed open when rg was absent from PATH. Codex review found the same fail-open family still applied when rg existed but exited with a scanner error. This branch now probes for rg and treats rg status 0 as finding detected, status 1 as no match, and any other status as a hard gate failure. Support workspace fixes are intentionally out of scope for this tracked PR and remain local-only until promoted separately.",
       "updated": "2026-06-30T19:24:00+08:00"
     },
     {
       "id": "collab-0004-cs-eval-runner",
-      "title": "Customer-service eval: JSONL scenario fixtures + batch eval runner",
+      "title": "Support-scenario eval: JSONL scenario fixtures + batch eval runner",
       "leader": "claude",
-      "workers": ["claude"],
+      "workers": [
+        "claude"
+      ],
       "reviewer": "codex",
       "status": "proven",
       "handoff": null,
@@ -38,11 +87,17 @@
       "id": "collab-0001-omc-team-bootstrap",
       "title": "OMC team run (security-reviewer, architect, verifier)",
       "leader": "claude",
-      "workers": ["security-reviewer", "architect", "verifier"],
+      "workers": [
+        "security-reviewer",
+        "architect",
+        "verifier"
+      ],
       "reviewer": "codex",
       "status": "blocked",
       "handoff": null,
-      "artifacts": [".omc/state/team/2026-06-30-omc-lane-1-omc-setu"],
+      "artifacts": [
+        ".omc/state/team/2026-06-30-omc-lane-1-omc-setu"
+      ],
       "note": "Workers stayed pending; startup failure worker_start_submit_unverified:worker-1:%1:467cbe2c5fa6. Installed but not proven.",
       "updated": "2026-06-30T15:40:00+08:00"
     },
@@ -50,7 +105,9 @@
       "id": "collab-0002-collaboration-layer",
       "title": "Build lab-local Codex-Claude collaboration layer",
       "leader": "claude",
-      "workers": ["executor"],
+      "workers": [
+        "executor"
+      ],
       "reviewer": "verifier",
       "status": "proven",
       "handoff": null,
@@ -68,7 +125,9 @@
       "id": "collab-0003-interop-proof",
       "title": "Real tmux omc interop proof (OMC leader + Codex/OMX worker)",
       "leader": "claude",
-      "workers": ["codex"],
+      "workers": [
+        "codex"
+      ],
       "reviewer": "codex",
       "status": "proven",
       "handoff": "registry/collaboration/handoffs/20260630-1600-claude-to-codex-interop-proof.md",

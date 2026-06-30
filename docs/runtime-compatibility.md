@@ -12,7 +12,8 @@ The lab should fail early on environment drift instead of letting Codex, Claude,
 - Python is new enough for the lab scripts and can import required standard-library modules.
 - Core lab directories exist.
 - Scripts under `scripts/` have shebangs, executable bits, and LF line endings.
-- `scripts/check-lab` aggregates the lightweight health gates that should protect normal development.
+- `scripts/check-lab` aggregates root fast-path health gates that should protect normal development without sweeping active workspaces.
+- `scripts/check-workspace-safety` remains a referenced explicit boundary gate for workspace changes, promotions, and stability checks.
 - Clean-home auth remains absent.
 
 ## Warning Checks

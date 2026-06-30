@@ -94,6 +94,7 @@ fi
 if find "$LAB_ROOT" \
   -path "$LAB_ROOT/.git" -prune -o \
   -path "$LAB_ROOT/.tmp" -prune -o \
+  -path "$LAB_ROOT/workspaces" -prune -o \
   \( -name 'auth.json' -o -name '.env' -o -name '.env.*' -o -name '*.pem' -o -name '*.key' -o -name '*.p12' -o -name '*.pfx' -o -name '*.token' -o -name '*.secret' -o -name '*_token' -o -name '*_secret' \) \
   -print >"$TMP_ROOT/forbidden-files" &&
   test -s "$TMP_ROOT/forbidden-files"; then
@@ -104,6 +105,7 @@ fi
 if find "$LAB_ROOT" \
   -path "$LAB_ROOT/.git" -prune -o \
   -path "$LAB_ROOT/.tmp" -prune -o \
+  -path "$LAB_ROOT/workspaces" -prune -o \
   -type l -print >"$TMP_ROOT/symlinks"; then
   while IFS= read -r link_path; do
     test -n "$link_path" || continue

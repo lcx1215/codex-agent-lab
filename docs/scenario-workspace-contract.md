@@ -1,12 +1,18 @@
 # Scenario Workspace Contract
 
-Scenario workspaces are bounded places for future agent families. They let the lab support UCP agents, commercial customer-service agents, research agents, code-maintenance agents, workflow agents, evaluation agents, and other large agent systems without turning the root lab into any single product template.
+Scenario workspaces are bounded places for future agent families. They let the lab support UCP agents, support-oriented agents, research agents, code-maintenance agents, workflow agents, evaluation agents, and other large agent systems without turning the root lab into any single product template.
 
 ## Purpose
 
-Use a scenario workspace when work has a domain, product, customer, integration family, or long-running objective that should stay local until its patterns prove reusable.
+Use a scenario workspace when work has a domain, product, end-user surface, integration family, or long-running objective that should stay local until its patterns prove reusable.
 
 The workspace should help Codex and Claude work better by giving them durable state, focused context, runnable checks, local skills, and handoff artifacts. It should not replace their reasoning, coding, review, or recovery responsibilities with rigid automation.
+
+Use `docs/environment-layering.md` to decide what belongs in the root lab, this
+workspace, or a smaller agent package. Scenario workspaces are medium
+environments; concrete agent folders inside them are small agent packages.
+Use `docs/rule-inheritance.md` to keep nested local rules aligned with the root
+lab and parent workspace rules.
 
 ## Required Declarations
 
@@ -16,6 +22,7 @@ Every serious scenario workspace should declare:
 - what is inside the scenario boundary;
 - what is outside the scenario boundary;
 - how the workspace amplifies Codex and Claude;
+- how the workspace inherits root lab and parent rules;
 - which artifacts are durable state;
 - which checks prove progress;
 - when a pattern is eligible to move back into the shared lab.
@@ -25,6 +32,7 @@ Every serious scenario workspace should declare:
 The boundary keeps a scenario from taking over the lab:
 
 - scenario code, docs, tests, and experiments stay inside the workspace;
+- concrete agent packages stay inside the workspace under `agents/<package>/` or an equivalent local package boundary;
 - shared scripts or skills move to the root lab only after repeated cross-scenario value;
 - scenario-specific assumptions must not be copied into root rules;
 - live data, secrets, credentials, and external production effects stay out unless a separate approved boundary exists.
