@@ -24,13 +24,19 @@ and removing root default workspace sweeps.
   `CLAUDE.md`, `agents/README.md`, and explicit parent-rule-chain language.
 - `scripts/check-workspace-safety` now warns when a workspace or concrete agent
   package lacks an explicit parent rule-chain declaration.
+- `scripts/check-rule-ladder` is now the hard metadata gate: root, workspace,
+  package, and subagent rule links must all exist or the gate fails.
+- `scripts/check-agent-packages` is now the hard metadata gate for every
+  `agents/` or `subagents/` catalog: `registry.json`, package paths, manifest
+  paths, manifest ids, and entry agents must stay aligned.
 
 ## Request
 
-When working inside a workspace or `agents/<package>/`, keep the effective rule
-chain active: root lab rules, environment layering, rule inheritance,
-collaboration protocol, workspace rules, then package-local rules. Treat local
-rules as additive and narrowing only.
+When working inside a workspace, `agents/<package>/`, or nested
+`subagents/<unit>/`, keep the effective rule chain active: root lab rules,
+environment layering, rule inheritance, collaboration protocol, workspace
+rules, then package/subagent-local rules. Treat local rules as additive and
+narrowing only.
 
 ## Constraints
 
@@ -42,6 +48,8 @@ rules as additive and narrowing only.
 ## Expected Artifacts
 
 - `docs/rule-inheritance.md`
+- `scripts/check-rule-ladder`
+- `scripts/check-agent-packages`
 - `scripts/new-workspace`
 - `scripts/check-workspace-safety`
 - `scripts/check-project-rules`
@@ -51,7 +59,10 @@ rules as additive and narrowing only.
 
 ## Verification
 
-- `bash -n scripts/new-workspace scripts/check-project-rules scripts/check-workspace-safety scripts/check-lab`
+- `python3 -m py_compile scripts/check-rule-ladder scripts/check-runtime-compatibility scripts/check-workspace-safety`
+- `bash -n scripts/new-workspace scripts/check-project-rules scripts/check-lab`
+- `scripts/check-rule-ladder`
+- `scripts/check-agent-packages`
 - `python3 -m unittest tests.test_workspace_contract tests.test_workspace_safety tests.test_runtime_compatibility`
 - `scripts/check-project-rules`
 - `scripts/check-workspace-safety`

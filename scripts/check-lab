@@ -10,6 +10,8 @@ SKILL_DIR="$LAB_ROOT/.agents/skills"
 PROJECT_RULE_CHECK="$LAB_ROOT/scripts/check-project-rules"
 RUNTIME_COMPAT_CHECK="$LAB_ROOT/scripts/check-runtime-compatibility"
 WORKSPACE_SAFETY_CHECK="$LAB_ROOT/scripts/check-workspace-safety"
+RULE_LADDER_CHECK="$LAB_ROOT/scripts/check-rule-ladder"
+AGENT_PACKAGE_CHECK="$LAB_ROOT/scripts/check-agent-packages"
 WORKFLOW_MODE_CHECK="$LAB_ROOT/scripts/check-workflow-modes"
 SANDBOX_CHECK="$LAB_ROOT/scripts/check-sandbox"
 ASYNC_CHECK="$LAB_ROOT/scripts/check-async-execution"
@@ -33,6 +35,8 @@ test -d "$SKILL_DIR" || fail "skill directory missing"
 test -x "$PROJECT_RULE_CHECK" || fail "project rule check script missing or not executable"
 test -x "$RUNTIME_COMPAT_CHECK" || fail "runtime compatibility check script missing or not executable"
 test -x "$WORKSPACE_SAFETY_CHECK" || fail "workspace safety check script missing or not executable"
+test -x "$RULE_LADDER_CHECK" || fail "rule ladder check script missing or not executable"
+test -x "$AGENT_PACKAGE_CHECK" || fail "agent package check script missing or not executable"
 test -x "$WORKFLOW_MODE_CHECK" || fail "workflow mode check script missing or not executable"
 test -x "$SANDBOX_CHECK" || fail "sandbox check script missing or not executable"
 test -x "$ASYNC_CHECK" || fail "async execution check script missing or not executable"
@@ -79,6 +83,8 @@ fi
 
 "$PROJECT_RULE_CHECK" >/dev/null
 "$RUNTIME_COMPAT_CHECK" >/dev/null
+"$RULE_LADDER_CHECK" >/dev/null
+"$AGENT_PACKAGE_CHECK" >/dev/null
 # Workspace safety is an explicit boundary gate. Do not sweep active
 # workspaces in the root fast path.
 "$WORKFLOW_MODE_CHECK" >/dev/null

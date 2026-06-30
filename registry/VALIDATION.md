@@ -953,14 +953,22 @@ Last updated: 2026-06-30 13:37 +0800
   - Updated root lane contracts and docs: `AGENTS.md`, `CLAUDE.md`, `README.md`, `docs/environment-layering.md`, `docs/scenario-workspace-contract.md`, `docs/project-rule-template.md`, and `docs/codex-claude-collaboration-protocol.md`.
   - Updated `scripts/new-workspace` so future workspaces include `AGENTS.md`, `CLAUDE.md`, `agents/README.md`, and explicit parent-rule-chain wording.
   - Updated `scripts/check-workspace-safety` to warn when workspace or package rule inheritance is undeclared.
+  - Added hard ladder gate: `scripts/check-rule-ladder`.
+  - Added hard package-internal agent gate: `scripts/check-agent-packages`.
   - Kept `scripts/check-workspace-safety` out of the root default fast path; `scripts/check-speed-contract` now guards against reintroducing workspace-wide sweeps into `scripts/check-lab` or `scripts/check-project-rules`.
   - Added Codex-to-Claude handoff: `registry/collaboration/handoffs/20260630-2105-codex-to-claude-rule-inheritance-speed.md`.
-  - Command: `bash -n scripts/new-workspace scripts/check-project-rules scripts/check-workspace-safety scripts/check-lab`
+  - Command: `python3 -m py_compile scripts/check-rule-ladder scripts/check-runtime-compatibility scripts/check-workspace-safety && bash -n scripts/check-lab scripts/check-project-rules scripts/check-speed-contract`
   - Result: pass.
-  - Evidence: Bash syntax checks exited 0.
-  - Command: `python3 -m unittest tests.test_workspace_contract tests.test_workspace_safety tests.test_runtime_compatibility`
+  - Evidence: Python compile and Bash syntax checks exited 0.
+  - Command: `scripts/check-rule-ladder`
   - Result: pass.
-  - Evidence: `Ran 6 tests in 1.718s` and `OK`.
+  - Evidence: command reported `workspaces: 7`, `agent_packages: 1`, and `failed_links: 0`.
+  - Command: `scripts/check-agent-packages`
+  - Result: pass.
+  - Evidence: command reported `workspaces_with_agents: 1`, `agent_packages: 1`, `agents: 3`, and `failed_links: 0`.
+  - Command: `python3 -m unittest tests.test_rule_ladder tests.test_workspace_contract tests.test_workspace_safety`
+  - Result: pass.
+  - Evidence: `Ran 8 tests in 1.923s` and `OK`.
   - Command: `scripts/check-project-rules`
   - Result: pass.
   - Evidence: command reported `OK: project rule surfaces are valid`.
@@ -972,11 +980,82 @@ Last updated: 2026-06-30 13:37 +0800
   - Evidence: command reported `OK: Waterflow speed contract is valid`.
   - Command: `scripts/check-lab`
   - Result: pass.
-  - Evidence: command reported 11 agents, 46 skills, Codex CLI found, and `OK: lab structure is valid`; final `/usr/bin/time -p` reported `real 2.36`.
+  - Evidence: command reported 11 agents, 46 skills, Codex CLI found, and `OK: lab structure is valid`; latest `/usr/bin/time -p` reported `real 2.28`.
+  - Command: `python3 -m unittest discover -s tests`
+  - Result: pass.
+  - Evidence: `Ran 67 tests in 4.780s` and `OK`.
   - Command: `scripts/check-runtime-compatibility`
   - Result: pass.
   - Evidence: command reported 40 checks, 40 passed, 0 warnings, and 0 failures.
   - Command: `scripts/check-collaboration`
   - Result: pass.
-  - Evidence: command reported `assignments OK: 7 entries`, `Handoffs: 4`, and `OK: collaboration surfaces are valid`.
+  - Evidence: command reported `assignments OK: 8 entries`, `Handoffs: 4`, and `OK: collaboration surfaces are valid`.
   - Boundary: no global Codex/Claude auth, provider, plugin, LaunchAgent, or App state changed. The active nested agent-dev workspace was only given a package README inheritance anchor.
+
+## Generalized Agent Catalog Gates
+
+- Date: 2026-06-30
+- Owner lane: codex
+- Scope: make the rule-ladder and agent-manifest gates cover every philosophically equivalent agent unit, not only the current support/customer package.
+  - Generalized `scripts/check-rule-ladder` from direct `workspaces/*/agents/*` packages to all agent units discovered under explicit `agents/` or `subagents/` catalogs.
+  - Generalized `scripts/check-agent-packages` from one workspace-level `agents/registry.json` shape to every `agents/` or `subagents/` catalog, with paths resolved relative to each catalog container.
+  - Added entry-agent validation so `default_agent` and package `entry_agent` references must point to registered manifests.
+  - Added regression coverage for nested `subagents/registry.json` passing and nested subagent manifests without a registry failing.
+  - Updated root Codex/Claude rules and docs so the mechanism is scenario-neutral across support, UCP, eval, code, workflow, and future agent families.
+  - Command: `python3 -m py_compile scripts/check-agent-packages scripts/check-rule-ladder`
+  - Result: pass.
+  - Evidence: command exited 0.
+  - Command: `python3 -m unittest tests.test_agent_package_integrity tests.test_rule_ladder`
+  - Result: pass.
+  - Evidence: `Ran 10 tests in 0.708s` and `OK`.
+  - Command: `scripts/check-project-rules`
+  - Result: pass.
+  - Evidence: command reported `OK: project rule surfaces are valid`.
+  - Command: `scripts/check-agent-packages`
+  - Result: pass.
+  - Evidence: command reported `workspaces_with_agents: 1`, `agent_registries: 1`, `agent_packages: 1`, `agents: 3`, and `failed_links: 0`.
+  - Command: `scripts/check-rule-ladder`
+  - Result: pass.
+  - Evidence: command reported `workspaces: 7`, `agent_units: 1`, and `failed_links: 0`.
+  - Command: `python3 -m unittest discover -s tests`
+  - Result: pass.
+  - Evidence: `Ran 76 tests in 6.418s` and `OK`.
+  - Command: `scripts/check-lab`
+  - Result: pass.
+  - Evidence: command reported 11 agents, 46 skills, Codex CLI found, and `OK: lab structure is valid`.
+  - Command: `scripts/check-runtime-compatibility`
+  - Result: pass.
+  - Evidence: command reported 40 checks, 40 passed, 0 warnings, and 0 failures.
+  - Command: `scripts/check-collaboration`
+  - Result: pass.
+  - Evidence: command reported `assignments OK: 8 entries`, `Handoffs: 4`, and `OK: collaboration surfaces are valid`.
+  - Command: `scripts/check-secrets`
+  - Result: pass.
+  - Evidence: command reported `OK: no committable secrets or README-local user paths detected`.
+  - Command: `scripts/check-workspace-safety`
+  - Result: warn with no hard failures.
+  - Evidence: command reported `workspaces: 7`, `warnings: 8`, and `failed: 0`.
+  - Boundary: no nested workspace business code, global auth/provider/plugin state, Codex App process state, or Claude process state was changed.
+
+## Customer Support Gateway Security Handoff Closed
+
+- Date: 2026-06-30
+- Owner lane: codex
+- Scope: close Claude's `scripts/audit-agent-code` findings for the customer-support gateway package.
+  - Fixed fail-open signature verification: missing support-inbox webhook secret now returns `signature_secret_not_configured` with `ok: false`.
+  - Replaced the empty verifier secret literal at the `/inbox/messages` call site with `config.supportInbox.webhookSecret`.
+  - Added `SUPPORT_INBOX_WEBHOOK_SECRET` and `MAX_REQUEST_BODY_BYTES` runtime config fields without storing any secret value.
+  - Added request body size enforcement; oversized JSON requests return 413.
+  - Added package tests for missing-secret fail-closed behavior and valid `sha256=` HMAC verification.
+  - Command: `npm test`
+  - Cwd: `workspaces/agent-dev-workspace/agents/customer-support/services/gateway`
+  - Result: pass.
+  - Evidence: Node test runner reported 12 tests, 12 pass, 0 fail.
+  - Command: `scripts/audit-agent-code workspaces/agent-dev-workspace/agents/customer-support`
+  - Result: pass.
+  - Evidence: auditor reported `status: pass  (fail=0 warn=0)`.
+  - Command: `node --check agents/customer-support/services/gateway/src/server.mjs && node --check agents/customer-support/services/gateway/src/config.mjs && node --check agents/customer-support/services/gateway/src/security/signature.mjs`
+  - Cwd: `workspaces/agent-dev-workspace`
+  - Result: pass.
+  - Evidence: command exited 0.
+  - Boundary: no real secret values, auth/session files, provider config, plugin state, or global Codex/Claude state were read or changed.

@@ -1,7 +1,48 @@
 {
   "schema": "codex-claude-collaboration-assignments/v1",
-  "updated": "2026-06-30T20:35:00+08:00",
+  "updated": "2026-06-30T21:45:00+08:00",
   "assignments": [
+    {
+      "id": "collab-0009-agent-code-auditor",
+      "title": "Agent code quality/security auditor + customer-support gateway findings",
+      "leader": "claude",
+      "workers": [
+        "claude"
+      ],
+      "reviewer": "codex",
+      "status": "proven",
+      "handoff": "registry/collaboration/handoffs/20260630-2137-claude-to-codex-support-gateway-security.md",
+      "artifacts": [
+        "scripts/audit-agent-code",
+        "tests/test_audit_agent_code.py",
+        "docs/agent-code-auditor.md",
+        "registry/collaboration/handoffs/20260630-2137-claude-to-codex-support-gateway-security.md"
+      ],
+      "note": "PROVEN 2026-06-30: scripts/audit-agent-code (code-content quality/security auditor for agent packages) complements Codex's metadata gates. Full loop closed: auditor caught a REAL auth-bypass in Codex's customer-support gateway (signature.mjs fail-open + server.mjs secret:'' -> forgeable /inbox/messages), reported via handoff 20260630-2137, Codex FIXED both (signature.mjs now fails closed; server.mjs passes config.supportInbox.webhookSecret; added 413 max-body cap), Claude independently re-verified: auditor now pass (fail=0 warn=0), gateway npm test 12/12. Zero false positives on the clean kernel. 5 auditor tests; full suite 76 pass. Detects FAIL_OPEN_AUTH/EMPTY_SECRET (fail), INJECTION_SINK/UNBOUNDED_BODY/NO_TESTS (warn). docs/agent-code-auditor.md + CAPABILITY_LAYERS Layer 1.",
+      "updated": "2026-06-30T21:45:00+08:00"
+    },
+    {
+      "id": "collab-0008-consolidate-to-main",
+      "title": "Consolidate unified protocol + kernel + rule-inheritance onto main",
+      "leader": "claude",
+      "workers": [
+        "claude",
+        "codex"
+      ],
+      "reviewer": "codex",
+      "status": "proven",
+      "handoff": "registry/collaboration/handoffs/20260630-2105-codex-to-claude-rule-inheritance-speed.md",
+      "artifacts": [
+        "docs/rule-inheritance.md",
+        "lab_agents/agent_kernel/",
+        "docs/environment-layering.md",
+        "docs/codex-claude-collaboration-protocol.md",
+        "AGENTS.md",
+        "CLAUDE.md"
+      ],
+      "note": "PROVEN 2026-06-30: both lanes' root-layer work consolidated to main (commit 3846877, fast-forward). Includes Claude's neutral kernel + unified protocol alignment, and Codex's rule-inheritance contract + faster root default gates (workspace-safety no longer inline in check-lab). Codex then promoted rule continuity into the hard metadata gate scripts/check-rule-ladder: effective rule chain = root rules -> env layering -> rule inheritance -> collaboration protocol -> workspace rules -> package/subagent rules; missing root/workspace/package/subagent ladder links fail. Codex also added and generalized scripts/check-agent-packages so every agents/ or subagents/ catalog must keep registry.json, package paths, manifest paths, manifest ids, and entry agents aligned. Claude acknowledges Codex's rule-inheritance handoff (20260630-2105) and will not re-add workspace-wide sweeps to the root fast path. Merge waited until both lanes quiet; Codex's gitignored workspaces/ customer-support dev work was not touched by the merge. Gates green: check-rule-ladder + check-agent-packages + check-secrets + check-lab + check-collaboration + check-project-rules + check-speed-contract; full unittest suite 76 tests pass.",
+      "updated": "2026-06-30T21:17:12+08:00"
+    },
     {
       "id": "collab-0007-protocol-alignment",
       "title": "Align both lanes on one unified development-environment protocol",
@@ -30,7 +71,7 @@
         "claude"
       ],
       "reviewer": "codex",
-      "status": "in_progress",
+      "status": "proven",
       "handoff": "registry/collaboration/handoffs/20260630-1930-claude-to-codex-agent-kernel.md",
       "artifacts": [
         "lab_agents/agent_kernel/core.py",
@@ -43,8 +84,8 @@
         "tests/test_kernel_policies.py",
         "tests/test_kernel_neutrality.py"
       ],
-      "note": "Promoted a scenario contract's 9 hard-coded guards into a domain-neutral kernel (Layer 7): neutral types + 10 composable policy primitives + ordered DecisionEngine + neutral JSONL eval harness. Neutrality proven by tests/test_kernel_neutrality.py (two unrelated agent chains - infra-ops + research - built inline on the kernel). Kept lean: no resident demo families, no scaffold script; a real agent builds its chain in its own workspaces/ scenario. 29 pure-Python tests; check-secrets + check-lab + check-collaboration OK. Did NOT touch Codex's git-excluded support scenario contract - handoff asks Codex to optionally adopt the kernel there. On branch claude/neutral-agent-kernel, not merged. Awaiting Codex review.",
-      "updated": "2026-06-30T19:32:00+08:00"
+      "note": "PROVEN 2026-06-30: domain-neutral kernel (Layer 7) merged to main (commit 3846877). Neutral types + 10 composable policy primitives + ordered DecisionEngine + neutral JSONL eval harness; neutrality proven by tests/test_kernel_neutrality.py (two unrelated inline agent chains). Kept lean: no resident demo families. 29 kernel tests green (61 full suite). Merged as part of the unified env-protocol consolidation; Codex's gitignored workspaces/ dev work untouched.",
+      "updated": "2026-06-30T21:10:00+08:00"
     },
     {
       "id": "collab-0005-harden-secret-gates",

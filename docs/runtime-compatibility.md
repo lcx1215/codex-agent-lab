@@ -13,6 +13,8 @@ The lab should fail early on environment drift instead of letting Codex, Claude,
 - Core lab directories exist.
 - Scripts under `scripts/` have shebangs, executable bits, and LF line endings.
 - `scripts/check-lab` aggregates root fast-path health gates that should protect normal development without sweeping active workspaces.
+- `scripts/check-rule-ladder` stays available as the metadata-only hard gate for root/workspace/package/subagent rule-chain continuity.
+- `scripts/check-agent-packages` stays available as the metadata-only hard gate for `agents/` and `subagents/` registry and manifest continuity.
 - `scripts/check-workspace-safety` remains a referenced explicit boundary gate for workspace changes, promotions, and stability checks.
 - Clean-home auth remains absent.
 

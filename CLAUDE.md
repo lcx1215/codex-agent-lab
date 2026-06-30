@@ -68,6 +68,10 @@ This is the Claude-lane counterpart to the same section in `AGENTS.md`; both lan
 
 - Verify before claiming completion. Default gates: `scripts/check-lab`, `scripts/check-secrets`,
   `scripts/check-collaboration`, and `scripts/lab-dashboard`.
+- Run `scripts/check-rule-ladder` when adding, moving, or entering nested workspaces, agent packages, or subagent units; a missing
+  parent-rule link is a hard failure.
+- Run `scripts/check-agent-packages` when creating, moving, renaming, or splitting `agents/` or `subagents/` catalogs; an
+  unregistered or mismatched agent manifest is a hard failure.
 - Write completion evidence to `registry/VALIDATION.md` or a task-specific validation note.
 - Prefer `executor` for implementation, `code-reviewer`/`verifier` for the approval pass. Never self-approve in
   the same active context.

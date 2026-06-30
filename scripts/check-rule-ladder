@@ -1,0 +1,313 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import json
+import os
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
+
+
+DEFAULT_LAB_ROOT = Path(__file__).resolve().parents[1]
+OUTPUT_DIR = Path("outputs/shared/rule-ladder")
+CATALOG_DIR_NAMES = {"agents", "subagents"}
+IGNORED_DIR_NAMES = {
+    ".git",
+    ".omx",
+    ".omc",
+    ".tmp",
+    ".venv",
+    "__pycache__",
+    "build",
+    "coverage",
+    "dist",
+    "node_modules",
+    "outputs",
+}
+RULE_MARKERS = (
+    "Rule Inheritance",
+    "rule-inheritance",
+    "parent lab rules",
+    "Parent Environment",
+    "Parent lab contracts",
+    "Effective rules",
+)
+
+
+@dataclass
+class LadderIssue:
+    code: str
+    message: str
+    evidence: list[str] = field(default_factory=list)
+
+
+def rel(path: Path, root: Path) -> str:
+    try:
+        return path.relative_to(root).as_posix()
+    except ValueError:
+        return str(path)
+
+
+def read_text(path: Path) -> str:
+    return path.read_text(encoding="utf-8", errors="ignore")
+
+
+def has_rule_marker(path: Path) -> bool:
+    if not path.is_file() or path.stat().st_size > 512_000:
+        return False
+    text = read_text(path).lower()
+    return any(marker.lower() in text for marker in RULE_MARKERS)
+
+
+def add_missing(issues: list[LadderIssue], path: Path, root: Path, label: str) -> None:
+    issues.append(
+        LadderIssue(
+            "RULE_LADDER_MISSING_SURFACE",
+            f"{label} is missing.",
+            [rel(path, root)],
+        )
+    )
+
+
+def check_root(root: Path) -> list[LadderIssue]:
+    issues: list[LadderIssue] = []
+    required = [
+        (root / "AGENTS.md", "root Codex rules"),
+        (root / "CLAUDE.md", "root Claude rules"),
+        (root / "docs" / "environment-layering.md", "environment layering contract"),
+        (root / "docs" / "rule-inheritance.md", "rule inheritance contract"),
+        (root / "docs" / "codex-claude-collaboration-protocol.md", "collaboration protocol"),
+    ]
+    for path, label in required:
+        if not path.is_file():
+            add_missing(issues, path, root, label)
+
+    marker_files = [
+        root / "AGENTS.md",
+        root / "CLAUDE.md",
+        root / "docs" / "environment-layering.md",
+        root / "docs" / "codex-claude-collaboration-protocol.md",
+    ]
+    for path in marker_files:
+        if path.is_file() and not has_rule_marker(path):
+            issues.append(
+                LadderIssue(
+                    "RULE_LADDER_ROOT_UNDECLARED",
+                    "Root surface does not point to the rule inheritance contract.",
+                    [rel(path, root)],
+                )
+            )
+    return issues
+
+
+def iter_workspaces(root: Path) -> list[Path]:
+    workspaces_root = root / "workspaces"
+    if not workspaces_root.is_dir():
+        return []
+    return sorted(item for item in workspaces_root.iterdir() if item.is_dir())
+
+
+def is_ignored(path: Path, boundary: Path) -> bool:
+    try:
+        parts = path.relative_to(boundary).parts
+    except ValueError:
+        parts = path.parts
+    return any(part in IGNORED_DIR_NAMES for part in parts)
+
+
+def has_catalog_content(catalog_dir: Path, workspace: Path) -> bool:
+    if is_ignored(catalog_dir, workspace):
+        return False
+    if (catalog_dir / "registry.json").is_file():
+        return True
+    if any(catalog_dir.glob("*.agent.json")):
+        return True
+    for child in catalog_dir.iterdir():
+        if child.is_dir() and not is_ignored(child, workspace):
+            return True
+    return False
+
+
+def iter_agent_catalogs(workspace: Path) -> list[Path]:
+    catalogs: list[Path] = []
+    for path in workspace.rglob("*"):
+        if not path.is_dir() or path.name not in CATALOG_DIR_NAMES:
+            continue
+        if has_catalog_content(path, workspace):
+            catalogs.append(path)
+    return sorted(set(catalogs))
+
+
+def iter_agent_units(workspace: Path) -> list[Path]:
+    units: set[Path] = set()
+    for catalog_dir in iter_agent_catalogs(workspace):
+        for child in catalog_dir.iterdir():
+            if child.is_dir() and not is_ignored(child, workspace):
+                units.add(child)
+        for manifest_path in catalog_dir.glob("*.agent.json"):
+            units.add(catalog_dir)
+    for manifest_path in workspace.rglob("*.agent.json"):
+        if not is_ignored(manifest_path, workspace):
+            units.add(manifest_path.parent)
+    return sorted(units)
+
+
+def package_surfaces(package: Path) -> list[Path]:
+    candidates = [
+        package / "AGENTS.md",
+        package / "CLAUDE.md",
+        package / "README.md",
+    ]
+    candidates.extend(sorted(package.glob("*.agent.json")))
+    candidates.extend(sorted(package.glob("manifest*.json")))
+    return [path for path in candidates if path.is_file()]
+
+
+def check_workspace(workspace: Path, root: Path) -> list[LadderIssue]:
+    issues: list[LadderIssue] = []
+    agents = workspace / "AGENTS.md"
+    if not agents.is_file():
+        add_missing(issues, agents, root, "workspace AGENTS.md")
+    elif not has_rule_marker(agents):
+        issues.append(
+            LadderIssue(
+                "RULE_LADDER_WORKSPACE_UNDECLARED",
+                "Workspace rules do not declare the parent rule chain.",
+                [rel(agents, root)],
+            )
+        )
+
+    for agent_unit in iter_agent_units(workspace):
+        surfaces = package_surfaces(agent_unit)
+        if not surfaces:
+            issues.append(
+                LadderIssue(
+                    "RULE_LADDER_PACKAGE_SURFACE_MISSING",
+                    "Agent unit has no local rule surface.",
+                    [rel(agent_unit, root)],
+                )
+            )
+            continue
+        if not any(has_rule_marker(surface) for surface in surfaces):
+            issues.append(
+                LadderIssue(
+                    "RULE_LADDER_PACKAGE_UNDECLARED",
+                    "Agent unit rule surfaces do not declare the parent rule chain.",
+                    [rel(agent_unit, root)],
+                )
+            )
+    return issues
+
+
+def build_report(root: Path) -> dict[str, object]:
+    root = root.resolve()
+    issues = check_root(root)
+    workspace_reports = []
+    agent_unit_count = 0
+    for workspace in iter_workspaces(root):
+        workspace_issues = check_workspace(workspace, root)
+        agent_unit_count += len(iter_agent_units(workspace))
+        workspace_reports.append(
+            {
+                "path": rel(workspace, root),
+                "status": "fail" if workspace_issues else "pass",
+                "issues": [
+                    {
+                        "code": issue.code,
+                        "message": issue.message,
+                        "evidence": issue.evidence,
+                    }
+                    for issue in workspace_issues
+                ],
+            }
+        )
+        issues.extend(workspace_issues)
+
+    return {
+        "schema_version": 1,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "lab_root": str(root),
+        "status": "fail" if issues else "pass",
+        "summary": {
+            "workspace_count": len(workspace_reports),
+            "package_count": agent_unit_count,
+            "agent_unit_count": agent_unit_count,
+            "failed_count": len(issues),
+        },
+        "issues": [
+            {
+                "code": issue.code,
+                "message": issue.message,
+                "evidence": issue.evidence,
+            }
+            for issue in issues
+        ],
+        "workspaces": workspace_reports,
+    }
+
+
+def render_markdown(report: dict[str, object]) -> str:
+    summary = report["summary"]
+    lines = [
+        "# Rule Ladder Integrity",
+        "",
+        f"- Generated: `{report['generated_at']}`",
+        f"- Status: `{report['status']}`",
+        f"- Workspaces: `{summary['workspace_count']}`",
+        f"- Agent units: `{summary['agent_unit_count']}`",
+        f"- Failed links: `{summary['failed_count']}`",
+        "",
+    ]
+    if not report["issues"]:
+        lines.append("No broken rule-ladder links.")
+        return "\n".join(lines).rstrip() + "\n"
+    for issue in report["issues"]:
+        lines.extend(
+            [
+                f"## {issue['code']}",
+                "",
+                issue["message"],
+                "",
+            ]
+        )
+        for evidence in issue.get("evidence") or []:
+            lines.append(f"- `{evidence}`")
+        lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Check root/workspace/package rule-ladder continuity.")
+    parser.add_argument("--root", default=str(DEFAULT_LAB_ROOT), help="Lab root to inspect.")
+    parser.add_argument("--json", action="store_true", help="Print report JSON to stdout.")
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    root = Path(args.root).expanduser().resolve()
+    report = build_report(root)
+    output_root = root / OUTPUT_DIR
+    output_root.mkdir(parents=True, exist_ok=True)
+    json_path = output_root / "rule-ladder.json"
+    markdown_path = output_root / "rule-ladder.md"
+    json_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    markdown_path.write_text(render_markdown(report), encoding="utf-8")
+
+    if args.json:
+        print(json.dumps(report, indent=2, sort_keys=True))
+    else:
+        summary = report["summary"]
+        print(f"status: {report['status']}")
+        print(f"workspaces: {summary['workspace_count']}")
+        print(f"agent_units: {summary['agent_unit_count']}")
+        print(f"failed_links: {summary['failed_count']}")
+        print(f"json: {json_path}")
+        print(f"markdown: {markdown_path}")
+
+    return 1 if report["status"] == "fail" else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

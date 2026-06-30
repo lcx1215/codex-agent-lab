@@ -1,0 +1,265 @@
+#!/usr/bin/env python3
+"""Agent code quality auditor.
+
+Structure gates (check-rule-ladder, check-agent-packages) prove a package is
+*wired* correctly. This gate looks *inside the code* of an agent package for
+quality and security anti-patterns that structure checks cannot see:
+
+- fail-open authentication / signature verification (the rg-fail-open family,
+  but for agent runtime code);
+- hardcoded empty or placeholder secrets passed into a verifier;
+- runtime source files with no co-located tests;
+- obvious injection sinks (eval, child_process with interpolation);
+- unbounded request body reads (DoS surface).
+
+It is heuristic and scoped to one agent package's runtime code. It prints a
+pass/warn/fail report + JSON, and exits non-zero only on `fail`-level findings
+so it can gate CI without blocking on advisory warnings.
+
+Usage:
+  scripts/audit-agent-code <package-dir>
+  scripts/audit-agent-code workspaces/<ws>/agents/<pkg>
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
+
+DEFAULT_LAB_ROOT = Path(__file__).resolve().parents[1]
+OUTPUT_DIR = Path("outputs/shared/agent-code-audit")
+
+# Severity ladder: fail > warn > info. Only `fail` makes the gate exit non-zero.
+SEV_FAIL = "fail"
+SEV_WARN = "warn"
+SEV_INFO = "info"
+
+
+@dataclass
+class Finding:
+    code: str
+    severity: str
+    message: str
+    file: str
+    line: int = 0
+    evidence: str = ""
+
+
+@dataclass
+class FileText:
+    path: Path
+    rel: str
+    lines: list[str] = field(default_factory=list)
+
+    @property
+    def text(self) -> str:
+        return "\n".join(self.lines)
+
+
+SOURCE_GLOBS = ("*.mjs", "*.js", "*.ts", "*.py")
+SKIP_DIRS = {"node_modules", "__pycache__", ".tmp", "dist", "build", ".git"}
+
+
+def collect_sources(package: Path) -> list[FileText]:
+    out: list[FileText] = []
+    for path in sorted(package.rglob("*")):
+        if not path.is_file():
+            continue
+        if any(part in SKIP_DIRS for part in path.parts):
+            continue
+        if path.suffix not in {".mjs", ".js", ".ts", ".py"}:
+            continue
+        try:
+            lines = path.read_text(encoding="utf-8").splitlines()
+        except (UnicodeDecodeError, OSError):
+            continue
+        out.append(FileText(path=path, rel=str(path), lines=lines))
+    return out
+
+
+def _line_of(ft: FileText, needle: str) -> tuple[int, str]:
+    for i, line in enumerate(ft.lines, 1):
+        if needle in line:
+            return i, line.strip()
+    return 0, ""
+
+
+def is_test_file(ft: FileText) -> bool:
+    low = ft.path.name.lower()
+    return ".test." in low or ".spec." in low or low.startswith("test_") or "/test/" in ft.rel.replace("\\", "/")
+
+
+def is_runtime_source(ft: FileText) -> bool:
+    rel = ft.rel.replace("\\", "/")
+    return "/src/" in rel and not is_test_file(ft)
+
+
+# --- detection rules: each takes the full file list, returns Findings ---
+
+def rule_fail_open_auth(files: list[FileText]) -> list[Finding]:
+    """Verifier/auth functions that return success when the secret is absent."""
+    out: list[Finding] = []
+    pat = re.compile(r"if\s*\(\s*!\s*(secret|token|key|signature)\b.*\)\s*return\s*\{?\s*ok\s*:\s*true", re.I)
+    for ft in files:
+        if is_test_file(ft):
+            continue
+        for i, line in enumerate(ft.lines, 1):
+            if pat.search(line):
+                out.append(Finding(
+                    "FAIL_OPEN_AUTH", SEV_FAIL,
+                    "auth/verifier returns ok=true when the secret/token is missing (fail-open).",
+                    ft.rel, i, line.strip(),
+                ))
+    return out
+
+
+def rule_empty_secret_passed(files: list[FileText]) -> list[Finding]:
+    """A verifier is called with an empty/placeholder secret literal."""
+    out: list[Finding] = []
+    pat = re.compile(r"secret\s*:\s*(''|\"\"|`\`|'changeme'|'TODO'|null)", re.I)
+    for ft in files:
+        if is_test_file(ft):
+            continue
+        for i, line in enumerate(ft.lines, 1):
+            if pat.search(line):
+                out.append(Finding(
+                    "EMPTY_SECRET", SEV_FAIL,
+                    "verifier called with an empty/placeholder secret, disabling the check.",
+                    ft.rel, i, line.strip(),
+                ))
+    return out
+
+
+def rule_injection_sink(files: list[FileText]) -> list[Finding]:
+    """eval / exec / child_process with interpolation."""
+    out: list[Finding] = []
+    sinks = [
+        (re.compile(r"\beval\s*\("), "use of eval()"),
+        (re.compile(r"child_process|execSync|exec\("), "shell exec sink"),
+        (re.compile(r"\bos\.system\s*\(|subprocess\.\w+\(.*shell\s*=\s*True"), "python shell sink"),
+    ]
+    for ft in files:
+        if is_test_file(ft):
+            continue
+        for i, line in enumerate(ft.lines, 1):
+            for pat, label in sinks:
+                if pat.search(line):
+                    out.append(Finding(
+                        "INJECTION_SINK", SEV_WARN,
+                        f"potential injection sink ({label}); confirm inputs are not attacker-controlled.",
+                        ft.rel, i, line.strip(),
+                    ))
+    return out
+
+
+def rule_missing_tests(files: list[FileText]) -> list[Finding]:
+    """Runtime src present but no test file anywhere in the package."""
+    runtime = [ft for ft in files if is_runtime_source(ft)]
+    tests = [ft for ft in files if is_test_file(ft)]
+    if runtime and not tests:
+        return [Finding(
+            "NO_TESTS", SEV_WARN,
+            f"{len(runtime)} runtime source files but no test/spec files in the package.",
+            runtime[0].rel, 0, "",
+        )]
+    return []
+
+
+def rule_unbounded_body(files: list[FileText]) -> list[Finding]:
+    """Request body accumulated without a size cap (DoS surface)."""
+    out: list[Finding] = []
+    reads_body = re.compile(r"for await\s*\(.*\bof\s+req\b|req\.on\(\s*['\"]data['\"]")
+    has_limit = re.compile(r"maxBody|MAX_BODY|content-length|contentLength|byteLength\s*>|length\s*>\s*\d{3,}", re.I)
+    for ft in files:
+        if is_test_file(ft):
+            continue
+        if reads_body.search(ft.text) and not has_limit.search(ft.text):
+            i, ev = _line_of(ft, "of req") if "of req" in ft.text else _line_of(ft, "'data'")
+            out.append(Finding(
+                "UNBOUNDED_BODY", SEV_WARN,
+                "request body is read without an obvious size cap; large payloads could exhaust memory.",
+                ft.rel, i, ev,
+            ))
+    return out
+
+
+RULES = (
+    rule_fail_open_auth,
+    rule_empty_secret_passed,
+    rule_injection_sink,
+    rule_missing_tests,
+    rule_unbounded_body,
+)
+
+
+def audit(package: Path) -> dict:
+    files = collect_sources(package)
+    findings: list[Finding] = []
+    for rule in RULES:
+        findings.extend(rule(files))
+    sev_rank = {SEV_FAIL: 0, SEV_WARN: 1, SEV_INFO: 2}
+    findings.sort(key=lambda f: (sev_rank.get(f.severity, 9), f.file, f.line))
+    counts = {SEV_FAIL: 0, SEV_WARN: 0, SEV_INFO: 0}
+    for f in findings:
+        counts[f.severity] = counts.get(f.severity, 0) + 1
+    status = "fail" if counts[SEV_FAIL] else ("warn" if counts[SEV_WARN] else "pass")
+    return {
+        "schema": "agent-code-audit/v1",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "package": str(package),
+        "scanned_files": len(files),
+        "status": status,
+        "counts": counts,
+        "findings": [vars(f) for f in findings],
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Audit an agent package's code for quality/security anti-patterns.")
+    parser.add_argument("package", help="Path to the agent package directory.")
+    parser.add_argument("--json", action="store_true", help="Print the report JSON to stdout.")
+    parser.add_argument("--write", action="store_true", help="Write JSON+Markdown under outputs/shared/agent-code-audit/.")
+    args = parser.parse_args()
+
+    package = Path(args.package)
+    if not package.is_dir():
+        print(f"error: not a directory: {package}", file=sys.stderr)
+        return 2
+
+    report = audit(package)
+
+    if args.json:
+        print(json.dumps(report, indent=2, ensure_ascii=False))
+    else:
+        print(f"package: {report['package']}")
+        print(f"scanned files: {report['scanned_files']}")
+        print(f"status: {report['status']}  (fail={report['counts']['fail']} warn={report['counts']['warn']})")
+        for f in report["findings"]:
+            loc = f"{f['file']}:{f['line']}" if f["line"] else f["file"]
+            print(f"  [{f['severity']}] {f['code']} {loc}")
+            print(f"        {f['message']}")
+            if f["evidence"]:
+                print(f"        > {f['evidence']}")
+
+    if args.write:
+        out = DEFAULT_LAB_ROOT / OUTPUT_DIR
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "agent-code-audit.json").write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        md = [f"# Agent Code Audit\n", f"- package: `{report['package']}`", f"- status: **{report['status']}**",
+              f"- scanned files: {report['scanned_files']}", f"- fail: {report['counts']['fail']}  warn: {report['counts']['warn']}\n"]
+        for f in report["findings"]:
+            loc = f"{f['file']}:{f['line']}" if f["line"] else f["file"]
+            md.append(f"- **[{f['severity']}] {f['code']}** `{loc}` — {f['message']}")
+        (out / "agent-code-audit.md").write_text("\n".join(md) + "\n", encoding="utf-8")
+        print(f"json: {out / 'agent-code-audit.json'}")
+
+    # Exit non-zero only on fail-level findings.
+    return 1 if report["counts"][SEV_FAIL] else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -83,6 +83,18 @@ Check runtime compatibility and common setup drift:
 ./scripts/check-runtime-compatibility
 ```
 
+Check root/workspace/package rule-ladder continuity:
+
+```bash
+./scripts/check-rule-ladder
+```
+
+Check workspace agent/subagent catalog registry and manifest integrity:
+
+```bash
+./scripts/check-agent-packages
+```
+
 Check workspace-level safety without blocking active in-progress work:
 
 ```bash

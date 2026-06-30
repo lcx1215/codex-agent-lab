@@ -1,0 +1,389 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import json
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
+
+
+DEFAULT_LAB_ROOT = Path(__file__).resolve().parents[1]
+OUTPUT_DIR = Path("outputs/shared/agent-packages")
+CATALOG_DIR_NAMES = {"agents", "subagents"}
+IGNORED_DIR_NAMES = {
+    ".git",
+    ".omx",
+    ".omc",
+    ".tmp",
+    ".venv",
+    "__pycache__",
+    "build",
+    "coverage",
+    "dist",
+    "node_modules",
+    "outputs",
+}
+
+
+@dataclass
+class PackageIssue:
+    code: str
+    message: str
+    evidence: list[str] = field(default_factory=list)
+
+
+def rel(path: Path, root: Path) -> str:
+    try:
+        return path.relative_to(root).as_posix()
+    except ValueError:
+        return str(path)
+
+
+def load_json(path: Path) -> tuple[object | None, str | None]:
+    try:
+        return json.loads(path.read_text(encoding="utf-8")), None
+    except Exception as exc:
+        return None, str(exc)
+
+
+def iter_workspaces(root: Path) -> list[Path]:
+    workspaces_root = root / "workspaces"
+    if not workspaces_root.is_dir():
+        return []
+    return sorted(item for item in workspaces_root.iterdir() if item.is_dir())
+
+
+def is_ignored(path: Path, boundary: Path) -> bool:
+    try:
+        parts = path.relative_to(boundary).parts
+    except ValueError:
+        parts = path.parts
+    return any(part in IGNORED_DIR_NAMES for part in parts)
+
+
+def has_catalog_content(catalog_dir: Path, workspace: Path) -> bool:
+    if is_ignored(catalog_dir, workspace):
+        return False
+    if (catalog_dir / "registry.json").is_file():
+        return True
+    if any(catalog_dir.glob("*.agent.json")):
+        return True
+    for child in catalog_dir.iterdir():
+        if child.is_dir() and not is_ignored(child, workspace):
+            return True
+    return False
+
+
+def iter_agent_catalogs(workspace: Path) -> list[Path]:
+    catalogs: list[Path] = []
+    for path in workspace.rglob("*"):
+        if not path.is_dir() or path.name not in CATALOG_DIR_NAMES:
+            continue
+        if has_catalog_content(path, workspace):
+            catalogs.append(path)
+    return sorted(set(catalogs))
+
+
+def catalog_container_root(catalog_dir: Path) -> Path:
+    return catalog_dir.parent
+
+
+def direct_package_dirs(catalog_dir: Path, workspace: Path) -> list[Path]:
+    return sorted(
+        item
+        for item in catalog_dir.iterdir()
+        if item.is_dir() and not is_ignored(item, workspace)
+    )
+
+
+def check_registry(catalog_dir: Path, root: Path) -> list[PackageIssue]:
+    issues: list[PackageIssue] = []
+    workspace = next(parent for parent in catalog_dir.parents if parent.parent == root / "workspaces")
+    container_root = catalog_container_root(catalog_dir)
+    package_dirs = direct_package_dirs(catalog_dir, workspace)
+    registry_path = catalog_dir / "registry.json"
+    loose_manifests = sorted(catalog_dir.glob("*.agent.json"))
+    if loose_manifests:
+        issues.append(
+            PackageIssue(
+                "AGENT_MANIFEST_WITHOUT_PACKAGE_BOUNDARY",
+                "agent manifests must live inside a concrete package/subagent directory, not directly in the catalog root.",
+                [rel(path, root) for path in loose_manifests],
+            )
+        )
+    if (package_dirs or loose_manifests) and not registry_path.is_file():
+        return [
+            PackageIssue(
+                "AGENT_REGISTRY_MISSING",
+                "Agent catalog has package/subagent directories but no registry.json.",
+                [rel(catalog_dir, root)],
+            )
+        ] + issues
+    if not registry_path.is_file():
+        return issues
+
+    data, error = load_json(registry_path)
+    if error or not isinstance(data, dict):
+        return [
+            PackageIssue(
+                "AGENT_REGISTRY_INVALID_JSON",
+                "agents/registry.json is missing valid JSON object content.",
+                [rel(registry_path, root), error or "not an object"],
+            )
+        ]
+
+    packages = data.get("agent_packages")
+    agents = data.get("agents")
+    if not isinstance(packages, list):
+        issues.append(PackageIssue("AGENT_REGISTRY_BAD_SHAPE", "agent_packages must be a list.", [rel(registry_path, root)]))
+        packages = []
+    if not isinstance(agents, list):
+        issues.append(PackageIssue("AGENT_REGISTRY_BAD_SHAPE", "agents must be a list.", [rel(registry_path, root)]))
+        agents = []
+
+    package_by_id: dict[str, Path] = {}
+    seen_packages: set[str] = set()
+    entry_agent_refs: list[tuple[str, str]] = []
+    for package in packages:
+        if not isinstance(package, dict):
+            issues.append(PackageIssue("AGENT_PACKAGE_ENTRY_INVALID", "agent package entry must be an object.", [rel(registry_path, root)]))
+            continue
+        package_id = package.get("id")
+        package_path = package.get("path")
+        entry_agent = package.get("entry_agent")
+        if not isinstance(package_id, str) or not isinstance(package_path, str):
+            issues.append(PackageIssue("AGENT_PACKAGE_ENTRY_INVALID", "agent package entry needs string id and path.", [repr(package)]))
+            continue
+        if entry_agent is not None:
+            if isinstance(entry_agent, str):
+                entry_agent_refs.append((package_id, entry_agent))
+            else:
+                issues.append(PackageIssue("AGENT_PACKAGE_ENTRY_INVALID", "entry_agent must be a string when present.", [package_id]))
+        if package_id in seen_packages:
+            issues.append(PackageIssue("AGENT_PACKAGE_DUPLICATE_ID", "duplicate agent package id.", [package_id]))
+            continue
+        seen_packages.add(package_id)
+        resolved = (container_root / package_path).resolve()
+        try:
+            resolved.relative_to(container_root.resolve())
+        except ValueError:
+            issues.append(PackageIssue("AGENT_PACKAGE_PATH_ESCAPE", "agent package path resolves outside its catalog container.", [package_id, package_path]))
+            continue
+        if not resolved.is_dir():
+            issues.append(PackageIssue("AGENT_PACKAGE_PATH_MISSING", "registered agent package path does not exist.", [package_id, package_path]))
+            continue
+        package_by_id[package_id] = resolved
+
+    actual_package_ids = {item.name for item in package_dirs}
+    missing_from_registry = sorted(actual_package_ids - set(package_by_id))
+    for package_id in missing_from_registry:
+        issues.append(
+            PackageIssue(
+                "AGENT_PACKAGE_UNREGISTERED",
+                "agent package directory is not listed in agents/registry.json.",
+                [rel(agents_root / package_id, root)],
+            )
+        )
+
+    seen_agents: set[str] = set()
+    registered_paths: set[Path] = set()
+    for agent in agents:
+        if not isinstance(agent, dict):
+            issues.append(PackageIssue("AGENT_ENTRY_INVALID", "agent entry must be an object.", [rel(registry_path, root)]))
+            continue
+        agent_id = agent.get("id")
+        package_id = agent.get("package")
+        agent_path = agent.get("path")
+        if not isinstance(agent_id, str) or not isinstance(package_id, str) or not isinstance(agent_path, str):
+            issues.append(PackageIssue("AGENT_ENTRY_INVALID", "agent entry needs string id, package, and path.", [repr(agent)]))
+            continue
+        if agent_id in seen_agents:
+            issues.append(PackageIssue("AGENT_DUPLICATE_ID", "duplicate agent id.", [agent_id]))
+            continue
+        seen_agents.add(agent_id)
+        package_root = package_by_id.get(package_id)
+        if package_root is None:
+            issues.append(PackageIssue("AGENT_UNKNOWN_PACKAGE", "agent references unknown package.", [agent_id, package_id]))
+            continue
+        if not agent_id.startswith(f"{package_id}/"):
+            issues.append(PackageIssue("AGENT_ID_PACKAGE_MISMATCH", "agent id does not start with package id.", [agent_id, package_id]))
+        resolved = (container_root / agent_path).resolve()
+        try:
+            resolved.relative_to(package_root)
+        except ValueError:
+            issues.append(PackageIssue("AGENT_PATH_OUTSIDE_PACKAGE", "agent manifest path is outside its package.", [agent_id, agent_path]))
+            continue
+        if not resolved.is_file():
+            issues.append(PackageIssue("AGENT_MANIFEST_MISSING", "registered agent manifest is missing.", [agent_id, agent_path]))
+            continue
+        registered_paths.add(resolved)
+        manifest, manifest_error = load_json(resolved)
+        if manifest_error or not isinstance(manifest, dict):
+            issues.append(PackageIssue("AGENT_MANIFEST_INVALID_JSON", "agent manifest is not valid JSON object content.", [rel(resolved, root), manifest_error or "not an object"]))
+            continue
+        manifest_id = manifest.get("id")
+        if manifest_id != agent_id:
+            issues.append(PackageIssue("AGENT_MANIFEST_ID_MISMATCH", "agent manifest id does not match registry id.", [agent_id, str(manifest_id), rel(resolved, root)]))
+
+    default_agent = data.get("default_agent")
+    if default_agent is not None:
+        if isinstance(default_agent, str):
+            entry_agent_refs.append(("default_agent", default_agent))
+        else:
+            issues.append(PackageIssue("AGENT_REGISTRY_BAD_SHAPE", "default_agent must be a string when present.", [rel(registry_path, root)]))
+
+    for owner, agent_id in entry_agent_refs:
+        if agent_id not in seen_agents:
+            issues.append(PackageIssue("AGENT_ENTRYPOINT_UNKNOWN", "entry agent is not listed in the agents registry.", [owner, agent_id, rel(registry_path, root)]))
+
+    for package_id, package_root in package_by_id.items():
+        for manifest_path in sorted(package_root.glob("*.agent.json")):
+            if manifest_path.resolve() not in registered_paths:
+                issues.append(
+                    PackageIssue(
+                        "AGENT_MANIFEST_UNREGISTERED",
+                        "agent manifest file exists but is not listed in agents/registry.json.",
+                        [package_id, rel(manifest_path, root)],
+                    )
+                )
+
+    return issues
+
+
+def build_report(root: Path) -> dict[str, object]:
+    root = root.resolve()
+    workspace_reports = []
+    all_issues: list[PackageIssue] = []
+    registry_count = 0
+    package_count = 0
+    agent_count = 0
+    for workspace in iter_workspaces(root):
+        catalog_reports = []
+        issues: list[PackageIssue] = []
+        for catalog_dir in iter_agent_catalogs(workspace):
+            catalog_issues = check_registry(catalog_dir, root)
+            registry_path = catalog_dir / "registry.json"
+            registry, _ = load_json(registry_path) if registry_path.is_file() else (None, None)
+            if isinstance(registry, dict):
+                registry_count += 1
+                package_count += len(registry.get("agent_packages") or [])
+                agent_count += len(registry.get("agents") or [])
+            issues.extend(catalog_issues)
+            catalog_reports.append(
+                {
+                    "path": rel(catalog_dir, root),
+                    "status": "fail" if catalog_issues else "pass",
+                    "issues": [
+                        {
+                            "code": issue.code,
+                            "message": issue.message,
+                            "evidence": issue.evidence,
+                        }
+                        for issue in catalog_issues
+                    ],
+                }
+            )
+        all_issues.extend(issues)
+        if catalog_reports:
+            workspace_reports.append(
+                {
+                    "path": rel(workspace, root),
+                    "status": "fail" if issues else "pass",
+                    "catalogs": catalog_reports,
+                    "issues": [
+                        {
+                            "code": issue.code,
+                            "message": issue.message,
+                            "evidence": issue.evidence,
+                        }
+                        for issue in issues
+                    ],
+                }
+            )
+
+    return {
+        "schema_version": 1,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "lab_root": str(root),
+        "status": "fail" if all_issues else "pass",
+        "summary": {
+            "workspace_count": len(workspace_reports),
+            "registry_count": registry_count,
+            "package_count": package_count,
+            "agent_count": agent_count,
+            "failed_count": len(all_issues),
+        },
+        "issues": [
+            {
+                "code": issue.code,
+                "message": issue.message,
+                "evidence": issue.evidence,
+            }
+            for issue in all_issues
+        ],
+        "workspaces": workspace_reports,
+    }
+
+
+def render_markdown(report: dict[str, object]) -> str:
+    summary = report["summary"]
+    lines = [
+        "# Agent Package Integrity",
+        "",
+        f"- Generated: `{report['generated_at']}`",
+        f"- Status: `{report['status']}`",
+        f"- Workspaces with agents: `{summary['workspace_count']}`",
+        f"- Agent registries: `{summary['registry_count']}`",
+        f"- Agent packages: `{summary['package_count']}`",
+        f"- Agents: `{summary['agent_count']}`",
+        f"- Failed links: `{summary['failed_count']}`",
+        "",
+    ]
+    if not report["issues"]:
+        lines.append("No agent package registry defects.")
+        return "\n".join(lines).rstrip() + "\n"
+    for issue in report["issues"]:
+        lines.extend([f"## {issue['code']}", "", issue["message"], ""])
+        for evidence in issue.get("evidence") or []:
+            lines.append(f"- `{evidence}`")
+        lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Check workspace agent/subagent catalog registry and manifest integrity.")
+    parser.add_argument("--root", default=str(DEFAULT_LAB_ROOT), help="Lab root to inspect.")
+    parser.add_argument("--json", action="store_true", help="Print report JSON to stdout.")
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    root = Path(args.root).expanduser().resolve()
+    report = build_report(root)
+    output_root = root / OUTPUT_DIR
+    output_root.mkdir(parents=True, exist_ok=True)
+    json_path = output_root / "agent-packages.json"
+    markdown_path = output_root / "agent-packages.md"
+    json_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    markdown_path.write_text(render_markdown(report), encoding="utf-8")
+
+    if args.json:
+        print(json.dumps(report, indent=2, sort_keys=True))
+    else:
+        summary = report["summary"]
+        print(f"status: {report['status']}")
+        print(f"workspaces_with_agents: {summary['workspace_count']}")
+        print(f"agent_registries: {summary['registry_count']}")
+        print(f"agent_packages: {summary['package_count']}")
+        print(f"agents: {summary['agent_count']}")
+        print(f"failed_links: {summary['failed_count']}")
+        print(f"json: {json_path}")
+        print(f"markdown: {markdown_path}")
+
+    return 1 if report["status"] == "fail" else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

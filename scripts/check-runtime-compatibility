@@ -39,6 +39,8 @@ OPTIONAL_COMMANDS = [
 
 REQUIRED_SCRIPT_REFERENCES = [
     "check-runtime-compatibility",
+    "check-rule-ladder",
+    "check-agent-packages",
     "check-workspace-safety",
     "check-project-rules",
     "check-workflow-modes",

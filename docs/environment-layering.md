@@ -76,6 +76,9 @@ Allowed here:
 - agent-specific protocols and interfaces that are not shared outside the
   package;
 - local fixtures and tests that prove that agent's behavior.
+- nested `subagents/<unit>/` catalogs when the package itself creates smaller
+  agent units; those subagent units inherit the same parent-rule and registry
+  requirements.
 
 Not allowed here:
 
@@ -118,3 +121,6 @@ no weakening of secret, auth, sandbox, lane, or plugin boundaries.
 - Do not name one medium environment as if it alone were the sandbox.
 - Do not promote a skill, protocol, interface, or gate because it helped one
   agent once; keep it local until repeated value is proven.
+- Do not create unregistered nested agent units. If a package grows
+  `subagents/`, it must keep the same rule ladder and registry discipline as
+  the parent `agents/` catalog.

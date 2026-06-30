@@ -52,6 +52,9 @@ Implementation in this lab:
 - `docs/scenario-workspace-contract.md` defines how arbitrary future agent scenarios stay local while amplifying Codex/Claude capability.
 - `docs/rule-inheritance.md` defines the effective rule chain from root lab to workspace to small agent package.
 - `scripts/new-workspace` creates a local `AGENTS.md`, `CLAUDE.md`, and `agents/README.md` for new workspaces.
+- `scripts/check-rule-ladder` is the metadata-only hard gate for missing root/workspace/package/subagent rule links.
+- `scripts/check-agent-packages` is the metadata-only hard gate for `agents/` and `subagents/` catalog registry, concrete manifest, entrypoint, and id/path continuity.
+- `scripts/audit-agent-code` is the code-content auditor for an agent package: where rule-ladder/agent-packages prove a package is wired and registered, this reads the runtime source for anti-patterns (fail-open auth, empty-secret verifier calls, injection sinks, unbounded body reads, missing tests). Fail-level findings exit non-zero; see `docs/agent-code-auditor.md`. Read-only across lanes — findings on another lane's package are reported via handoff, not edits.
 - `scripts/check-project-rules` verifies the rule surfaces exist.
 
 ## Layer 2: Workflow Modes

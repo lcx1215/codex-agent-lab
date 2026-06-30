@@ -116,6 +116,8 @@ Global Codex rules remain in `/Users/liuchengxu/.codex/AGENTS.md`; do not duplic
 - Run `scripts/check-speed-contract` after changing Waterflow supervision, speed routing, async execution, or default health gates.
 - Use `scripts/benchmark-ide-loop` for measured RED/GREEN, gate, Waterflow, and OMX model-smoke timing; use `scripts/lab-dashboard` to summarize current health from artifacts.
 - Use `docs/runtime-compatibility.md` and `scripts/check-runtime-compatibility` to separate environment drift from agent implementation bugs before long work starts.
+- Use `scripts/check-rule-ladder` when adding, moving, or entering nested workspaces, agent packages, or subagent units; a missing parent-rule link is a hard failure.
+- Use `scripts/check-agent-packages` when creating, moving, renaming, or splitting `agents/` or `subagents/` catalogs; an unregistered or mismatched agent manifest is a hard failure.
 - Use `scripts/check-workspace-safety` after workspace changes, before promoting any workspace output into root lab patterns, or before treating a large-agent workspace as stable. It is an explicit boundary gate, not a root default fast-path sweep.
 
 ## Agent Roles
