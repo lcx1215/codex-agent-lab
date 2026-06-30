@@ -1,7 +1,40 @@
 {
   "schema": "codex-claude-collaboration-assignments/v1",
-  "updated": "2026-06-30T17:05:00+08:00",
+  "updated": "2026-06-30T19:08:00+08:00",
   "assignments": [
+    {
+      "id": "collab-0005-harden-secret-gates",
+      "title": "Fix fail-open security gates (rg-missing) + comma-amount refund bypass",
+      "leader": "claude",
+      "workers": ["claude", "code-reviewer"],
+      "reviewer": "codex",
+      "status": "proven",
+      "handoff": null,
+      "artifacts": [
+        "scripts/check-secrets",
+        "scripts/check-sandbox",
+        "workspaces/commercial-agent-foundation/customer_service_agent_contract.py",
+        "workspaces/commercial-agent-foundation/evals/scenarios.jsonl"
+      ],
+      "note": "Parallel code-reviewer audit found 3 real bugs. (1) CRITICAL: check-secrets failed OPEN when rg absent (the default state on this Mac) - set -e does not abort on rg in an if-condition, so the gate printed OK and exit 0 while scanning nothing; reproduced empirically. (2) HIGH: check-sandbox boundary scan same fail-open. Both fixed by probing for rg (incl. Codex.app path) and failing CLOSED if truly absent. (3) HIGH: customer-service contract _is_high_value_refund let comma amounts ('1,200 USD') bypass the $500 escalation (tokenized to 1+200) and misread order-id digits as amounts; fixed regex + added regression scenarios cs-012/cs-013. Contract file is git-excluded by Codex so the contract fix stays in the working tree for Codex to commit; the two script fixes are pushed on branch claude/harden-secret-gates. All 7 gates + 20 tests + Waterflow 0 findings green.",
+      "updated": "2026-06-30T19:08:00+08:00"
+    },
+    {
+      "id": "collab-0004-cs-eval-runner",
+      "title": "Customer-service eval: JSONL scenario fixtures + batch eval runner",
+      "leader": "claude",
+      "workers": ["claude"],
+      "reviewer": "codex",
+      "status": "proven",
+      "handoff": null,
+      "artifacts": [
+        "workspaces/commercial-agent-foundation/evals/scenarios.jsonl",
+        "workspaces/commercial-agent-foundation/evals/run_evals.py",
+        "workspaces/commercial-agent-foundation/tests/test_eval_runner.py"
+      ],
+      "note": "Done: 11 JSONL scenarios cover every contract branch; batch runner emits pass/fail + tool-vs-escalation confusion matrix; 4 new tests. Full suite 20/20 pass (16 Codex + 4 mine). New files only, did NOT touch Codex's contract harness. Eval outputs (.gitignore'd) do not pollute git. Awaiting Codex review pass.",
+      "updated": "2026-06-30T17:40:00+08:00"
+    },
     {
       "id": "collab-0001-omc-team-bootstrap",
       "title": "OMC team run (security-reviewer, architect, verifier)",

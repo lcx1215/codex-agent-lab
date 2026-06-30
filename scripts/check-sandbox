@@ -21,6 +21,24 @@ PY
 test -d "$LAB_ROOT" || fail "lab root missing"
 test -f "$CONFIG" || fail "clean-home config missing"
 
+# Boundary gate: fail closed if ripgrep is missing. The machine-local-path
+# scan below uses `if rg ...; then fail; fi`, which would silently pass (scan
+# nothing) when rg returns 127 under `set -e`. ripgrep is not always on PATH
+# (it ships inside Codex.app on macOS), so probe known locations first.
+if ! command -v rg >/dev/null 2>&1; then
+  for candidate in \
+    /Applications/Codex.app/Contents/Resources/rg \
+    /opt/homebrew/bin/rg \
+    /usr/local/bin/rg; do
+    if [ -x "$candidate" ]; then
+      PATH="$(dirname "$candidate"):$PATH"
+      export PATH
+      break
+    fi
+  done
+fi
+command -v rg >/dev/null 2>&1 || fail "ripgrep (rg) not found; refusing to run sandbox boundary scan that would otherwise pass without scanning"
+
 LAB_REAL="$(realpath_py "$LAB_ROOT")"
 TMP_ROOT="$LAB_ROOT/.tmp/check-sandbox.$$"
 mkdir -p "$TMP_ROOT"
