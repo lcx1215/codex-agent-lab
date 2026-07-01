@@ -29,9 +29,12 @@ else
 fi
 
 # --- protocol doc required sections ---
-for section in '^## Roles$' '^## Lane Boundaries$' '^## Handoff Format$' '^## Assignments Ledger$' '^## Proof Bar$' '^## Verification$'; do
+for section in '^## Roles$' '^## Lane Boundaries$' '^## Handoff Format$' '^## Assignments Ledger$' '^## Workbench State Surfaces$' '^## Proof Bar$' '^## Verification$'; do
   has "$section" "$PROTOCOL" || fail "protocol doc missing section: $section"
 done
+has 'registry/tasks/tasks\.json' "$PROTOCOL" || fail "protocol doc missing task-state surface reference"
+has 'registry/runs/\*/record\.json' "$PROTOCOL" || fail "protocol doc missing run-record surface reference"
+has 'do not replace handoffs, reviewer duties, or proof requirements' "$PROTOCOL" || fail "protocol doc missing non-substitution rule"
 
 # --- CLAUDE.md required sections ---
 has '^## Collaboration \(Claude <-> Codex\)$' "$CLAUDE_MD" || fail "CLAUDE.md missing Collaboration section"

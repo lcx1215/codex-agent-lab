@@ -1211,3 +1211,190 @@ Last updated: 2026-06-30 13:37 +0800
   - Result: pass.
   - Evidence: `assignments OK: 14 entries`; `Handoffs: 10`.
   - Boundary: no desktop UI, global auth/provider/plugin state, or Codex/Claude home state changed.
+
+## Dashboard Run-Record Visibility
+
+- Date: 2026-07-01
+- Owner lane: codex.
+- Scope: make the one-screen lab dashboard show the active run-record gate state
+  instead of hiding it inside `scripts/check-lab`.
+  - Added `run_record_summary()` to `scripts/lab-dashboard`.
+  - Dashboard JSON and Markdown now include run-record status, record count,
+    lane coverage, latest run id, latest/newest alignment, invalid-record count,
+    and actionable issues when the summary fails.
+  - Added regression coverage in `tests/test_lab_dashboard.py` for a healthy
+    both-lane record set and stale `latest.json` detection.
+  - Command: `python3 -m unittest tests.test_lab_dashboard`
+  - Result: pass.
+  - Evidence: `Ran 2 tests ... OK`.
+  - Command: `python3 -m py_compile scripts/lab-dashboard tests/test_lab_dashboard.py`
+  - Result: pass.
+  - Evidence: command exited 0.
+  - Command: `scripts/lab-dashboard`
+  - Result: pass.
+  - Evidence: before writing this Codex run record, dashboard reported `Health: ok`, run records `Status: pass`,
+    `Records: 3`, `Lanes: claude, codex`, and `Latest matches newest: True`.
+  - Command: `scripts/check-run-records`
+  - Result: pass.
+  - Evidence: after writing this Codex run record, validator reported
+    `OK: 4 run record(s) valid against schema v1; lanes=claude,codex`.
+  - Command: `scripts/lab-dashboard`
+  - Result: pass.
+  - Evidence: after writing this Codex run record, dashboard reported `Health: ok`,
+    run records `Status: pass`, `Records: 4`, latest
+    `20260701T055544Z-codex-dashboard-run-record-visibility`, and
+    `Latest matches newest: True`.
+  - Boundary: no desktop UI, global auth/provider/plugin state, Codex/Claude
+    home state, or gitignored support package files were changed.
+
+## Lightweight Task-State Scheduler Kernel
+
+- Date: 2026-07-01
+- Owner lane: codex.
+- Scope: add the next root-layer orchestration kernel for durable long-horizon
+  task state without adding a live worker scheduler, daemon, desktop UI, or
+  automatic agent launcher.
+  - Added `lab_agents/task_state.py` with schema validation, state-transition
+    validation, dependency validation, stale running lease detection, runnable
+    task selection, and structured reporting.
+  - Added `scripts/check-task-state` as the lightweight health gate.
+  - Added `registry/tasks/tasks.json` as the canonical task-state registry.
+  - Added `docs/task-state-scheduler.md` for the state machine, scheduler view,
+    health gate, and boundaries.
+  - Wired `scripts/check-task-state` into `scripts/check-lab` and exposed task
+    state in `scripts/lab-dashboard`.
+  - Registered the next runnable task as `worktree_merge_queue_kernel` after
+    closing `task_state_scheduler_kernel`.
+  - Command: `python3 -m unittest tests.test_task_state`
+  - Result: RED then GREEN.
+  - Evidence: RED failed with `ModuleNotFoundError: No module named
+    'lab_agents.task_state'`; GREEN reported `Ran 5 tests ... OK`.
+  - Command: `python3 -m unittest tests.test_task_state tests.test_lab_dashboard`
+  - Result: pass.
+  - Evidence: `Ran 7 tests ... OK`.
+  - Command: `python3 -m py_compile lab_agents/task_state.py scripts/check-task-state scripts/lab-dashboard tests/test_task_state.py tests/test_lab_dashboard.py`
+  - Result: pass.
+  - Evidence: command exited 0.
+  - Command: `scripts/check-task-state`
+  - Result: pass.
+  - Evidence: task state reported `Tasks: 2`, `pending: 1`, `done: 1`,
+    `runnable: 1`, `stale running: 0`, next
+    `worktree_merge_queue_kernel (codex, priority 80)`.
+  - Command: `scripts/check-project-rules`
+  - Result: pass.
+  - Evidence: `OK: project rule surfaces are valid`.
+  - Command: `scripts/check-lab`
+  - Result: pass.
+  - Evidence: `OK: lab structure is valid`.
+  - Command: `scripts/lab-dashboard`
+  - Result: pass.
+  - Evidence: dashboard reported `Health: ok`, task state `Status: pass`,
+    `Tasks: 2`, `Runnable: 1`, and next
+    `worktree_merge_queue_kernel (codex, priority 80)`.
+  - Boundary: no desktop UI, global auth/provider/plugin state, Codex/Claude
+    home state, or gitignored support package files were changed.
+
+## Secret Gate Token-Boundary Regression
+
+- Date: 2026-07-01
+- Owner lane: codex.
+- Scope: fix the secret scanner false positive exposed by the task-state run
+  record slug while preserving real synthetic key detection.
+  - Root cause: `task-state-scheduler-kernel` contains a key-like substring
+    when scanned without a token-boundary rule.
+  - Fix: require a non-token boundary before `sk-` and force ripgrep
+    `--with-filename` so redacted output reliably prints only file and line.
+  - Command: `python3 -m unittest tests.test_gate_fail_closed`
+  - Result: RED then GREEN.
+  - Evidence: RED failed because `scripts/check-secrets` flagged `run_id` line 3
+    and leaked a synthetic `sk-...` fixture in stderr; GREEN reported `Ran 4
+    tests ... OK`.
+  - Command: `scripts/check-secrets`
+  - Result: pass.
+  - Evidence: `OK: no committable secrets or README-local user paths detected`.
+  - Boundary: no real secrets were read, printed, copied, or stored; the fixture
+    used a synthetic token shape and was removed by the test.
+
+## Codex-Claude Workbench Protocol v2 Alignment
+
+- Date: 2026-07-01
+- Owner lane: codex.
+- Scope: clarify that the Codex-Claude collaboration protocol still governs
+  lane exchange after task-state, run-record, and dashboard architecture were
+  added.
+  - Updated `docs/codex-claude-collaboration-protocol.md` with a `Workbench
+    State Surfaces` section.
+  - Clarified that `registry/collaboration/assignments.json` owns
+    cross-lane responsibility and review, `registry/tasks/tasks.json` owns
+    task state and next runnable work, `registry/runs/*/record.json` owns
+    execution evidence, and `outputs/shared/dashboard/` owns observation.
+  - Added non-substitution rules: task-state does not replace assignment or
+    handoff; run records do not replace review; dashboard health does not prove
+    blocked runtime capabilities.
+  - Updated `AGENTS.md` and `CLAUDE.md` so both lane entrypoints carry the same
+    rule.
+  - Strengthened `scripts/check-collaboration` to require the new workbench
+    state section, task-state reference, run-record reference, and
+    non-substitution rule.
+  - Added `workbench_protocol_v2_alignment` to `registry/tasks/tasks.json` as a
+    completed root-layer task.
+  - Command: `scripts/check-collaboration`
+  - Result: pass.
+  - Evidence: `Protocol: ok`; `assignments OK: 14 entries`; `Handoffs: 10`.
+  - Command: `scripts/check-lab`
+  - Result: pass.
+  - Evidence: `OK: lab structure is valid`.
+  - Command: `scripts/check-secrets`
+  - Result: pass.
+  - Evidence: `OK: no committable secrets or README-local user paths detected`.
+  - Command: `scripts/check-task-state`
+  - Result: pass.
+  - Evidence: task state remained valid and next runnable work stayed
+    `worktree_merge_queue_kernel`.
+  - Boundary: no desktop UI, global auth/provider/plugin state, Codex/Claude
+    home state, or gitignored support package files were changed.
+
+## Codex Resident Subagent Roster Trim
+
+- Date: 2026-07-01
+- Owner lane: codex.
+- Scope: close Claude -> Codex handoff `20260701-1445-claude-to-codex-trim-subagent-roster.md` by trimming standing subagent posture without deleting useful definitions.
+  - Kept resident core: `context-architect`, `handoff-summarizer`, `third-party-large-agent-auditor`, `development-experience-auditor`, `waterflow-auditor`, `foundation-amplifier`.
+  - Demoted to on-demand only: `long-horizon-orchestrator`, `implementation-worker`, `research-scout`, `risk-reviewer`, `verification-auditor`.
+  - Rationale and invocation rules live in `.codex/agents/ROSTER.md`; TOML descriptions/instructions now expose the resident-core vs on-demand posture.
+  - Ledger entry: `collab-0015-trim-codex-subagent-roster`.
+  - Command: `scripts/check-collaboration`
+  - Result: pass.
+  - Evidence: `assignments OK: 15 entries`; `Handoffs: 11`; `OK: collaboration surfaces are valid`.
+  - Command: `scripts/check-lab`
+  - Result: pass.
+  - Evidence: `Agents: 11`; `Skills: 46`; `OK: lab structure is valid`.
+  - Boundary: no secrets/auth/provider/plugin state, Codex/Claude home state, or outside-lab files were changed.
+
+## Worktree Merge Queue Kernel
+
+- Date: 2026-07-01
+- Owner lane: codex.
+- Scope: close Claude -> Codex handoff `20260701-1510-claude-to-codex-worktree-merge-queue.md` with a lightweight per-stream git worktree isolation and ordered merge queue.
+  - Added `lab_agents/worktree_merge_queue.py` for state, worktree creation, FIFO enqueue, fail-closed pre-merge conflict checking via `git merge-tree --write-tree`, and merge/refusal state transitions.
+  - Added `scripts/worktree-merge-queue` as the operator CLI and `scripts/check-merge-queue` as the fast registry validator; `scripts/check-lab` now runs the validator.
+  - Initialized durable state at `registry/worktree-merge-queue/state.json`; scratch worktrees stay under gitignored `.worktrees/merge-queue`.
+  - Added `tests/test_worktree_merge_queue.py` for two ordered parallel merges, conflict-refused pre-merge behavior, state validation, and validator JSON output.
+  - Ledger entry: `collab-0016-worktree-merge-queue-kernel`.
+  - Run record: `registry/runs/20260701T072200Z-codex-worktree-merge-queue-kernel/record.json`.
+  - Command: `python3 -m unittest tests.test_worktree_merge_queue`
+  - Result: pass.
+  - Evidence: `Ran 5 tests ... OK`.
+  - Command: `python3 .tmp/worktree-merge-queue-demo.py`
+  - Result: pass.
+  - Evidence: ordered merges `alpha`, `beta`; queue statuses `merged`, `merged`, `refused`; refusal reason `pre_merge_conflict`; conflict marker present `false`.
+  - Command: `scripts/check-merge-queue`
+  - Result: pass.
+  - Evidence: `Merge queue: pass`; streams 0, queued 0, refused 0 in the committed lab state.
+  - Command: `scripts/check-collaboration`
+  - Result: pass.
+  - Evidence: collaboration surfaces valid after adding the ledger entry and Codex response.
+  - Command: `scripts/check-lab`
+  - Result: pass.
+  - Evidence: lab structure valid with the merge-queue fast validator wired into the default gate.
+  - Boundary: no secrets/auth/provider/plugin state, Codex/Claude home state, or outside-lab files were changed; demo worktrees were temporary under `.tmp/`.

@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "run_id": "20260701T064630Z-codex-workbench-protocol-v2-alignment",
+  "lane": "codex",
+  "agent": "Codex App-safe OMX spine",
+  "task": "workbench protocol v2 alignment",
+  "repo_root": "/Users/liuchengxu/Desktop/codex-agent-lab",
+  "started_at": "2026-07-01T06:46:30.190387+00:00",
+  "ended_at": "2026-07-01T06:46:30.266233+00:00",
+  "git": {
+    "head_before": "59a966fecd0fac8bbaf9600297fe9e409e46b497",
+    "head_after": "59a966fecd0fac8bbaf9600297fe9e409e46b497"
+  },
+  "steps": [
+    {
+      "index": 0,
+      "kind": "prompt",
+      "text": "User asked to make the Codex-Claude protocol remain valid after new workbench architecture additions."
+    },
+    {
+      "index": 1,
+      "kind": "note",
+      "text": "Updated collaboration protocol so assignments and handoffs remain the lane-exchange contract, while task state records scheduling state, run records capture execution evidence, and dashboard observes health. Added non-substitution rules to both lane entrypoints and enforced them in check-collaboration."
+    },
+    {
+      "index": 2,
+      "kind": "command",
+      "command": "scripts/check-collaboration",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "initial check failed because the gate expected wording that did not match the protocol sentence"
+    },
+    {
+      "index": 3,
+      "kind": "command",
+      "command": "scripts/check-collaboration",
+      "exit_code": 0,
+      "stdout": "Protocol: ok; assignments OK: 14 entries; Handoffs: 10; OK: collaboration surfaces are valid",
+      "stderr": ""
+    },
+    {
+      "index": 4,
+      "kind": "command",
+      "command": "scripts/check-lab",
+      "exit_code": 0,
+      "stdout": "OK: lab structure is valid",
+      "stderr": ""
+    },
+    {
+      "index": 5,
+      "kind": "command",
+      "command": "scripts/check-secrets",
+      "exit_code": 0,
+      "stdout": "OK: no committable sensitive material or README-local user paths detected",
+      "stderr": ""
+    },
+    {
+      "index": 6,
+      "kind": "command",
+      "command": "scripts/check-task-state",
+      "exit_code": 0,
+      "stdout": "Task state: pass; Tasks: 3; pending: 1; done: 2; runnable: 1; Next: worktree_merge_queue_kernel (codex, priority 80)",
+      "stderr": ""
+    },
+    {
+      "index": 7,
+      "kind": "command",
+      "command": "python3 -m unittest discover -s tests",
+      "exit_code": 0,
+      "stdout": "Ran 105 tests ... OK",
+      "stderr": ""
+    },
+    {
+      "index": 8,
+      "kind": "command",
+      "command": "scripts/waterflow-scan --root . --compare-last",
+      "exit_code": 0,
+      "stdout": "findings: 0",
+      "stderr": ""
+    },
+    {
+      "index": 9,
+      "kind": "command",
+      "command": "scripts/waterflow-verify",
+      "exit_code": 0,
+      "stdout": "checks: 5; passed: 5; failed: 0",
+      "stderr": ""
+    },
+    {
+      "index": 10,
+      "kind": "command",
+      "command": "scripts/lab-dashboard",
+      "exit_code": 0,
+      "stdout": "Health: ok; Task State status: pass; next: worktree_merge_queue_kernel",
+      "stderr": ""
+    },
+    {
+      "index": 11,
+      "kind": "result",
+      "text": "Protocol v2 is documented and gated: task-state and run records support collaboration, but do not replace assignments, handoffs, reviewer approval, or proof-bar requirements."
+    }
+  ],
+  "files_changed": [
+    {
+      "path": "AGENTS.md",
+      "change_type": "modified",
+      "before_sha": "7b201da2b74bed6816aeb7205b29d9f1134a0f22",
+      "after_sha": "1a0371cbcd624be48551733857c2214ac6f1923f"
+    },
+    {
+      "path": "CLAUDE.md",
+      "change_type": "modified",
+      "before_sha": "8805016fb4ef7694f13957526fea38aefc1226ce",
+      "after_sha": "6aba977a854552d589ee3803e2e61d7fadc80a75"
+    },
+    {
+      "path": "docs/codex-claude-collaboration-protocol.md",
+      "change_type": "modified",
+      "before_sha": "478448f6c77a3502354451b9fb0a46aab35b50fb",
+      "after_sha": "afe1f02f40022d9db578b9bc46a5f59df5bce870"
+    },
+    {
+      "path": "registry/VALIDATION.md",
+      "change_type": "modified",
+      "before_sha": "e3e1ce8c0159330c0536b1f4c346ffd15cb69a67",
+      "after_sha": "97823b64747aded08358cf20d96787a5c2a9d3e3"
+    },
+    {
+      "path": "registry/current-progress.md",
+      "change_type": "modified",
+      "before_sha": "900d5b978aa6152587febb6e48aafca0411a2777",
+      "after_sha": "646c549323af85ead64cb2c91fce2d73268e70df"
+    },
+    {
+      "path": "registry/tasks/tasks.json",
+      "change_type": "modified",
+      "before_sha": null,
+      "after_sha": "9d588efdcd59f7cd5851d7ddab875dd5ece64a01"
+    },
+    {
+      "path": "scripts/check-collaboration",
+      "change_type": "modified",
+      "before_sha": "003f76a09e407ceaf28018790a4788be86c2acad",
+      "after_sha": "b46fe2968224f160d0dd7b0d15491283711433ce"
+    }
+  ],
+  "outcome": "success",
+  "summary": "Aligned Codex-Claude collaboration protocol with task-state, run-record, and dashboard workbench surfaces."
+}

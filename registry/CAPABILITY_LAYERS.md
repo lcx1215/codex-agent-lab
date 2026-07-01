@@ -151,13 +151,15 @@ Implementation in this lab:
 - `scripts/check-async-execution` verifies independent checks can run concurrently with isolated temp and output directories.
 - `scripts/check-secrets` uses lab-local `.tmp/` scratch space and redacts token contents from output.
 - `scripts/check-speed-contract` verifies Waterflow supervision stays non-blocking by default and that default lab gates do not invoke heavy Waterflow, stress, incident, broad unit, or async fan-out checks.
+- `scripts/check-task-state` verifies the lightweight task-state scheduler registry, dependency graph, state transitions, stale running leases, and next runnable task view.
 - `scripts/benchmark-ide-loop` records repeatable RED/GREEN, health-gate, Waterflow, and optional OMX model-smoke timings under `outputs/shared/benchmarks/ide-loop/`.
-- `scripts/lab-dashboard` renders the latest benchmark, Waterflow, async, and git state into one compact Markdown and JSON dashboard.
+- `scripts/lab-dashboard` renders the latest benchmark, Waterflow, task-state, run-record, async, and git state into one compact Markdown and JSON dashboard.
 - `scripts/check-lab` runs root fast-path gates together while avoiding workspace-wide sweeps that can slow or disturb active Codex/Claude workspace work.
 - `docs/sandbox-boundaries.md` records the local sandbox contract.
 - `docs/runtime-compatibility.md` records the required checks, warning checks, runtime state rules, and error-reduction contract for environment drift.
 - `docs/workspace-safety-contract.md` records hard workspace failures, warning-only in-progress states, runtime-state policy, and the new workspace template contract.
 - `docs/waterflow-speed-contract.md` records the fast path, boundary path, stress path, and blocking rules that protect Codex and Claude worker speed.
+- `docs/task-state-scheduler.md` records the headless task-state registry, state machine, scheduler view, and health gate.
 
 Promotion gate:
 

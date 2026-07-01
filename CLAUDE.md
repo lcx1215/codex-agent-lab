@@ -60,6 +60,10 @@ This is the Claude-lane counterpart to the same section in `AGENTS.md`; both lan
 - Protocol: `docs/codex-claude-collaboration-protocol.md` defines roles, handoff format, and the proof bar.
 - Assignments ledger: `registry/collaboration/assignments.json` records who owns what and the current status.
 - Handoffs: `registry/collaboration/handoffs/` holds dated, English handoff notes between lanes.
+- Task state: `registry/tasks/tasks.json` shows long-horizon task state and next runnable work, but it does not
+  replace assignments, handoffs, or review approval.
+- Run records: `registry/runs/*/record.json` capture execution evidence, but they do not replace reviewer
+  approval or collaboration status changes.
 - Cross-lane artifacts that both lanes need go under `outputs/shared/`.
 - Health gate: run `scripts/check-collaboration` after changing any collaboration surface.
 - A collaboration claim is only "proven" when there is a real runtime artifact, not just an installed capability.

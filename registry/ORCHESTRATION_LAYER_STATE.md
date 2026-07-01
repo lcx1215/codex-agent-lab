@@ -1,6 +1,6 @@
 # Orchestration-Layer State: What This Lab Already Is, and What It Is Not Yet
 
-Last updated: 2026-07-01 10:20 +0800
+Last updated: 2026-07-01 14:08 +0800
 Owner lane: claude (root-layer positioning doc)
 Related: `docs/agent-lab-mission.md`, `registry/CAPABILITY_LAYERS.md`,
 `docs/codex-claude-collaboration-protocol.md`, `docs/environment-layering.md`.
@@ -27,11 +27,11 @@ rollback. That is the right target, and it is the track we are already on.
 | Hard problem (external critique) | Status in this lab | Where |
 | --- | --- | --- |
 | Multi-agent management / who does what | DONE (file-form) | `assignments.json` ledger, `codex-claude-collaboration-protocol.md` |
-| Task queueing across agents | PARTIAL | ledger tracks ownership+status; no live scheduler |
+| Task queueing across agents | PARTIAL | `registry/tasks/tasks.json`, `check-task-state`; no live worker scheduler |
 | File-permission / write control | DONE | `sandbox-boundaries.md`, `check-sandbox`, `check-workspace-safety` |
 | Change rollback | PARTIAL | git is the rollback substrate; no one-click/typed rollback record |
 | Context isolation | DONE | `environment-layering.md` (max/medium/small), `rule-inheritance.md` |
-| Log / execution tracing | PARTIAL | `VALIDATION.md` evidence chain + `check-*` output; not per-run structured logs |
+| Log / execution tracing | DONE (headless) | `registry/runs/*/record.json`, `check-run-records`, dashboard |
 | Failure recovery | PARTIAL | fail-closed gates (collab-0005, exit-code gating collab-0011); no auto-retry/resume |
 | Tool registration | DONE | `AGENT_REGISTRY.md`, `.codex/agents/*.toml`, 46 lab-local skills |
 | User observation of the process | PARTIAL (CLI) | `lab-dashboard`, gate output; no live visual stream |
@@ -59,20 +59,20 @@ rollback. That is the right target, and it is the track we are already on.
   executes the gate and is exit-code gated; `model-proof` checks content+recency.
 - **Tool + agent registry.** `AGENT_REGISTRY.md`, `.codex/agents/*.toml`,
   `check-agent-packages` validating manifests/registry coverage, 46 skills.
-- **Evidence chain.** `registry/VALIDATION.md` + `current-progress.md` are the
-  durable record of what was verified and how.
+- **Evidence chain + structured runs.** `registry/VALIDATION.md`,
+  `current-progress.md`, and `registry/runs/*/record.json` are the durable
+  record of what was verified, what changed, and which lane produced it.
 
 ## What is PARTIAL (works headless, but thin or CLI-only)
 
-- **Execution logging.** Evidence is captured as prose in `VALIDATION.md` and as
-  gate stdout, not as structured per-run records (prompt → commands → stdout/err
-  → diff → result). This is the biggest gap the critique correctly identified.
+- **Task queue / scheduler.** `registry/tasks/tasks.json` now records durable
+  task state and `scripts/check-task-state` validates dependencies,
+  transitions, stale running leases, and the next runnable task. It is not a
+  live worker scheduler and does not launch agents.
 - **Rollback.** Git is the real rollback substrate, but there is no typed
   "this run changed files X,Y; revert = these SHAs" record. Rollback is manual.
 - **Observation.** `lab-dashboard` reports build/health; there is no live view of
   an agent run in progress. CLI-only by design this phase.
-- **Scheduler / task queue.** The ledger records ownership+status but nothing
-  runs the queue; sequencing is human + "wait for lanes quiet".
 - **Failure recovery.** Gates fail closed, but there is no auto-retry, no resume
   from a checkpoint, no partial-run state machine.
 
@@ -80,9 +80,9 @@ rollback. That is the right target, and it is the track we are already on.
 
 - **Desktop UI / GUI shell.** No Electron/Tauri/Vite/desktop entrypoint. Per
   Codex handoff `20260701-1006`, deliberately NOT this phase.
-- **Live multi-agent runtime** (real scheduler + per-agent worktree isolation +
-  merge queue + durable long-horizon task state machine). This is the "(c)
-  production runtime" tier — still far off, honestly.
+- **Live multi-agent runtime** (worker scheduler + per-agent worktree isolation
+  + merge queue + automated retry/resume). This is the "(c) production runtime"
+  tier — still far off, honestly.
 - **One-click rollback / visual diff stream** — the GUI-shaped items the critique
   wants; correct as a *later* layer, not now.
 
@@ -97,12 +97,10 @@ headless orchestration layer mostly exists. The two suggestions in tension are:
 
 These are not mutually exclusive, and the right ordering is Codex's: **make the
 kernel trustworthy first, then add a shell.** Building a pretty dashboard on top
-of a system that could still score itself falsely green (the exact bug just
-fixed in collab-0011) would visualize lies. The highest-value *headless* next
-step that also feeds a future Run Recorder is: **turn the prose evidence chain
-into structured per-run records** (the PARTIAL "execution logging" gap). That is
-the real seam between "what we have" (audit/handoff) and "what a Run Recorder /
-GUI would later render". Do that in files first; a UI can render it later.
+of a system that could still score itself falsely green (the exact bug fixed in
+collab-0011) would visualize lies. The headless run-record seam now exists, and
+the next kernel-level gap is controlled work isolation: a lightweight
+worktree/merge-queue contract before any live scheduler launches agents.
 
 ## Honest user-facing verdict (unchanged)
 

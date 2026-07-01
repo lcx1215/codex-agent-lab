@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "tasks": [
+    {
+      "id": "task_state_scheduler_kernel",
+      "title": "Install lightweight task-state and scheduler kernel",
+      "state": "done",
+      "lane": "codex",
+      "priority": 90,
+      "depends_on": [],
+      "created_at": "2026-07-01T05:58:00Z",
+      "updated_at": "2026-07-01T06:08:33Z",
+      "history": [
+        {
+          "from": null,
+          "to": "pending",
+          "at": "2026-07-01T05:58:00Z"
+        },
+        {
+          "from": "pending",
+          "to": "running",
+          "at": "2026-07-01T05:58:00Z"
+        },
+        {
+          "from": "running",
+          "to": "review",
+          "at": "2026-07-01T06:05:00Z"
+        },
+        {
+          "from": "review",
+          "to": "verified",
+          "at": "2026-07-01T06:07:00Z"
+        },
+        {
+          "from": "verified",
+          "to": "done",
+          "at": "2026-07-01T06:08:33Z"
+        }
+      ]
+    },
+    {
+      "id": "workbench_protocol_v2_alignment",
+      "title": "Align Codex-Claude protocol with task-state and run-record workbench surfaces",
+      "state": "done",
+      "lane": "codex",
+      "priority": 85,
+      "depends_on": [
+        "task_state_scheduler_kernel"
+      ],
+      "created_at": "2026-07-01T06:42:26Z",
+      "updated_at": "2026-07-01T06:42:26Z",
+      "history": [
+        {
+          "from": null,
+          "to": "pending",
+          "at": "2026-07-01T06:42:26Z"
+        },
+        {
+          "from": "pending",
+          "to": "running",
+          "at": "2026-07-01T06:42:26Z"
+        },
+        {
+          "from": "running",
+          "to": "review",
+          "at": "2026-07-01T06:42:26Z"
+        },
+        {
+          "from": "review",
+          "to": "verified",
+          "at": "2026-07-01T06:42:26Z"
+        },
+        {
+          "from": "verified",
+          "to": "done",
+          "at": "2026-07-01T06:42:26Z"
+        }
+      ]
+    },
+    {
+      "id": "worktree_merge_queue_kernel",
+      "title": "Design lightweight worktree isolation and merge queue kernel",
+      "state": "done",
+      "lane": "codex",
+      "priority": 80,
+      "depends_on": [
+        "task_state_scheduler_kernel"
+      ],
+      "created_at": "2026-07-01T06:08:33Z",
+      "updated_at": "2026-07-01T07:21:31Z",
+      "history": [
+        {
+          "from": null,
+          "to": "pending",
+          "at": "2026-07-01T06:08:33Z"
+        },
+        {
+          "from": "pending",
+          "to": "running",
+          "at": "2026-07-01T07:21:31Z"
+        },
+        {
+          "from": "running",
+          "to": "review",
+          "at": "2026-07-01T07:21:31Z"
+        },
+        {
+          "from": "review",
+          "to": "verified",
+          "at": "2026-07-01T07:21:31Z"
+        },
+        {
+          "from": "verified",
+          "to": "done",
+          "at": "2026-07-01T07:21:31Z"
+        }
+      ]
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # Current Lab Progress
 
-Last updated: 2026-07-01 11:10 +0800
+Last updated: 2026-07-01 15:21 +0800
 
 ## Objective
 
@@ -18,7 +18,7 @@ Create a clean, isolated Desktop Codex agent lab for strict, long-horizon agent 
 
 - Directory skeleton created.
 - Project rules, clean-home config, custom agents, and scripts are installed.
-- Eleven custom agents are defined under `.codex/agents`.
+- Eleven custom agent definitions remain under `.codex/agents`, but the standing roster is trimmed to 6 resident-core agents plus 5 on-demand-only definitions per `.codex/agents/ROSTER.md`.
 - Long-horizon skills were copied into `.agents/skills`.
 - `.codex-home/agents` and `.codex-home/skills` point back to the lab-local project copies.
 - `.codex-home/AGENTS.md` points to the global rules file at `/Users/liuchengxu/.codex/AGENTS.md`.
@@ -39,6 +39,7 @@ Create a clean, isolated Desktop Codex agent lab for strict, long-horizon agent 
 - Harness philosophy is now explicit in `docs/waterflow-harness-philosophy.md`: stress `pass` means detector proof, not a claim that everything is healthy.
 - Waterflow Auditor now has `scripts/waterflow-incident` for a realistic complex incident rehearsal that creates an isolated broken fixture, detects workflow defects, records failed and timed-out validation commands, and writes `codex-claude-handoff.md` for Codex or Claude repair.
 - Repository now has `scripts/check-secrets` plus `.github/workflows/security.yml` to block common API-key/token/private-key leaks and README machine-local `/Users/` paths.
+- Secret scanning avoids false positives on ordinary slugs like `task-state-*` while still failing on real `sk-...` token shapes and redacting matching content.
 - README uses reader-friendly relative paths instead of machine-local `/Users/...` prefixes.
 - Capability Layer 1 is installed for project-level rules: `registry/CAPABILITY_LAYERS.md` tracks the upper-layer expansion plan, `docs/project-rule-template.md` defines reusable project-local `AGENTS.md` structure, `scripts/check-project-rules` validates the rule surfaces, and `scripts/new-workspace` now creates a local workspace `AGENTS.md`.
 - Capability Layer 2 is installed for workflow modes: `docs/workflow-modes.md` defines daily App, CLI diagnosis, OMX long-horizon, multi-agent review, and overnight checkpoint modes; `scripts/workflow-mode` prints each mode contract; `scripts/check-workflow-modes` validates the catalog; `registry/OMX_RETROSPECTIVE.md` records the evidence-based OMX usefulness assessment.
@@ -69,12 +70,17 @@ Create a clean, isolated Desktop Codex agent lab for strict, long-horizon agent 
 - New workspace scaffolds now include a local `.gitignore` for temp files, runtime state, logs, node_modules, and secret-like paths.
 - No secrets are copied into the lab.
 - Capability Layer 6 (Codex-Claude Collaboration) is installed: `CLAUDE.md` is the Claude/OMC lane-local contract (counterpart to `AGENTS.md`), `docs/codex-claude-collaboration-protocol.md` defines leader/worker/reviewer roles, lane boundaries, handoff format, assignments-ledger shape, and a proof bar, `registry/collaboration/assignments.json` is the durable ledger (schema `codex-claude-collaboration-assignments/v1`), `registry/collaboration/handoffs/` holds dated English handoffs, and `scripts/check-collaboration` is the lane-portable health gate wired into `scripts/check-lab`.
+- Workbench protocol v2 alignment is installed: `docs/codex-claude-collaboration-protocol.md` now defines how collaboration assignments, handoffs, task state, run records, and dashboard relate; `scripts/check-collaboration` enforces the new workbench-state section and non-substitution rule.
 - Collaboration honest status: commands are installed (`omc ask`, `omc team`, `omc interop`, Codex `omx-api`). Real OMC-to-OMX interop is now proven by assignment `collab-0003-interop-proof`; official OMC team bootstrap remains blocked in `collab-0001` with `worker_start_submit_unverified`.
 - Cross-lane script portability root cause documented: lab scripts call `rg`, which is the Codex.app-bundled ripgrep at `/Applications/Codex.app/Contents/Resources/rg`, not a system binary; the Claude bash lane has no `rg`, so `scripts/check-collaboration` falls back to `grep -E` and runs in both lanes.
 - Self-audit honesty hardening is installed: `lab_agents/large_agent_readiness.py` now executes `scripts/check-lab` for the verification dimension and validates live model-proof artifact content/recency instead of passing on file existence alone.
 - Structured per-run records are installed and active: `docs/run-record-schema.md` defines schema v1, `lab_agents/run_record.py` builds and validates records, `scripts/check-run-records` validates every `registry/runs/*/record.json` plus `registry/runs/latest.json`, and `scripts/check-lab` now runs the validator.
 - Both-lane run-record coverage is proven: Claude records exist for run-record construction and validator construction, and Codex emitted `registry/runs/20260701T030814Z-codex-verify-customer-support-gateway/record.json` for customer-support gateway package tests/audit.
+- Dashboard run-record visibility is installed: `scripts/lab-dashboard` now validates and displays run-record status, record count, lane coverage, latest run id, latest/newest alignment, and invalid-record count in both JSON and Markdown output.
+- Worktree merge-queue kernel is installed: `lab_agents/worktree_merge_queue.py` creates gitignored per-stream worktrees under `.worktrees/merge-queue`, `scripts/worktree-merge-queue` exposes create/enqueue/merge-next/status, `scripts/check-merge-queue` validates `registry/worktree-merge-queue/state.json`, and `scripts/check-lab` runs the fast validator. Run record `registry/runs/20260701T072200Z-codex-worktree-merge-queue-kernel/record.json` demonstrates two parallel edits merged FIFO plus a conflicting edit refused before merge.
+- Lightweight task-state scheduling is installed: `docs/task-state-scheduler.md` defines the state machine, `registry/tasks/tasks.json` stores durable root-layer task state, `lab_agents/task_state.py` validates dependencies/transitions/stale leases and selects the next runnable task, and `scripts/check-task-state` is wired into `scripts/check-lab` and `scripts/lab-dashboard`.
 - Lane division is documented in `docs/lane-capabilities-and-division.md`: Claude is the default steward for many root-layer orchestration surfaces, Codex owns package runtime work by default, and either lane may implement root-layer changes when explicitly routed through the collaboration protocol and reviewed by the other lane.
+- Codex lane roster trim is recorded in `.codex/agents/ROSTER.md`: resident core = context-architect, handoff-summarizer, third-party-large-agent-auditor, development-experience-auditor, waterflow-auditor, and foundation-amplifier; on-demand only = long-horizon-orchestrator, implementation-worker, research-scout, risk-reviewer, and verification-auditor.
 
 ## Verification
 

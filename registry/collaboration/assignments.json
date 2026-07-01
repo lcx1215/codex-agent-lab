@@ -1,6 +1,6 @@
 {
   "schema": "codex-claude-collaboration-assignments/v1",
-  "updated": "2026-07-01T13:50:00+08:00",
+  "updated": "2026-07-01T15:21:31+08:00",
   "assignments": [
     {
       "id": "collab-0009-agent-code-auditor",
@@ -279,6 +279,57 @@
       ],
       "note": "PROVEN 2026-07-01: Claude made lane capabilities/hard-limits/task-routing explicit and built scripts/check-run-records + validate_record() + validator tests. Codex corrected Codex-lane rows, emitted a Codex package run record for customer-support gateway tests/audit, satisfying both-lanes record coverage, wired check-run-records into check-lab, and strengthened the gate to require registry/runs, latest.json, both lanes, and latest pointing to the newest run id. Verified: test_run_record 15 OK, full unittest 96 OK, check-run-records OK with 3 records lanes=claude,codex, check-lab/check-secrets/check-collaboration OK. || PROVEN 2026-07-01: full loop closed. Codex reviewed the division doc (corrected Codex-lane rows: can also implement root work when routed), emitted a Codex-lane package record, and wired+hardened check-run-records into check-lab (now fail-closed: requires runs dir + latest.json + both-lane records + latest mirrors newest). 3 records (2 claude, 1 codex) valid. Claude removed a duplicate RUN_RECORDS_CHECK var. check-lab PASS, 96 suite OK.",
       "updated": "2026-07-01T11:12:00+08:00"
+    },
+    {
+      "id": "collab-0015-trim-codex-subagent-roster",
+      "title": "Trim Codex resident subagent roster to resident core plus on-demand definitions",
+      "leader": "codex",
+      "workers": [
+        "codex"
+      ],
+      "reviewer": "claude",
+      "status": "proven",
+      "handoff": "registry/collaboration/handoffs/20260701-1445-claude-to-codex-trim-subagent-roster.md",
+      "artifacts": [
+        ".codex/agents/ROSTER.md",
+        ".codex/agents/context-architect.toml",
+        ".codex/agents/handoff-summarizer.toml",
+        ".codex/agents/third-party-large-agent-auditor.toml",
+        ".codex/agents/development-experience-auditor.toml",
+        ".codex/agents/waterflow-auditor.toml",
+        ".codex/agents/foundation-amplifier.toml",
+        ".codex/agents/long-horizon-orchestrator.toml",
+        ".codex/agents/implementation-worker.toml",
+        ".codex/agents/research-scout.toml",
+        ".codex/agents/risk-reviewer.toml",
+        ".codex/agents/verification-auditor.toml",
+        "registry/AGENT_REGISTRY.md",
+        "registry/current-progress.md",
+        "registry/VALIDATION.md"
+      ],
+      "note": "PROVEN 2026-07-01: Codex roster owner kept all 11 TOML definitions but trimmed default resident delegation to 6 resident-core seats: context-architect, handoff-summarizer, third-party-large-agent-auditor, development-experience-auditor, waterflow-auditor, foundation-amplifier. Demoted long-horizon-orchestrator, implementation-worker, research-scout, risk-reviewer, and verification-auditor to on-demand-only descriptions/instructions so routine work stays in the main lane unless a separate seat earns its model cost. Rationale recorded in .codex/agents/ROSTER.md and registry/AGENT_REGISTRY.md. Verified with scripts/check-collaboration and scripts/check-lab.",
+      "updated": "2026-07-01T15:05:00+08:00"
+    },
+    {
+      "id": "collab-0016-worktree-merge-queue-kernel",
+      "title": "Worktree isolation and ordered fail-closed merge queue kernel",
+      "leader": "codex",
+      "workers": [
+        "codex"
+      ],
+      "reviewer": "claude",
+      "status": "proven",
+      "handoff": "registry/collaboration/handoffs/20260701-1510-claude-to-codex-worktree-merge-queue.md",
+      "artifacts": [
+        "lab_agents/worktree_merge_queue.py",
+        "scripts/worktree-merge-queue",
+        "scripts/check-merge-queue",
+        "registry/worktree-merge-queue/state.json",
+        "tests/test_worktree_merge_queue.py",
+        "registry/runs/20260701T072200Z-codex-worktree-merge-queue-kernel/record.json"
+      ],
+      "note": "PROVEN 2026-07-01: Codex implemented a lightweight git-worktree merge queue. Each stream creates a project-local .worktrees/merge-queue/<stream> worktree after gitignore verification; streams enqueue into registry/worktree-merge-queue/state.json and merge back FIFO. merge_next runs git merge-tree --write-tree before git merge and refuses queued items on conflicts, leaving the target checkout without conflict markers. Demo run record shows alpha and beta parallel edits merged in order and a conflicting edit refused with reason pre_merge_conflict. Fast validator scripts/check-merge-queue is wired into scripts/check-lab.",
+      "updated": "2026-07-01T15:21:31+08:00"
     }
   ]
 }

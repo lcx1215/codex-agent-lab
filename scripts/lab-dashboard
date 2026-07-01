@@ -4,11 +4,18 @@ from __future__ import annotations
 import argparse
 import json
 import subprocess
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 
 LAB_ROOT = Path(__file__).resolve().parents[1]
+if str(LAB_ROOT) not in sys.path:
+    sys.path.insert(0, str(LAB_ROOT))
+
+from lab_agents.run_record import validate_record
+from lab_agents.task_state import TASKS_REL, read_task_registry, task_state_report
+
 DASHBOARD_ROOT = LAB_ROOT / "outputs" / "shared" / "dashboard"
 DASHBOARD_JSON = DASHBOARD_ROOT / "lab-dashboard.json"
 DASHBOARD_MD = DASHBOARD_ROOT / "lab-dashboard.md"
@@ -56,6 +63,87 @@ def git_summary() -> dict[str, object]:
     }
 
 
+def run_record_summary(root: Path = LAB_ROOT) -> dict[str, object]:
+    runs_dir = root / "registry" / "runs"
+    summary: dict[str, object] = {
+        "status": "fail",
+        "record_count": 0,
+        "lanes": [],
+        "latest_run_id": None,
+        "newest_run_id": None,
+        "latest_matches_newest": False,
+        "invalid_count": 0,
+        "issues": [],
+    }
+    issues: list[str] = []
+    invalid_count = 0
+
+    if not runs_dir.is_dir():
+        summary["issues"] = ["registry/runs directory missing"]
+        return summary
+
+    record_paths = sorted(runs_dir.glob("*/record.json"))
+    latest_path = runs_dir / "latest.json"
+    if not record_paths:
+        issues.append("no run records")
+    if not latest_path.exists():
+        issues.append("latest.json missing")
+
+    payloads: list[dict[str, object]] = []
+    for path in record_paths:
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            invalid_count += 1
+            issues.append(f"{path.relative_to(root)} unreadable")
+            continue
+        errors = validate_record(data)
+        if errors:
+            invalid_count += 1
+            issues.append(f"{path.relative_to(root)} invalid")
+        payloads.append(data)
+
+    latest_payload: dict[str, object] | None = None
+    if latest_path.exists():
+        try:
+            latest_data = json.loads(latest_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            invalid_count += 1
+            issues.append("latest.json unreadable")
+        else:
+            errors = validate_record(latest_data)
+            if errors:
+                invalid_count += 1
+                issues.append("latest.json invalid")
+            latest_payload = latest_data
+
+    lanes = sorted({str(data.get("lane")) for data in payloads if data.get("lane")})
+    missing_lanes = sorted({"claude", "codex"} - set(lanes))
+    if missing_lanes:
+        issues.append(f"missing lanes: {','.join(missing_lanes)}")
+
+    newest_payload = max(payloads, key=lambda data: str(data.get("run_id", ""))) if payloads else None
+    latest_run_id = latest_payload.get("run_id") if latest_payload else None
+    newest_run_id = newest_payload.get("run_id") if newest_payload else None
+    latest_matches_newest = bool(latest_run_id and latest_run_id == newest_run_id)
+    if latest_path.exists() and payloads and not latest_matches_newest:
+        issues.append("latest.json does not point to newest run")
+
+    summary.update(
+        {
+            "status": "pass" if not issues and invalid_count == 0 else "fail",
+            "record_count": len(record_paths),
+            "lanes": lanes,
+            "latest_run_id": latest_run_id,
+            "newest_run_id": newest_run_id,
+            "latest_matches_newest": latest_matches_newest,
+            "invalid_count": invalid_count,
+            "issues": issues,
+        }
+    )
+    return summary
+
+
 def build_dashboard() -> dict[str, object]:
     waterflow_report = read_json(LAB_ROOT / "outputs" / "shared" / "waterflow" / "waterflow-report.json")
     waterflow_diff = read_json(LAB_ROOT / "outputs" / "shared" / "waterflow" / "waterflow-path-diff.json")
@@ -65,6 +153,17 @@ def build_dashboard() -> dict[str, object]:
     workspace_safety = read_json(LAB_ROOT / "outputs" / "shared" / "workspace-safety" / "workspace-safety.json")
     async_latest = latest_json("outputs/shared/async-execution/*/async-execution-results.json")
     benchmark = load_latest_benchmark()
+    run_records = run_record_summary()
+    try:
+        task_state = task_state_report(read_task_registry(LAB_ROOT))
+    except (OSError, json.JSONDecodeError) as exc:
+        task_state = {
+            "schema_version": 1,
+            "status": "fail",
+            "summary": {},
+            "next_task": None,
+            "issues": [{"code": "TASK_REGISTRY_UNREADABLE", "message": f"{TASKS_REL}: {exc}"}],
+        }
     git = git_summary()
 
     findings = (waterflow_report or {}).get("summary", {}).get("finding_count")
@@ -92,6 +191,19 @@ def build_dashboard() -> dict[str, object]:
     if workspace_safety and workspace_safety.get("status") == "fail":
         failed_count = (workspace_safety.get("summary") or {}).get("failed_count")
         issues.append(f"workspace safety failed={failed_count}")
+    if run_records.get("status") != "pass":
+        record_issues = run_records.get("issues") or []
+        if record_issues:
+            issues.append(f"run records: {', '.join(str(issue) for issue in record_issues)}")
+        else:
+            issues.append("run records failed")
+    if task_state.get("status") != "pass":
+        state_issues = task_state.get("issues") or []
+        if state_issues:
+            codes = ",".join(str(issue.get("code", "issue")) for issue in state_issues if isinstance(issue, dict))
+            issues.append(f"task state {task_state.get('status')}: {codes or 'issue'}")
+        else:
+            issues.append(f"task state {task_state.get('status')}")
 
     health = "ok" if not issues else "warn"
     return {
@@ -119,6 +231,8 @@ def build_dashboard() -> dict[str, object]:
             "status": workspace_safety.get("status"),
             "summary": workspace_safety.get("summary"),
         },
+        "run_records": run_records,
+        "task_state": task_state,
         "async": {
             "path": None if async_path is None else str(async_path.relative_to(LAB_ROOT)),
             "summary": async_summary,
@@ -141,6 +255,8 @@ def render_markdown(data: dict[str, object]) -> str:
     async_data = data.get("async") or {}
     compatibility = data.get("compatibility") or {}
     workspace_safety = data.get("workspace_safety") or {}
+    run_records = data.get("run_records") or {}
+    task_state = data.get("task_state") or {}
     git = data.get("git") or {}
     issues = data.get("issues") or []
     lines = [
@@ -195,6 +311,35 @@ def render_markdown(data: dict[str, object]) -> str:
             f"- Warnings: `{compatibility_summary.get('warning_count', '-')}`",
             f"- Failed: `{compatibility_summary.get('failed_count', '-')}`",
             f"- Report: `outputs/shared/compatibility/runtime-compatibility.md`",
+            "",
+            "## Run Records",
+            "",
+            f"- Status: `{run_records.get('status', '-')}`",
+            f"- Records: `{run_records.get('record_count', '-')}`",
+            f"- Lanes: `{', '.join(run_records.get('lanes') or []) or '-'}`",
+            f"- Latest: `{run_records.get('latest_run_id') or '-'}`",
+            f"- Latest matches newest: `{run_records.get('latest_matches_newest', '-')}`",
+            f"- Invalid records: `{run_records.get('invalid_count', '-')}`",
+            "",
+            "## Task State",
+            "",
+        ]
+    )
+    task_summary = task_state.get("summary") or {}
+    next_task = task_state.get("next_task") or {}
+    next_label = "-"
+    if next_task:
+        next_label = f"{next_task.get('id')} ({next_task.get('lane')}, priority {next_task.get('priority')})"
+    lines.extend(
+        [
+            f"- Status: `{task_state.get('status', '-')}`",
+            f"- Tasks: `{task_summary.get('task_count', '-')}`",
+            f"- Pending: `{task_summary.get('pending_count', '-')}`",
+            f"- Running: `{task_summary.get('running_count', '-')}`",
+            f"- Blocked: `{task_summary.get('blocked_count', '-')}`",
+            f"- Runnable: `{task_summary.get('runnable_count', '-')}`",
+            f"- Stale running: `{task_summary.get('stale_running_count', '-')}`",
+            f"- Next: `{next_label}`",
             "",
             "## Workspace Safety",
             "",

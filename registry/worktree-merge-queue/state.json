@@ -1,0 +1,7 @@
+{
+  "events": [],
+  "queue": [],
+  "schema_version": 1,
+  "streams": [],
+  "worktree_root": ".worktrees/merge-queue"
+}

@@ -33,6 +33,7 @@ Global Codex rules remain in `/Users/liuchengxu/.codex/AGENTS.md`; do not duplic
 - All three levels are sandboxed work surfaces. Do not name one medium environment as if it alone were the sandbox.
 - Claude enters this same maximum environment through `CLAUDE.md`; Codex enters through this file. Both lanes must share the same placement model from `docs/environment-layering.md`.
 - Cross-lane work follows `docs/codex-claude-collaboration-protocol.md` (roles, handoff format, ledger, proof bar); these four files — this one, `CLAUDE.md`, the layering doc, and the collaboration protocol — form the unified development-environment protocol.
+- `registry/tasks/tasks.json` and `registry/runs/*/record.json` extend the workbench with task state and execution evidence, but they do not replace `registry/collaboration/assignments.json`, handoffs, reviewer duties, or proof-bar requirements.
 - Place skills, plugins, protocols, interfaces, and Waterflow artifacts at the narrowest level that still has the right reuse scope.
 - Local workspace or package rules can only add detail or narrow scope; they must not weaken the root lab's safety, lane, sandbox, collaboration, or promotion rules.
 - Promote upward only after repeated cross-scenario value and fresh validation; do not let one scenario redefine the maximum environment.
@@ -118,6 +119,7 @@ Global Codex rules remain in `/Users/liuchengxu/.codex/AGENTS.md`; do not duplic
 - Use `docs/runtime-compatibility.md` and `scripts/check-runtime-compatibility` to separate environment drift from agent implementation bugs before long work starts.
 - Use `scripts/check-rule-ladder` when adding, moving, or entering nested workspaces, agent packages, or subagent units; a missing parent-rule link is a hard failure.
 - Use `scripts/check-agent-packages` when creating, moving, renaming, or splitting `agents/` or `subagents/` catalogs; an unregistered or mismatched agent manifest is a hard failure.
+- Use `docs/task-state-scheduler.md` and `scripts/check-task-state` for root-layer long-horizon task state, dependency validity, stale running leases, and next runnable task visibility.
 - Use `scripts/check-workspace-safety` after workspace changes, before promoting any workspace output into root lab patterns, or before treating a large-agent workspace as stable. It is an explicit boundary gate, not a root default fast-path sweep.
 
 ## Agent Roles

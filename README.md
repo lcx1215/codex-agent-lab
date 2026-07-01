@@ -137,6 +137,12 @@ Render the one-screen lab dashboard:
 ./scripts/lab-dashboard
 ```
 
+Check the lightweight task-state scheduler registry:
+
+```bash
+./scripts/check-task-state
+```
+
 Audit Codex/Claude development comfort in the lab:
 
 ```bash
@@ -215,17 +221,26 @@ engine = DecisionEngine(
 
 ## Agents
 
-- `long-horizon-orchestrator`
+The lab keeps all 11 `.codex/agents/*.toml` definitions, but the resident roster
+is intentionally smaller. See `.codex/agents/ROSTER.md` for the current posture
+and invocation rules.
+
+Resident core:
+
 - `context-architect`
+- `handoff-summarizer`
+- `third-party-large-agent-auditor`
+- `development-experience-auditor`
+- `waterflow-auditor`
+- `foundation-amplifier`
+
+On-demand only:
+
+- `long-horizon-orchestrator`
 - `research-scout`
 - `implementation-worker`
 - `verification-auditor`
 - `risk-reviewer`
-- `handoff-summarizer`
-- `waterflow-auditor`
-- `foundation-amplifier`
-- `development-experience-auditor`
-- `third-party-large-agent-auditor`
 
 Use explicit agent names when asking for delegation. Keep each run narrow and write durable state to `registry/current-progress.md`.
 

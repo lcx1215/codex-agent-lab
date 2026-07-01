@@ -1,6 +1,6 @@
 # Codex-Claude Collaboration Protocol
 
-Last updated: 2026-06-30 20:30 +0800
+Last updated: 2026-07-01 14:25 +0800
 
 This document defines how the Claude/OMC lane and the Codex/OMX lane collaborate inside this lab without
 crossing the isolation boundaries in `AGENTS.md` (Codex lane) and `CLAUDE.md` (Claude lane).
@@ -19,11 +19,13 @@ This protocol governs *how* the two lanes exchange work. It sits alongside:
   medium / small environment) and the one-way promotion direction.
 - `docs/rule-inheritance.md` — how Codex and Claude keep root, workspace, and package rules active when work
   starts from a nested directory.
+- `docs/task-state-scheduler.md` — the shared task-state registry and next-runnable-task view.
+- `docs/run-record-schema.md` — the structured evidence record for meaningful lane runs.
 - `AGENTS.md` (`## Environment Scale Placement`, `## Isolation`) — the Codex/OMX lane-local contract.
 - `CLAUDE.md` (`## Environment Scale Placement`, `## Collaboration`) — the Claude/OMC lane-local contract.
 
 Together these are the unified development-environment protocol: placement (layering), inheritance, exchange
-(this doc), and the two lane-local operating contracts that adopt them.
+(this doc), task state, run evidence, and the two lane-local operating contracts that adopt them.
 
 ## Shared Environment Understanding
 
@@ -76,6 +78,27 @@ Required sections:
 `id`, `title`, `leader`, `workers`, `reviewer`, `status` (`pending|in_progress|blocked|proven|abandoned`),
 `handoff` (path or null), `artifacts` (list of paths), and `updated` (timestamp). The `check-collaboration`
 script validates this file's shape.
+
+## Workbench State Surfaces
+
+The collaboration protocol remains the lane-exchange contract. Newer workbench surfaces add state and evidence;
+they do not replace handoffs, reviewer duties, or proof requirements.
+
+| Surface | Path | Owns | Does not replace |
+| --- | --- | --- | --- |
+| Collaboration assignments | `registry/collaboration/assignments.json` | Who leads, who works, who reviews, collaboration status | Task scheduling or run logs |
+| Handoffs | `registry/collaboration/handoffs/` | Exact cross-lane request, constraints, expected artifacts, verification | Task-state entries or chat summaries |
+| Task state | `registry/tasks/tasks.json` | Long-horizon task state, dependencies, stale running leases, next runnable task | Cross-lane assignment, handoff, or review approval |
+| Run records | `registry/runs/*/record.json` | Structured evidence of what a lane actually ran and changed | Reviewer approval or collaboration status |
+| Dashboard | `outputs/shared/dashboard/` | One-screen observation of current health and next task | Source-of-truth ledgers |
+
+Non-substitution rules:
+
+- A `pending` or `running` task-state entry does not authorize a lane to bypass `assignments.json` when the work is cross-lane.
+- A run record proves execution evidence, not cross-lane approval. It can support a review, but it is not the review.
+- A handoff remains required when one lane asks the other lane to implement, verify, or repair something.
+- A dashboard health `ok` means gates are green; it does not promote blocked runtime capabilities to proven.
+- `collab-0001-omc-team-bootstrap` remains `blocked` until a fresh real OMC team runtime proof succeeds.
 
 ## Proof Bar
 

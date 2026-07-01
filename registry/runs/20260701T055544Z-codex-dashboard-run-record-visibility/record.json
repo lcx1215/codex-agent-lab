@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "run_id": "20260701T055544Z-codex-dashboard-run-record-visibility",
+  "lane": "codex",
+  "agent": "Codex App-safe OMX spine",
+  "task": "dashboard run-record visibility",
+  "repo_root": "/Users/liuchengxu/Desktop/codex-agent-lab",
+  "started_at": "2026-07-01T05:55:44.090787+00:00",
+  "ended_at": "2026-07-01T05:55:44.195655+00:00",
+  "git": {
+    "head_before": "81ff19ef4758a09304ed7bd024d3429be8120660",
+    "head_after": "81ff19ef4758a09304ed7bd024d3429be8120660"
+  },
+  "steps": [
+    {
+      "index": 0,
+      "kind": "prompt",
+      "text": "User reported Claude completed more lab work and collab-0001 remains blocked by an upstream OMC tmux team bug; verify current lab state and continue global environment hardening if no handoff is pending."
+    },
+    {
+      "index": 1,
+      "kind": "note",
+      "text": "Verified Claude summary: collab-0001 stays blocked; collab-0010/0013/0014 proven; gates were green before edits. Added run-record visibility to the one-screen dashboard without changing gate policy."
+    },
+    {
+      "index": 2,
+      "kind": "command",
+      "command": "python3 -m unittest tests.test_lab_dashboard",
+      "exit_code": 0,
+      "stdout": "Ran 2 tests ... OK",
+      "stderr": ""
+    },
+    {
+      "index": 3,
+      "kind": "command",
+      "command": "python3 -m py_compile scripts/lab-dashboard tests/test_lab_dashboard.py",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "index": 4,
+      "kind": "command",
+      "command": "scripts/lab-dashboard",
+      "exit_code": 0,
+      "stdout": "Health: ok; Run Records status: pass; Records: 3; Lanes: claude, codex; Latest matches newest: True",
+      "stderr": ""
+    },
+    {
+      "index": 5,
+      "kind": "command",
+      "command": "python3 -m unittest discover -s tests",
+      "exit_code": 0,
+      "stdout": "Ran 98 tests ... OK",
+      "stderr": ""
+    },
+    {
+      "index": 6,
+      "kind": "command",
+      "command": "scripts/check-lab",
+      "exit_code": 0,
+      "stdout": "OK: lab structure is valid",
+      "stderr": ""
+    },
+    {
+      "index": 7,
+      "kind": "command",
+      "command": "scripts/check-run-records",
+      "exit_code": 0,
+      "stdout": "OK: 3 run record(s) valid against schema v1; lanes=claude,codex",
+      "stderr": ""
+    },
+    {
+      "index": 8,
+      "kind": "command",
+      "command": "scripts/check-secrets",
+      "exit_code": 0,
+      "stdout": "[redacted: possible secret]",
+      "stderr": ""
+    },
+    {
+      "index": 9,
+      "kind": "command",
+      "command": "scripts/check-collaboration",
+      "exit_code": 0,
+      "stdout": "OK: collaboration surfaces are valid",
+      "stderr": ""
+    },
+    {
+      "index": 10,
+      "kind": "command",
+      "command": "scripts/waterflow-scan --root . --compare-last",
+      "exit_code": 0,
+      "stdout": "findings: 0",
+      "stderr": ""
+    },
+    {
+      "index": 11,
+      "kind": "command",
+      "command": "scripts/waterflow-verify",
+      "exit_code": 0,
+      "stdout": "checks: 5; passed: 5; failed: 0",
+      "stderr": ""
+    },
+    {
+      "index": 12,
+      "kind": "result",
+      "text": "Dashboard now exposes run-record gate status in JSON/Markdown; no global auth/provider/plugin state or gitignored support package files changed."
+    }
+  ],
+  "files_changed": [
+    {
+      "path": "scripts/lab-dashboard",
+      "change_type": "modified",
+      "before_sha": "8e561acc4c145c482127d29d17cfc581efad2763",
+      "after_sha": "5d0c6cc07b7892fa7d004e4bad086cc147ac3321"
+    },
+    {
+      "path": "tests/test_lab_dashboard.py",
+      "change_type": "added",
+      "before_sha": null,
+      "after_sha": "6f2c4ac1ed0fc2f8f1c9ff3b8a4de5aa8753cd41"
+    },
+    {
+      "path": "registry/current-progress.md",
+      "change_type": "modified",
+      "before_sha": "900d5b978aa6152587febb6e48aafca0411a2777",
+      "after_sha": "da23c3c342a1ad7b1c0d4a76398198743a76cb08"
+    },
+    {
+      "path": "registry/VALIDATION.md",
+      "change_type": "modified",
+      "before_sha": "e3e1ce8c0159330c0536b1f4c346ffd15cb69a67",
+      "after_sha": "3f1b658238a2d2584812344e00492c0aee983c6e"
+    }
+  ],
+  "outcome": "success",
+  "summary": "Added dashboard run-record visibility with tests, validation notes, Waterflow proof, and a Codex-lane run record."
+}
