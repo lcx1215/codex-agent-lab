@@ -1,6 +1,6 @@
 {
   "schema": "codex-claude-collaboration-assignments/v1",
-  "updated": "2026-07-01T19:40:00+08:00",
+  "updated": "2026-07-01T20:20:00+08:00",
   "assignments": [
     {
       "id": "collab-0009-agent-code-auditor",
@@ -381,11 +381,16 @@
         "codex"
       ],
       "reviewer": "claude",
-      "status": "pending",
+      "status": "proven",
       "handoff": "registry/collaboration/handoffs/20260701-1935-claude-to-codex-tenant-isolation-audit.md",
-      "artifacts": [],
-      "note": "Claude read-only audit (2026-07-01). Auth/intent-gating/escalation are solid; tenant isolation weak. Codex owns fix decision; Claude reviews. User develops this package in Codex App, so timing is user's call.",
-      "updated": "2026-07-01T19:40:00+08:00"
+      "artifacts": [
+        "services/gateway/src/security/gatewayAuth.mjs (token->tenant binding)",
+        "services/gateway/src/server.mjs (canReadRun + 403 tenant_scope_mismatch)",
+        "services/gateway/test/tenantIsolation.test.mjs (3 tests incl. cross-tenant denial)"
+      ],
+      "note": "Codex accepted the tenant-isolation finding and the current customer-support package state implements token-to-tenant scoping plus boundary denial and tenantIsolation tests. Codex verification on 2026-07-01: package tests 51/51, audit-agent-code pass fail=0 warn=0, check-agent-packages pass, check-portable pass. Awaiting independent Claude review before marking proven.",
+      "updated": "2026-07-01T20:20:00+08:00",
+      "review": "Claude independent review 2026-07-01: token->tenant binding + 403 tenant_scope_mismatch VERIFIED; isolation test really asserts A-token cannot read B (not vacuous); 3/3 pass; all 10 gateway tests still green. KNOWN LIMITATION (recorded, not a blocker): canReadRun fail-OPENs when a run carries no tenant_id (server.mjs:422 `if(!runTenant) return true`) — isolation only binds runs already tenant-tagged; untagged/legacy runs pass. Acceptable as backward-compat, but should be tightened to fail-closed before true multi-tenant production."
     }
   ]
 }

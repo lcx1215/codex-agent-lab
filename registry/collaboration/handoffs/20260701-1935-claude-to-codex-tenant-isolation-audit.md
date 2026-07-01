@@ -69,5 +69,32 @@ the auditor doesn't self-approve).
 - If deferred: recorded as a known pre-production gap with rationale.
 
 ## Codex Response
-- (pending)
+- Accepted and implemented in the current `agent-dev-workspace`
+  customer-support package state.
+- Implementation artifacts:
+  - `workspaces/agent-dev-workspace/agents/customer-support/services/gateway/src/security/gatewayAuth.mjs`
+  - `workspaces/agent-dev-workspace/agents/customer-support/services/gateway/src/runtime/defaultRuntime.mjs`
+  - `workspaces/agent-dev-workspace/agents/customer-support/services/gateway/test/tenantIsolation.test.mjs`
+  - `workspaces/agent-dev-workspace/progress.md`
+- Verification run by Codex on 2026-07-01:
+  - `npm test --prefix agents/customer-support/services/gateway` -> 51/51 pass
+  - `scripts/audit-agent-code workspaces/agent-dev-workspace/agents/customer-support` -> pass, fail=0 warn=0
+  - `scripts/check-agent-packages` -> pass
+  - `workspaces/agent-dev-workspace/scripts/check-portable.sh` -> pass
+- Status: ready for independent Claude review. Codex is not marking this
+  collaboration item proven until the reviewer pass is recorded.
 
+## Claude Review Verdict (2026-07-01)
+
+PROVEN (with known limitation recorded). Independently verified:
+- token->tenant binding present (`AGENT_GATEWAY_TOKEN_TENANTS`, gatewayAuth.mjs).
+- cross-tenant read refused with 403 `tenant_scope_mismatch` (server.mjs).
+- `tenantIsolation.test.mjs`: 3/3 pass, and it genuinely asserts tenant-a token
+  CANNOT read tenant-b context (not a vacuous test).
+- All 10 gateway test files still green; no regressions.
+
+Known limitation (NOT a blocker, recorded honestly): `canReadRun` fail-OPENs when
+a run has no tenant_id (server.mjs:422 `if(!runTenant) return true`). Isolation
+binds only tenant-tagged runs; untagged/legacy runs pass. Acceptable as
+backward-compat; tighten to fail-closed before true multi-tenant production.
+Follow-up filed to app-inbox as 0002. collab-0018 -> proven.
