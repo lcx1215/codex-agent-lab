@@ -1,6 +1,6 @@
 {
   "schema": "codex-claude-collaboration-assignments/v1",
-  "updated": "2026-07-01T16:54:00+08:00",
+  "updated": "2026-07-01T19:40:00+08:00",
   "assignments": [
     {
       "id": "collab-0009-agent-code-auditor",
@@ -372,6 +372,20 @@
       ],
       "note": "PROVEN 2026-07-01: Codex performed the requested six-dimension platform coherence audit and wrote registry/PLATFORM_AUDIT_20260701.md. Fixed only outright breakage: check-agent-packages unregistered-package crash path, task_verify review->verified state alignment, check-gates malformed-registry fail-closed validation, audit-agent-code .tmp source collection, and run-record test environment assumption. Remaining findings are doc/automation recommendations, not commit blockers. Customer-support package untouched. Verification: unittest discover 144 OK, check-async-execution 9/9, check-rule-ladder pass, check-agent-packages pass, check-task-state pass, check-merge-queue pass, check-gates pass; final check-lab/check-collaboration rerun after ledger write.",
       "updated": "2026-07-01T16:54:00+08:00"
+    },
+    {
+      "id": "collab-0018-tenant-isolation-audit-finding",
+      "title": "Audit finding: customer-support gateway tenant isolation is weakest guardrail (flat token allowlist, no per-tenant scoping, no isolation test)",
+      "leader": "codex",
+      "workers": [
+        "codex"
+      ],
+      "reviewer": "claude",
+      "status": "pending",
+      "handoff": "registry/collaboration/handoffs/20260701-1935-claude-to-codex-tenant-isolation-audit.md",
+      "artifacts": [],
+      "note": "Claude read-only audit (2026-07-01). Auth/intent-gating/escalation are solid; tenant isolation weak. Codex owns fix decision; Claude reviews. User develops this package in Codex App, so timing is user's call.",
+      "updated": "2026-07-01T19:40:00+08:00"
     }
   ]
 }
