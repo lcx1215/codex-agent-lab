@@ -1,6 +1,6 @@
 # Current Lab Progress
 
-Last updated: 2026-07-01 15:21 +0800
+Last updated: 2026-07-01 15:58 +0800
 
 ## Objective
 
@@ -150,3 +150,9 @@ Create a clean, isolated Desktop Codex agent lab for strict, long-horizon agent 
 - Add a small registry index for live model-backed invocation artifacts if more than one such proof is created.
 - Use `development-experience-auditor` after the next medium/large agent build to compare whether comfort improves beyond 92 and whether the runtime friction is reduced or intentionally accepted as a boundary-only cost.
 - Use `third-party-large-agent-auditor` before the first truly large long-horizon workspace pilot and after any delegation/runtime promotion.
+
+## Latest Integration Probe - 2026-07-01 15:58 +0800
+
+- Codex executed the Claude-designed integration probe in `registry/collaboration/handoffs/20260701-1525-claude-to-codex-integration-test.md` using `scripts/worktree-merge-queue`: A merged, B merged, C refused with `pre_merge_conflict`; no conflict markers were observed in `registry/integration-probe.md` before cleanup.
+- Probe cleanup completed: `registry/integration-probe.md`, `.worktrees/merge-queue`, and `integration-probe/*` branches were removed; main was reset to the pre-probe HEAD after evidence capture.
+- Durable evidence: `registry/runs/20260701T075821Z-codex-integration-probe-merge-queue/record.json` and ledger `collab-0017-integration-probe-merge-queue`.

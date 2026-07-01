@@ -1,6 +1,6 @@
 {
   "schema": "codex-claude-collaboration-assignments/v1",
-  "updated": "2026-07-01T15:21:31+08:00",
+  "updated": "2026-07-01T15:58:21+08:00",
   "assignments": [
     {
       "id": "collab-0009-agent-code-auditor",
@@ -330,6 +330,23 @@
       ],
       "note": "PROVEN 2026-07-01: Codex implemented a lightweight git-worktree merge queue. Each stream creates a project-local .worktrees/merge-queue/<stream> worktree after gitignore verification; streams enqueue into registry/worktree-merge-queue/state.json and merge back FIFO. merge_next runs git merge-tree --write-tree before git merge and refuses queued items on conflicts, leaving the target checkout without conflict markers. Demo run record shows alpha and beta parallel edits merged in order and a conflicting edit refused with reason pre_merge_conflict. Fast validator scripts/check-merge-queue is wired into scripts/check-lab.",
       "updated": "2026-07-01T15:21:31+08:00"
+    },
+    {
+      "id": "collab-0017-integration-probe-merge-queue",
+      "title": "End-to-end task-state/worktree/merge-queue/run-record integration probe",
+      "leader": "codex",
+      "workers": [
+        "codex"
+      ],
+      "reviewer": "claude",
+      "status": "proven",
+      "handoff": "registry/collaboration/handoffs/20260701-1525-claude-to-codex-integration-test.md",
+      "artifacts": [
+        "registry/collaboration/handoffs/20260701-1525-claude-to-codex-integration-test.md",
+        "registry/runs/20260701T075821Z-codex-integration-probe-merge-queue/record.json"
+      ],
+      "note": "PROVEN 2026-07-01: Codex executed Claude-designed integration probe using scripts/worktree-merge-queue. Actual queue statuses=['merged', 'merged', 'refused']; refusal_reason=pre_merge_conflict; conflict_marker_present=False; merge_next_exit_codes=[0, 0, 1]. Probe file, worktrees, and integration-probe branches were cleaned after observing the result; main was reset to the pre-probe HEAD so no throwaway probe commits remain. Run record: registry/runs/20260701T075821Z-codex-integration-probe-merge-queue/record.json.",
+      "updated": "2026-07-01T15:58:21+08:00"
     }
   ]
 }
