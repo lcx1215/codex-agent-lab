@@ -66,10 +66,12 @@ SKIP_DIRS = {"node_modules", "__pycache__", ".tmp", "dist", "build", ".git"}
 
 def collect_sources(package: Path) -> list[FileText]:
     out: list[FileText] = []
+    package = package.resolve()
     for path in sorted(package.rglob("*")):
         if not path.is_file():
             continue
-        if any(part in SKIP_DIRS for part in path.parts):
+        rel_path = path.resolve().relative_to(package)
+        if any(part in SKIP_DIRS for part in rel_path.parts):
             continue
         if path.suffix not in {".mjs", ".js", ".ts", ".py"}:
             continue
@@ -77,7 +79,7 @@ def collect_sources(package: Path) -> list[FileText]:
             lines = path.read_text(encoding="utf-8").splitlines()
         except (UnicodeDecodeError, OSError):
             continue
-        out.append(FileText(path=path, rel=str(path), lines=lines))
+        out.append(FileText(path=path, rel=rel_path.as_posix(), lines=lines))
     return out
 
 
@@ -90,12 +92,13 @@ def _line_of(ft: FileText, needle: str) -> tuple[int, str]:
 
 def is_test_file(ft: FileText) -> bool:
     low = ft.path.name.lower()
-    return ".test." in low or ".spec." in low or low.startswith("test_") or "/test/" in ft.rel.replace("\\", "/")
+    rel = ft.rel.replace("\\", "/")
+    return ".test." in low or ".spec." in low or low.startswith("test_") or rel.startswith("test/") or "/test/" in rel
 
 
 def is_runtime_source(ft: FileText) -> bool:
     rel = ft.rel.replace("\\", "/")
-    return "/src/" in rel and not is_test_file(ft)
+    return (rel.startswith("src/") or "/src/" in rel) and not is_test_file(ft)
 
 
 # --- detection rules: each takes the full file list, returns Findings ---

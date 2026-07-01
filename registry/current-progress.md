@@ -156,3 +156,18 @@ Create a clean, isolated Desktop Codex agent lab for strict, long-horizon agent 
 - Codex executed the Claude-designed integration probe in `registry/collaboration/handoffs/20260701-1525-claude-to-codex-integration-test.md` using `scripts/worktree-merge-queue`: A merged, B merged, C refused with `pre_merge_conflict`; no conflict markers were observed in `registry/integration-probe.md` before cleanup.
 - Probe cleanup completed: `registry/integration-probe.md`, `.worktrees/merge-queue`, and `integration-probe/*` branches were removed; main was reset to the pre-probe HEAD after evidence capture.
 - Durable evidence: `registry/runs/20260701T075821Z-codex-integration-probe-merge-queue/record.json` and ledger `collab-0017-integration-probe-merge-queue`.
+
+## Latest Mega Audit - 2026-07-01 16:28
+
+- Codex accepted Claude handoff `registry/collaboration/handoffs/20260701-1545-claude-to-codex-mega-audit.md`.
+- Scope: six-dimension platform coherence audit across gates, docs, rule ladder, ledger/artifacts, cross-module lifecycle state, and test honesty.
+- Constraints: coherence audit only; no features; do not touch the customer-support package; only repair outright breakage with justification.
+- Planned artifacts: `registry/PLATFORM_AUDIT_20260701.md`, updated handoff Codex Response, collaboration ledger entry, and fresh `scripts/check-lab` / `scripts/check-collaboration` evidence.
+
+## Latest Mega Audit Completion - 2026-07-01 16:54 +0800
+
+- Codex completed the six-dimension platform coherence audit requested in `registry/collaboration/handoffs/20260701-1545-claude-to-codex-mega-audit.md`.
+- Report: `registry/PLATFORM_AUDIT_20260701.md`.
+- Verdict: ready to commit after audit fixes; remaining findings are should-fix/nit documentation or future gate-automation recommendations.
+- Outright fixes only: unregistered package gate crash path, task_verify state-machine alignment, check-gates malformed-registry fail-closed validation, audit-agent-code `.tmp` source collection, and run-record TMPDIR/git assumption.
+- Customer-support package was not touched.

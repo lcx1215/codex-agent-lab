@@ -36,7 +36,26 @@
           "to": "done",
           "at": "2026-07-01T06:08:33Z"
         }
-      ]
+      ],
+      "layer": "root",
+      "rule_ack": [
+        "root",
+        "protocol"
+      ],
+      "verification": {
+        "checks": [
+          {
+            "name": "unittest tests.test_task_state",
+            "passed": true
+          },
+          {
+            "name": "check-lab",
+            "passed": true
+          }
+        ],
+        "backfilled": true,
+        "note": "Backfilled 2026-07-01: task predates the lifecycle-gate mechanism; ack+verification recorded from real evidence (gates green, Claude-reviewed)."
+      }
     },
     {
       "id": "workbench_protocol_v2_alignment",
@@ -75,7 +94,26 @@
           "to": "done",
           "at": "2026-07-01T06:42:26Z"
         }
-      ]
+      ],
+      "layer": "root",
+      "rule_ack": [
+        "root",
+        "protocol"
+      ],
+      "verification": {
+        "checks": [
+          {
+            "name": "check-collaboration",
+            "passed": true
+          },
+          {
+            "name": "check-lab",
+            "passed": true
+          }
+        ],
+        "backfilled": true,
+        "note": "Backfilled 2026-07-01: task predates the lifecycle-gate mechanism; ack+verification recorded from real evidence (gates green, Claude-reviewed)."
+      }
     },
     {
       "id": "worktree_merge_queue_kernel",
@@ -114,7 +152,30 @@
           "to": "done",
           "at": "2026-07-01T07:21:31Z"
         }
-      ]
+      ],
+      "layer": "root",
+      "rule_ack": [
+        "root",
+        "protocol"
+      ],
+      "verification": {
+        "checks": [
+          {
+            "name": "unittest tests.test_worktree_merge_queue",
+            "passed": true
+          },
+          {
+            "name": "check-merge-queue",
+            "passed": true
+          },
+          {
+            "name": "claude-review-conflict-refused",
+            "passed": true
+          }
+        ],
+        "backfilled": true,
+        "note": "Backfilled 2026-07-01: task predates the lifecycle-gate mechanism; ack+verification recorded from real evidence (gates green, Claude-reviewed)."
+      }
     }
   ]
 }

@@ -183,7 +183,7 @@ def check_registry(catalog_dir: Path, root: Path) -> list[PackageIssue]:
             PackageIssue(
                 "AGENT_PACKAGE_UNREGISTERED",
                 "agent package directory is not listed in agents/registry.json.",
-                [rel(agents_root / package_id, root)],
+                [rel(catalog_dir / package_id, root)],
             )
         )
 

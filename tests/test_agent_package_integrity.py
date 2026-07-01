@@ -127,6 +127,24 @@ class AgentPackageIntegrityTests(unittest.TestCase):
         codes = {issue["code"] for issue in report["issues"]}
         self.assertIn("AGENT_MANIFEST_ID_MISMATCH", codes)
 
+    def test_unregistered_package_directory_fails_without_crashing(self):
+        root = temp_lab()
+        self.addCleanup(shutil.rmtree, root, ignore_errors=True)
+        extra_package = root / "workspaces" / "demo" / "agents" / "billing"
+        extra_package.mkdir(parents=True)
+        (extra_package / "billing.agent.json").write_text(
+            json.dumps({"id": "billing/router", "name": "Billing", "version": 1}),
+            encoding="utf-8",
+        )
+
+        result = run_check(root)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotIn("NameError", result.stderr)
+        report = json.loads(result.stdout)
+        codes = {issue["code"] for issue in report["issues"]}
+        self.assertIn("AGENT_PACKAGE_UNREGISTERED", codes)
+
     def test_nested_subagent_registry_passes(self):
         root = temp_lab()
         self.addCleanup(shutil.rmtree, root, ignore_errors=True)

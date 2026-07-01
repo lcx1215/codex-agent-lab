@@ -46,6 +46,25 @@ class AuditorTest(unittest.TestCase):
         self.assertIn("FAIL_OPEN_AUTH", codes)
         self.assertEqual(report["status"], "fail")
 
+    def test_package_under_lab_tmp_is_not_skipped(self):
+        tmp_parent = LAB_ROOT / ".tmp" / "tests" / "audit-agent-code"
+        tmp_parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=tmp_parent) as tmp:
+            pkg = Path(tmp)
+            src = pkg / "src" / "security" / "sig.mjs"
+            src.parent.mkdir(parents=True, exist_ok=True)
+            src.write_text(
+                "export function verify({ secret }) {\n"
+                "  if (!secret) return { ok: true };\n"
+                "  return { ok: false };\n"
+                "}\n",
+                encoding="utf-8",
+            )
+            report = aac.audit(pkg)
+        codes = {f["code"] for f in report["findings"]}
+        self.assertEqual(report["scanned_files"], 1)
+        self.assertIn("FAIL_OPEN_AUTH", codes)
+
     def test_flags_empty_secret_call(self):
         pkg = _pkg({"src/server.mjs": (
             "import { verify } from './security/sig.mjs';\n"

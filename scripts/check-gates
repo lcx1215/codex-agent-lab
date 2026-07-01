@@ -1,0 +1,93 @@
+#!/usr/bin/env python3
+"""check-gates: validate the task lifecycle gates over registry/tasks/tasks.json.
+
+Fail-closed gate enforcing docs/proposal-subagent-gates.md:
+- Any task in state `running` (or beyond) must have acknowledged its required
+  rule layers (Gate 1) — a task cannot have started without rule acknowledgment.
+- Any task in state `verified` or `done` must carry passing verification (Gate 3)
+  — a task cannot be marked done without a green verification record.
+
+This is intentionally lightweight and reads only the task registry.
+"""
+from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+LAB_ROOT = Path(__file__).resolve().parents[1]
+if str(LAB_ROOT) not in sys.path:
+    sys.path.insert(0, str(LAB_ROOT))
+
+from lab_agents.rule_ack import acknowledgment_ok
+from lab_agents.task_state import validate_task_registry
+from lab_agents.task_verify import verification_ok
+
+TASKS_REL = "registry/tasks/tasks.json"
+STARTED_STATES = {"running", "review", "verified", "done"}
+DONE_STATES = {"verified", "done"}
+
+
+def _history_reached(task: dict, states: set[str]) -> bool:
+    history = task.get("history")
+    if not isinstance(history, list):
+        return False
+    for item in history:
+        if not isinstance(item, dict):
+            continue
+        if item.get("from") in states or item.get("to") in states:
+            return True
+    return False
+
+
+def task_has_started(task: dict) -> bool:
+    return task.get("state") in STARTED_STATES or _history_reached(task, STARTED_STATES)
+
+
+def task_reached_verification_gate(task: dict) -> bool:
+    return task.get("state") in DONE_STATES or _history_reached(task, DONE_STATES)
+
+
+def main() -> int:
+    path = LAB_ROOT / TASKS_REL
+    if not path.exists():
+        print("OK: no task registry yet; nothing to gate")
+        return 0
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"FAIL: cannot read {TASKS_REL}: {exc}", file=sys.stderr)
+        return 1
+
+    schema_errors = validate_task_registry(data)
+    if schema_errors:
+        for error in schema_errors:
+            print(f"FAIL: invalid {TASKS_REL}: {error}", file=sys.stderr)
+        return 1
+
+    bad = 0
+    for task in data.get("tasks", []):
+        if not isinstance(task, dict):
+            continue
+        tid = task.get("id", "?")
+        state = task.get("state")
+        if task_has_started(task):
+            ok, missing = acknowledgment_ok(task)
+            if not ok:
+                bad += 1
+                print(f"FAIL: task {tid} is '{state}' but Gate 1 not cleared: {missing}", file=sys.stderr)
+        if task_reached_verification_gate(task):
+            ok, failed = verification_ok(task)
+            if not ok:
+                bad += 1
+                print(f"FAIL: task {tid} is '{state}' but Gate 3 not cleared: {failed}", file=sys.stderr)
+
+    if bad:
+        print(f"FAIL: {bad} task(s) violate lifecycle gates", file=sys.stderr)
+        return 1
+    print(f"OK: {len(data.get('tasks', []))} task(s) satisfy lifecycle gates")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

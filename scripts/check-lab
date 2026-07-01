@@ -21,6 +21,7 @@ COLLAB_CHECK="$LAB_ROOT/scripts/check-collaboration"
 RUN_RECORD_CHECK="$LAB_ROOT/scripts/check-run-records"
 TASK_STATE_CHECK="$LAB_ROOT/scripts/check-task-state"
 MERGE_QUEUE_CHECK="$LAB_ROOT/scripts/check-merge-queue"
+GATES_CHECK="$LAB_ROOT/scripts/check-gates"
 
 fail() {
   printf 'FAIL: %s\n' "$*" >&2
@@ -49,6 +50,7 @@ test -x "$COLLAB_CHECK" || fail "collaboration check script missing or not execu
 test -x "$RUN_RECORD_CHECK" || fail "run record check script missing or not executable"
 test -x "$TASK_STATE_CHECK" || fail "task state check script missing or not executable"
 test -x "$MERGE_QUEUE_CHECK" || fail "merge queue check script missing or not executable"
+test -x "$GATES_CHECK" || fail "lifecycle gates check script missing or not executable"
 
 if test -e "$LAB_ROOT/.codex-home/auth.json"; then
   fail "clean home contains auth.json; this lab should not copy secrets"
@@ -101,5 +103,6 @@ fi
 "$RUN_RECORD_CHECK" >/dev/null
 "$TASK_STATE_CHECK" >/dev/null
 "$MERGE_QUEUE_CHECK" >/dev/null
+"$GATES_CHECK" >/dev/null
 
 printf 'OK: lab structure is valid\n'

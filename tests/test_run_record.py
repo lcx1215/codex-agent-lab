@@ -1,4 +1,5 @@
 import json
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -105,6 +106,7 @@ class RunRecordTests(unittest.TestCase):
     def test_write_produces_record_and_latest_with_git_shas(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
+            subprocess.run(["git", "init", "-q"], cwd=root, check=True)
             runs_root = root / "registry" / "runs"
             rec = self._record(root)
             rec.record_file_change("lab_agents/x.py", "modified", SHA_A, SHA_B)
@@ -118,7 +120,7 @@ class RunRecordTests(unittest.TestCase):
             self.assertEqual(data["outcome"], "success")
             self.assertEqual(data["files_changed"][0]["after_sha"], SHA_B)
             self.assertIn("git", data)
-            # tmp dir is not a git repo -> head SHAs are null, not a crash.
+            # Empty nested git repo -> missing HEAD SHAs are null, not a crash.
             self.assertIsNone(data["git"]["head_before"])
             latest = json.loads((runs_root / "latest.json").read_text(encoding="utf-8"))
             self.assertEqual(latest["run_id"], data["run_id"])
