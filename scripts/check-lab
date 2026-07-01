@@ -18,6 +18,7 @@ ASYNC_CHECK="$LAB_ROOT/scripts/check-async-execution"
 SANDBOX_SKILL_CHECK="$LAB_ROOT/scripts/check-sandbox-skills"
 SPEED_CHECK="$LAB_ROOT/scripts/check-speed-contract"
 COLLAB_CHECK="$LAB_ROOT/scripts/check-collaboration"
+RUN_RECORD_CHECK="$LAB_ROOT/scripts/check-run-records"
 
 fail() {
   printf 'FAIL: %s\n' "$*" >&2
@@ -43,6 +44,7 @@ test -x "$ASYNC_CHECK" || fail "async execution check script missing or not exec
 test -x "$SANDBOX_SKILL_CHECK" || fail "sandbox skill check script missing or not executable"
 test -x "$SPEED_CHECK" || fail "speed contract check script missing or not executable"
 test -x "$COLLAB_CHECK" || fail "collaboration check script missing or not executable"
+test -x "$RUN_RECORD_CHECK" || fail "run record check script missing or not executable"
 
 if test -e "$LAB_ROOT/.codex-home/auth.json"; then
   fail "clean home contains auth.json; this lab should not copy secrets"
@@ -92,5 +94,6 @@ fi
 "$SANDBOX_SKILL_CHECK" >/dev/null
 "$SPEED_CHECK" >/dev/null
 "$COLLAB_CHECK" >/dev/null
+"$RUN_RECORD_CHECK" >/dev/null
 
 printf 'OK: lab structure is valid\n'

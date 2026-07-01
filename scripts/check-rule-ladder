@@ -22,6 +22,7 @@ IGNORED_DIR_NAMES = {
     "build",
     "coverage",
     "dist",
+    "exports",
     "node_modules",
     "outputs",
 }

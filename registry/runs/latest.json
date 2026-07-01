@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "run_id": "20260701T030814Z-codex-verify-customer-support-gateway",
+  "lane": "codex",
+  "agent": "customer-support package verifier",
+  "task": "verify customer-support gateway package auth and durable run state",
+  "repo_root": "/Users/liuchengxu/Desktop/codex-agent-lab",
+  "started_at": "2026-07-01T03:08:14.223608+00:00",
+  "ended_at": "2026-07-01T03:08:14.487238+00:00",
+  "git": {
+    "head_before": "ce38ef45ac58faeb25759188cbbadf7149978c78",
+    "head_after": "ce38ef45ac58faeb25759188cbbadf7149978c78"
+  },
+  "steps": [
+    {
+      "index": 0,
+      "kind": "prompt",
+      "text": "Codex package run record for customer-support gateway auth and durable run-state verification."
+    },
+    {
+      "index": 1,
+      "kind": "note",
+      "text": "Package files remain in the gitignored medium workspace; this run records verification evidence only."
+    },
+    {
+      "index": 2,
+      "kind": "command",
+      "command": "npm test --prefix workspaces/agent-dev-workspace/agents/customer-support/services/gateway",
+      "exit_code": 0,
+      "stdout": "\n> customer-support-agent-gateway@0.1.0 test\n> node --test\n\nTAP version 13\n# Subtest: records and lists assistant events by session and event type\nok 1 - records and lists assistant events by session and event type\n  ---\n  duration_ms: 2.044958\n  ...\n# Subtest: redacts sensitive assistant event keys and values\nok 2 - redacts sensitive assistant event keys and values\n  ---\n  duration_ms: 0.211958\n  ...\n# Subtest: marks assistant work endpoints as protected\nok 3 - marks assistant work endpoints as protected\n  ---\n  duration_ms: 0.338542\n  ...\n# Subtest: requires a configured token for protected gateway calls\nok 4 - requires a configured token for protected gateway calls\n  ---\n  duration_ms: 0.507917\n  ...\n[redacted: possible secret]\n[redacted: possible secret]\n  ---\n  duration_ms: 0.126792\n  ...\n# Subtest: answers invoice questions from fixture billing context\nok 6 - answers invoice questions from fixture billing context\n  ---\n  duration_ms: 3.996542\n  ...\n# Subtest: tracked runs reuse the same run for the same idempotency key\nok 7 - tracked runs reuse the same run for the same idempotency key\n  ---\n  duration_ms: 1.669917\n  ...\n# Subtest: answers Chinese payment-failed question with grounded evidence\nok 8 - answers Chinese payment-failed question with grounded evidence\n  ---\n  duration_ms: 0.956083\n  ...\n# Subtest: answers webhook signature questions with required checks\nok 9 - answers webhook signature questions with required checks\n  ---\n  duration_ms: 0.138167\n  ...\n# Subtest: suggests webhook signature card first from visible webhook error context\nok 10 - suggests webhook signature card first from visible webhook error context\n  ---\n  duration_ms: 0.698417\n  ...\n[redacted: possible secret]\n[redacted: possible secret]\n  ---\n  duration_ms: 0.127125\n  ...\n# Subtest: suggests go-live card first from getting-started onboarding context\nok 12 - suggests go-live card first from getting-started onboarding context\n  ---\n  duration_ms: 0.406708\n  ...\n# Subtest: routes balance investigations to handoff when concrete funds are blocked\nok 13 - routes balance investigations to handoff when concrete funds are blocked\n  ---\n  duration_ms: 0.231916\n  ...\n# Subtest: suggests balance card first when visible page region moves to balances\nok 14 - suggests balance card first when visible page region moves to balances\n  ---\n  duration_ms: 0.437542\n  ...\n# Subtest: context card order changes when visible page context changes\nok 15 - context card order changes when visible page context changes\n  ---\n  duration_ms: 0.353916\n  ...\n# Subtest: routes chargeback or fraud cases to human handoff\nok 16 - routes chargeback or fraud cases to human handoff\n  ---\n  duration_ms: 0.172792\n  ...\n# Subtest: creates human session when admin user explicitly asks for handoff\nok 17 - creates human session when admin user explicitly asks for handoff\n  ---\n  duration_ms: 0.080834\n  ...\n# Subtest: suggests handoff when no grounded knowledge is found\nok 18 - suggests handoff when no grounded knowledge is found\n  ---\n  duration_ms: 0.351959\n  ...\n# Subtest: normalizes support inbox payloads without network posting\nok 19 - normalizes support inbox payloads without network posting\n  ---\n  duration_ms: 0.093333\n  ...\n[redacted: possible secret]\n[redacted: possible secret]\n  ---\n  duration_ms: 0.047875\n  ...\n# Subtest: support inbox signature verification accepts matching sha256 signatures\nok 21 - support inbox signature verification accepts matching sha256 signatures\n  ---\n  duration_ms: 0.24225\n  ...\n# Subtest: persists runs and idempotency index across store reloads\nok 22 - persists runs and idempotency index across store reloads\n  ---\n  duration_ms: 3.161542\n  ...\n1..22\n# tests 22\n# suites 0\n# pass 22\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 59.171",
+      "stderr": ""
+    },
+    {
+      "index": 3,
+      "kind": "command",
+      "command": "scripts/audit-agent-code workspaces/agent-dev-workspace/agents/customer-support",
+      "exit_code": 0,
+      "stdout": "package: workspaces/agent-dev-workspace/agents/customer-support\nscanned files: 18\nstatus: pass  (fail=0 warn=0)",
+      "stderr": ""
+    },
+    {
+      "index": 4,
+      "kind": "result",
+      "text": "Customer-support gateway package tests and audit passed under Codex lane."
+    }
+  ],
+  "files_changed": [],
+  "outcome": "success",
+  "summary": "Codex package verification record: gateway tests and audit passed."
+}

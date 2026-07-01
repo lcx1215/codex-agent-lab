@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LAB_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+RUNS_DIR="$LAB_ROOT/registry/runs"
+
+# Validate every registry/runs/*/record.json (and latest.json) against the
+# run-record schema v1 (docs/run-record-schema.md). Fail closed on any invalid
+# record. This is the promotion path agreed with Codex on collab-0013; it is a
+# active gate wired into check-lab. It also verifies that both Claude and Codex
+# lane records exist and that latest.json mirrors the newest run id.
+
+if [ ! -d "$RUNS_DIR" ]; then
+  printf 'FAIL: registry/runs directory missing\n' >&2
+  exit 1
+fi
+
+cd "$LAB_ROOT"
+python3 - "$RUNS_DIR" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+from lab_agents.run_record import validate_record
+
+runs_dir = Path(sys.argv[1])
+records = sorted(runs_dir.glob("*/record.json"))
+latest = runs_dir / "latest.json"
+targets = list(records)
+if latest.exists():
+    targets.append(latest)
+else:
+    print("FAIL: registry/runs/latest.json missing", file=sys.stderr)
+    sys.exit(1)
+
+if not records:
+    print("FAIL: registry/runs contains no run record files", file=sys.stderr)
+    sys.exit(1)
+
+bad = 0
+record_payloads = []
+latest_payload = None
+for path in targets:
+    rel = path.relative_to(runs_dir.parent.parent)
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"FAIL: {rel}: not readable JSON: {exc}", file=sys.stderr)
+        bad += 1
+        continue
+    errors = validate_record(data)
+    if errors:
+        bad += 1
+        for err in errors:
+            print(f"FAIL: {rel}: {err}", file=sys.stderr)
+    if path == latest:
+        latest_payload = data
+    else:
+        record_payloads.append(data)
+
+lanes = {str(data.get("lane", "")) for data in record_payloads}
+missing_lanes = {"claude", "codex"} - lanes
+if missing_lanes:
+    bad += 1
+    print(f"FAIL: missing required run-record lane(s): {', '.join(sorted(missing_lanes))}", file=sys.stderr)
+
+newest = max(record_payloads, key=lambda data: str(data.get("run_id", "")))
+if latest_payload and latest_payload.get("run_id") != newest.get("run_id"):
+    bad += 1
+    print(
+        f"FAIL: registry/runs/latest.json points to {latest_payload.get('run_id')}, "
+        f"expected newest run {newest.get('run_id')}",
+        file=sys.stderr,
+    )
+
+if bad:
+    print(f"FAIL: {bad} invalid run record file(s)", file=sys.stderr)
+    sys.exit(1)
+
+print(f"OK: {len(records)} run record(s) valid against schema v1; lanes={','.join(sorted(lanes))}")
+PY

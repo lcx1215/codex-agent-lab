@@ -1,6 +1,6 @@
 # Current Lab Progress
 
-Last updated: 2026-06-30 16:10 +0800
+Last updated: 2026-07-01 11:10 +0800
 
 ## Objective
 
@@ -71,6 +71,10 @@ Create a clean, isolated Desktop Codex agent lab for strict, long-horizon agent 
 - Capability Layer 6 (Codex-Claude Collaboration) is installed: `CLAUDE.md` is the Claude/OMC lane-local contract (counterpart to `AGENTS.md`), `docs/codex-claude-collaboration-protocol.md` defines leader/worker/reviewer roles, lane boundaries, handoff format, assignments-ledger shape, and a proof bar, `registry/collaboration/assignments.json` is the durable ledger (schema `codex-claude-collaboration-assignments/v1`), `registry/collaboration/handoffs/` holds dated English handoffs, and `scripts/check-collaboration` is the lane-portable health gate wired into `scripts/check-lab`.
 - Collaboration honest status: commands are installed (`omc ask`, `omc team`, `omc interop`, Codex `omx-api`). Real OMC-to-OMX interop is now proven by assignment `collab-0003-interop-proof`; official OMC team bootstrap remains blocked in `collab-0001` with `worker_start_submit_unverified`.
 - Cross-lane script portability root cause documented: lab scripts call `rg`, which is the Codex.app-bundled ripgrep at `/Applications/Codex.app/Contents/Resources/rg`, not a system binary; the Claude bash lane has no `rg`, so `scripts/check-collaboration` falls back to `grep -E` and runs in both lanes.
+- Self-audit honesty hardening is installed: `lab_agents/large_agent_readiness.py` now executes `scripts/check-lab` for the verification dimension and validates live model-proof artifact content/recency instead of passing on file existence alone.
+- Structured per-run records are installed and active: `docs/run-record-schema.md` defines schema v1, `lab_agents/run_record.py` builds and validates records, `scripts/check-run-records` validates every `registry/runs/*/record.json` plus `registry/runs/latest.json`, and `scripts/check-lab` now runs the validator.
+- Both-lane run-record coverage is proven: Claude records exist for run-record construction and validator construction, and Codex emitted `registry/runs/20260701T030814Z-codex-verify-customer-support-gateway/record.json` for customer-support gateway package tests/audit.
+- Lane division is documented in `docs/lane-capabilities-and-division.md`: Claude is the default steward for many root-layer orchestration surfaces, Codex owns package runtime work by default, and either lane may implement root-layer changes when explicitly routed through the collaboration protocol and reviewed by the other lane.
 
 ## Verification
 

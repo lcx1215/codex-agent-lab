@@ -1,5 +1,6 @@
 import tomllib
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 
 from lab_agents.large_agent_readiness import (
@@ -7,6 +8,9 @@ from lab_agents.large_agent_readiness import (
     collect_large_agent_readiness_signals,
     evaluate_large_agent_readiness,
     render_large_agent_readiness_markdown,
+    _model_proof_signal,
+    _run_lab_gate,
+    _verification_signal,
 )
 
 
@@ -105,6 +109,70 @@ class LargeAgentReadinessAuditorTests(unittest.TestCase):
         self.assertIn("scripts/lab-dashboard", sources)
         self.assertNotIn("auth.json", sources)
         self.assertNotIn("config.toml", sources)
+
+    def test_verification_fails_when_the_suite_is_red(self):
+        # A red gate (non-zero exit) must NOT score as ready just because the
+        # gate file exists on disk.
+        signal = _verification_signal(
+            LAB_ROOT,
+            gate_runner=lambda root: ("fail", "scripts/check-lab exited 1; verification suite is red: boom"),
+        )
+        self.assertEqual(signal.dimension, "verification")
+        self.assertEqual(signal.status, "fail")
+        self.assertIn("red", signal.evidence)
+
+    def test_verification_passes_only_when_the_suite_is_green(self):
+        signal = _verification_signal(
+            LAB_ROOT,
+            gate_runner=lambda root: ("pass", "scripts/check-lab ran green (exit 0)"),
+        )
+        self.assertEqual(signal.status, "pass")
+        self.assertIn("green", signal.evidence)
+
+    def test_verification_missing_gate_fails(self):
+        # Point at a directory with no gate; the real runner must fail closed.
+        status, evidence = _run_lab_gate(LAB_ROOT / "docs")
+        self.assertEqual(status, "fail")
+        self.assertIn("check-lab", evidence)
+
+    def test_model_proof_flags_thin_or_stale_artifacts(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            proof_dir = root / "outputs" / "shared" / "foo"
+            proof_dir.mkdir(parents=True)
+
+            # Thin placeholder: matching name but no real content/markers.
+            thin = proof_dir / "live-model-review.md"
+            thin.write_text("# live model\n\ntouch\n", encoding="utf-8")
+            self.assertEqual(_model_proof_signal(root).status, "mixed")
+
+            # Substantial and recent artifact passes.
+            body = "\n".join(
+                ["# Live Model Review", "", "## Summary", "Verdict: usable.", "", "## Evidence Read"]
+                + [f"- point {i}" for i in range(6)]
+            )
+            thin.write_text(body, encoding="utf-8")
+            self.assertEqual(_model_proof_signal(root).status, "pass")
+
+    def test_model_proof_requires_all_markers(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            proof_dir = root / "outputs" / "shared" / "foo"
+            proof_dir.mkdir(parents=True)
+            proof = proof_dir / "live-model-review.md"
+            body = "\n".join(
+                ["# Live Model Review", "", "## Summary", "Only one marker is not enough."]
+                + [f"- point {i}" for i in range(8)]
+            )
+            proof.write_text(body, encoding="utf-8")
+
+            signal = _model_proof_signal(root)
+            self.assertEqual(signal.status, "mixed")
+            self.assertIn("missing markers", signal.evidence)
 
 
 if __name__ == "__main__":

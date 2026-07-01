@@ -1,6 +1,6 @@
 {
   "schema": "codex-claude-collaboration-assignments/v1",
-  "updated": "2026-06-30T21:45:00+08:00",
+  "updated": "2026-07-01T11:12:00+08:00",
   "assignments": [
     {
       "id": "collab-0009-agent-code-auditor",
@@ -96,7 +96,7 @@
         "code-reviewer"
       ],
       "reviewer": "codex",
-      "status": "in_progress",
+      "status": "proven",
       "handoff": null,
       "artifacts": [
         "scripts/check-secrets",
@@ -182,6 +182,103 @@
       ],
       "note": "PROVEN 2026-06-30: real tmux omc interop session (panes %2 zsh + %3 codex) ran a real OMC->OMX task round-trip (task id 1782809987353-7b9a7e408) answered by the real Codex model (gpt-5.5/xhigh) and read back via shared-state, exit 0, no secrets crossed lanes.",
       "updated": "2026-06-30T17:05:00+08:00"
+    },
+    {
+      "id": "collab-0010-support-runs-auth-state",
+      "title": "Customer-support run/query endpoint auth + durable run state findings",
+      "leader": "claude",
+      "workers": [
+        "claude"
+      ],
+      "reviewer": "codex",
+      "status": "proven",
+      "handoff": "registry/collaboration/handoffs/20260701-0958-claude-to-codex-support-runs-auth-state.md",
+      "artifacts": [
+        "registry/collaboration/handoffs/20260701-0958-claude-to-codex-support-runs-auth-state.md",
+        "workspaces/agent-dev-workspace/agents/customer-support/services/gateway/src/security/gatewayAuth.mjs",
+        "workspaces/agent-dev-workspace/agents/customer-support/services/gateway/src/server.mjs",
+        "workspaces/agent-dev-workspace/agents/customer-support/services/gateway/src/agent/runStore.mjs",
+        "workspaces/agent-dev-workspace/VALIDATION.md"
+      ],
+      "note": "PROVEN 2026-07-01: Current customer-support workspace state closes the auth + durable run-state findings. Gateway auth now protects assistant work endpoints and /agent/query before body reads, fail-closed when no token is configured; runStore persists JSONL snapshots and reloads idempotency. Codex verified 22 gateway tests pass, audit-agent-code fail=0 warn=0, check-rule-ladder pass, check-agent-packages pass with exports ignored, workspace-safety warn-only failed=0. Package remains in gitignored medium workspace; do not upload/promote without user request. || CLOSED 2026-07-01: Codex fixed both (gatewayAuth.mjs fail-closed, auth-before-body in server.mjs, runStore.mjs persists to .run/assistant-runs.jsonl). Claude independently reviewed (read code + audit pass fail=0 + 22 pkg tests + 91 root suite): both confirmed real, not just asserted. Non-blocking note: config.required===false is a full bypass, prod must not set it false.",
+      "updated": "2026-07-01T10:55:00+08:00"
+    },
+    {
+      "id": "collab-0011-self-audit-honesty",
+      "title": "Self-audit honesty: verification runs the gate, model-proof validates content/recency",
+      "leader": "claude",
+      "workers": [
+        "claude"
+      ],
+      "reviewer": "codex",
+      "status": "proven",
+      "handoff": "registry/collaboration/handoffs/20260701-1006-codex-to-claude-no-desktop-ui-next-step.md",
+      "artifacts": [
+        "lab_agents/large_agent_readiness.py",
+        "tests/test_large_agent_readiness_auditor.py",
+        "registry/VALIDATION.md"
+      ],
+      "note": "PROVEN 2026-07-01: large_agent_readiness.py no longer scores 'file exists' as 'ready'. verification dimension now executes scripts/check-lab (exit 0=pass, non-zero=fail, no runnable rg=mixed) via _run_lab_gate/_gate_environment; model-proof validates artifact content+recency (MODEL_PROOF_MAX_AGE_DAYS=21) not just filename. Claude locked the main behavior with 4 tests; Codex review added an all-required-markers regression and root path hardening. Verified: unittest single=9 OK, discover=81 OK, check-lab/check-collaboration/check-secrets all pass. Root-layer only; no support-package or global state touched. Per Codex handoff 20260701-1006 (no desktop UI; continue controlled-pilot hardening).",
+      "updated": "2026-07-01T10:27:00+08:00"
+    },
+    {
+      "id": "collab-0012-orchestration-layer-state",
+      "title": "Orchestration-layer state doc: what the lab already is vs not yet, + proposed structured per-run record seam",
+      "leader": "claude",
+      "workers": [
+        "claude"
+      ],
+      "reviewer": "codex",
+      "status": "proven",
+      "handoff": "registry/collaboration/handoffs/20260701-1020-claude-to-codex-orchestration-layer-state.md",
+      "artifacts": [
+        "registry/ORCHESTRATION_LAYER_STATE.md",
+        "registry/collaboration/handoffs/20260701-1020-claude-to-codex-orchestration-layer-state.md"
+      ],
+      "note": "PROVEN 2026-07-01: Claude wrote registry/ORCHESTRATION_LAYER_STATE.md answering an external 'build a desktop Agent OS' critique against reality: mapped its 11 hard problems to lab state (most DONE headless via protocol+ledger+gates+registry; PARTIAL = structured per-run logging, typed rollback, live observation, scheduler, auto-recovery; NOT DONE = desktop UI + live multi-agent runtime). Codex reviewed the doc, removed a stale hard-coded ledger count, confirmed the Codex-lane surface description, and approved structured per-run records as the next headless seam. Ownership: Claude may own first root-layer schema+writer; Codex reviews before gating; package-specific runs are emitted by the owning lane.",
+      "updated": "2026-07-01T10:27:00+08:00"
+    },
+    {
+      "id": "collab-0013-run-record-v1",
+      "title": "Structured per-run record v1: schema + writer + first self-recorded run",
+      "leader": "claude",
+      "workers": [
+        "claude"
+      ],
+      "reviewer": "codex",
+      "status": "proven",
+      "handoff": "registry/collaboration/handoffs/20260701-1040-claude-to-codex-run-record-v1.md",
+      "artifacts": [
+        "docs/run-record-schema.md",
+        "lab_agents/run_record.py",
+        "tests/test_run_record.py",
+        "registry/runs/20260701T024005Z-claude-build-structured-per-run-record/record.json",
+        "registry/collaboration/handoffs/20260701-1040-claude-to-codex-run-record-v1.md"
+      ],
+      "note": "PROVEN 2026-07-01: Claude built the collab-0012-approved per-run-record seam (root layer, headless). Codex reviewed and approved v1 as a draft schema/writer, tightened blob SHA validation so placeholders like 'pending' are invalid, strengthened common secret value scrubbing, and corrected the first self-recorded run to use real git hash-object values. Gate decision: not wired into check-lab yet; next step is a standalone check-run-records validator after more real records from both lanes. Package-run convention confirmed: owning lane emits its own package run records.",
+      "updated": "2026-07-01T10:49:00+08:00"
+    },
+    {
+      "id": "collab-0014-lane-division-and-run-record-gate",
+      "title": "Lane capabilities/division doc + check-run-records validator (run-record promotion path)",
+      "leader": "claude",
+      "workers": [
+        "claude"
+      ],
+      "reviewer": "codex",
+      "status": "proven",
+      "handoff": "registry/collaboration/handoffs/20260701-1105-claude-to-codex-lane-division-and-run-record-gate.md",
+      "artifacts": [
+        "docs/lane-capabilities-and-division.md",
+        "lab_agents/run_record.py",
+        "registry/runs",
+        "registry/runs/20260701T030814Z-codex-verify-customer-support-gateway/record.json",
+        "scripts/check-lab",
+        "scripts/check-run-records",
+        "tests/test_run_record.py"
+      ],
+      "note": "PROVEN 2026-07-01: Claude made lane capabilities/hard-limits/task-routing explicit and built scripts/check-run-records + validate_record() + validator tests. Codex corrected Codex-lane rows, emitted a Codex package run record for customer-support gateway tests/audit, satisfying both-lanes record coverage, wired check-run-records into check-lab, and strengthened the gate to require registry/runs, latest.json, both lanes, and latest pointing to the newest run id. Verified: test_run_record 15 OK, full unittest 96 OK, check-run-records OK with 3 records lanes=claude,codex, check-lab/check-secrets/check-collaboration OK. || PROVEN 2026-07-01: full loop closed. Codex reviewed the division doc (corrected Codex-lane rows: can also implement root work when routed), emitted a Codex-lane package record, and wired+hardened check-run-records into check-lab (now fail-closed: requires runs dir + latest.json + both-lane records + latest mirrors newest). 3 records (2 claude, 1 codex) valid. Claude removed a duplicate RUN_RECORDS_CHECK var. check-lab PASS, 96 suite OK.",
+      "updated": "2026-07-01T11:12:00+08:00"
     }
   ]
 }

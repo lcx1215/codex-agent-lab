@@ -3,10 +3,37 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
+import os
 import re
+import shutil
+import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
+
+
+# Structural health gate that this audit treats as the "verification suite".
+# It is a bash script whose exit code (0 = green) is the real signal, not its
+# mere presence on disk.
+LAB_GATE_REL = "scripts/check-lab"
+LAB_GATE_TIMEOUT_SECONDS = 300
+
+# The lab gate shells out to `rg`. In some environments (see the Claude/Codex
+# lane notes) `rg` is only a shell function or lives inside the Codex.app
+# bundle, so a bare subprocess PATH cannot find it and the gate would fail for
+# an environment reason rather than a real lab regression. These are the known
+# fallback locations for a real `rg` binary.
+_RG_FALLBACK_DIRS = (
+    "/Applications/Codex.app/Contents/Resources",
+    "/opt/homebrew/bin",
+    "/usr/local/bin",
+)
+
+# A live model-backed proof artifact is only meaningful if it is recent and has
+# real content, not just a matching filename.
+MODEL_PROOF_MAX_AGE_DAYS = 21
+MODEL_PROOF_MIN_LINES = 8
+MODEL_PROOF_MARKERS = ("## Summary", "Verdict", "Evidence")
 
 
 DIMENSION_ORDER = (
@@ -212,12 +239,7 @@ def collect_large_agent_readiness_signals(lab_root: str | Path) -> list[Capabili
         ),
         _delegation_signal(root),
         _skill_surface_signal(root),
-        _exists_signal(
-            root,
-            "verification",
-            "scripts/check-lab",
-            "Integrated lab health gate exists.",
-        ),
+        _verification_signal(root),
         _exists_signal(
             root,
             "observability",
@@ -344,6 +366,75 @@ def _recommended_next_actions(dimensions: dict[str, dict[str, Any]]) -> list[str
     if not actions:
         actions.append("Proceed with a real large-agent workspace pilot and re-run this audit after the first long-horizon handoff.")
     return actions
+
+
+def _gate_environment(root: Path) -> dict[str, str]:
+    """Return an environment for the lab gate with a real `rg` on PATH.
+
+    The gate is a bash script that calls `rg`. When `rg` is only a shell
+    function (Claude lane) or bundled inside Codex.app, a bare subprocess
+    cannot find it and the gate fails for an environment reason. Prepend a
+    directory that holds a real `rg` binary so the exit code reflects the lab,
+    not the shell.
+    """
+    env = dict(os.environ)
+    path = env.get("PATH", "")
+    if shutil.which("rg", path=path):
+        return env
+    for candidate in _RG_FALLBACK_DIRS:
+        if (Path(candidate) / "rg").exists():
+            env["PATH"] = f"{candidate}{os.pathsep}{path}" if path else candidate
+            return env
+    return env
+
+
+def _run_lab_gate(root: Path) -> tuple[str, str]:
+    """Execute the lab health gate and return (status, evidence).
+
+    status is 'pass' when the gate exits 0, 'fail' otherwise. This runs real
+    verification instead of only checking that the gate file exists.
+    """
+    root = Path(root).expanduser().resolve()
+    gate = root / LAB_GATE_REL
+    if not gate.exists():
+        return "fail", f"Missing verification gate: {LAB_GATE_REL}."
+    if not os.access(gate, os.X_OK):
+        return "fail", f"Verification gate is not executable: {LAB_GATE_REL}."
+    env = _gate_environment(root)
+    if not shutil.which("rg", path=env.get("PATH", "")):
+        return (
+            "mixed",
+            f"`{LAB_GATE_REL}` exists and is executable, but no real `rg` binary "
+            "was found to run it, so the suite could not be verified in this "
+            "environment.",
+        )
+    try:
+        completed = subprocess.run(
+            ["bash", str(gate)],
+            cwd=str(root),
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=LAB_GATE_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired:
+        return "fail", f"`{LAB_GATE_REL}` timed out after {LAB_GATE_TIMEOUT_SECONDS}s."
+    except OSError as exc:
+        return "fail", f"`{LAB_GATE_REL}` could not be executed: {exc}."
+    if completed.returncode == 0:
+        return "pass", f"`{LAB_GATE_REL}` ran green (exit 0); verification suite is passing."
+    detail = (completed.stderr or completed.stdout or "").strip().splitlines()
+    last = detail[-1] if detail else "no diagnostic output"
+    return (
+        "fail",
+        f"`{LAB_GATE_REL}` exited {completed.returncode}; verification suite is red: {last}",
+    )
+
+
+def _verification_signal(root: Path, gate_runner: Callable[[Path], tuple[str, str]] | None = None) -> CapabilitySignal:
+    runner = gate_runner or _run_lab_gate
+    status, evidence = runner(root)
+    return CapabilitySignal("verification", LAB_GATE_REL, status, evidence)
 
 
 def _exists_signal(root: Path, dimension: str, rel_path: str, success: str) -> CapabilitySignal:
@@ -477,12 +568,40 @@ def _model_proof_signal(root: Path) -> CapabilitySignal:
             "mixed",
             "No live model-backed review artifact found.",
         )
-    rel = candidates[0].relative_to(root).as_posix()
+    newest = candidates[0]
+    rel = newest.relative_to(root).as_posix()
+    try:
+        text = newest.read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        return CapabilitySignal("model-proof", rel, "mixed", f"Model-proof artifact could not be read: {exc}.")
+
+    line_count = len([line for line in text.splitlines() if line.strip()])
+    present_markers = [marker for marker in MODEL_PROOF_MARKERS if marker in text]
+    missing_markers = [marker for marker in MODEL_PROOF_MARKERS if marker not in text]
+    age_days = (datetime.now(timezone.utc).timestamp() - newest.stat().st_mtime) / 86400
+
+    if line_count < MODEL_PROOF_MIN_LINES or missing_markers:
+        return CapabilitySignal(
+            "model-proof",
+            rel,
+            "mixed",
+            f"Model-proof artifact {rel} looks thin ({line_count} content lines, "
+            f"present markers {present_markers or 'none'}, missing markers {missing_markers or 'none'}); "
+            "it may be a placeholder rather than a real review.",
+        )
+    if age_days > MODEL_PROOF_MAX_AGE_DAYS:
+        return CapabilitySignal(
+            "model-proof",
+            rel,
+            "mixed",
+            f"Newest model-proof artifact {rel} is {age_days:.0f} days old "
+            f"(> {MODEL_PROOF_MAX_AGE_DAYS}); refresh a live review to keep proof current.",
+        )
     return CapabilitySignal(
         "model-proof",
         rel,
         "pass",
-        "A retained live model-backed review artifact exists.",
+        f"A recent live model-backed review artifact exists ({line_count} content lines, {age_days:.0f} days old).",
     )
 
 

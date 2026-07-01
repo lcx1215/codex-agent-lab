@@ -1059,3 +1059,155 @@ Last updated: 2026-06-30 13:37 +0800
   - Result: pass.
   - Evidence: command exited 0.
   - Boundary: no real secret values, auth/session files, provider config, plugin state, or global Codex/Claude state were read or changed.
+
+## Self-Audit Honesty Hardening (verification + model-proof)
+
+- Date: 2026-07-01
+- Owner lane: claude (root layer)
+- Scope: stop `lab_agents/large_agent_readiness.py` from scoring "a file exists" as "capability is real".
+  - `verification` dimension now executes `scripts/check-lab` via new `_run_lab_gate` and is exit-code gated: exit 0 -> `pass`, non-zero -> `fail`, and no runnable `rg` binary -> `mixed` (cannot verify), instead of stat-ing the gate file.
+  - Added `_gate_environment` so the gate finds a real `rg` binary (Claude's `rg` is a shell function; the real binary lives in the Codex.app bundle). This avoids a false-red suite for an environment reason.
+  - `model-proof` dimension (`_model_proof_signal`) now validates artifact content and recency (min content lines, required markers, `MODEL_PROOF_MAX_AGE_DAYS=21`) instead of passing on any filename matching `*live*model*.md`.
+  - `_verification_signal` accepts an injectable `gate_runner` so tests can lock behavior without shelling out.
+  - Added tests: verification fails-when-red, passes-only-when-green, missing-gate-fails; model-proof flags thin/stale artifacts.
+  - Command: `python3 -m unittest tests.test_large_agent_readiness_auditor`
+  - Result: pass.
+  - Evidence: `Ran 8 tests ... OK`.
+  - Command: `python3 -m unittest discover -s tests`
+  - Result: pass.
+  - Evidence: `Ran 80 tests ... OK`.
+  - Command: `scripts/check-lab` (with a real `rg` on PATH)
+  - Result: pass.
+  - Evidence: `OK: lab structure is valid`.
+  - Command: `scripts/check-collaboration`
+  - Result: pass.
+  - Evidence: `OK: collaboration surfaces are valid`.
+  - Command: `scripts/check-secrets`
+  - Result: pass.
+  - Evidence: `OK: no committable secrets or README-local user paths detected`.
+  - Codex review follow-up: model-proof now requires all declared markers, not
+    just any one marker, and `_run_lab_gate` resolves its root path before
+    invoking the gate.
+  - Command: `python3 -m unittest tests.test_large_agent_readiness_auditor`
+  - Result: pass.
+  - Evidence: `Ran 9 tests ... OK`.
+  - Command: `python3 -m unittest discover -s tests`
+  - Result: pass.
+  - Evidence: `Ran 81 tests ... OK`.
+  - Boundary: only root-layer `lab_agents/` + `tests/` were changed; no customer-support package files, global auth/provider/plugin state, or Codex/Claude home state were touched.
+
+## Structured Per-Run Record v1
+
+- Date: 2026-07-01
+- Owner lane: claude root layer, reviewed by codex.
+- Scope: add the headless run-record seam approved in `collab-0012`.
+  - Added `docs/run-record-schema.md` as the v1 field contract.
+  - Added `lab_agents/run_record.py` with `RunRecord`, `capture_command()`,
+    secret scrubbing, byte-capped stdout/stderr, git head capture, and
+    `write_run_record()`.
+  - Added `tests/test_run_record.py`.
+  - Added first dogfood record under `registry/runs/20260701T024005Z-claude-build-structured-per-run-record/record.json`.
+  - Codex review tightened blob SHA handling: `before_sha` / `after_sha` must
+    be null or a 40/64-char git object SHA; placeholder strings such as
+    `pending` are invalid.
+  - Codex review strengthened common secret value scrubbing and corrected the
+    first record to use real `git hash-object` values.
+  - Gate decision: this is not wired into `scripts/check-lab` yet; build a
+    separate `scripts/check-run-records` validator after more real records exist.
+  - Command: `python3 -m unittest tests.test_run_record`
+  - Result: pass.
+  - Evidence: `Ran 10 tests ... OK`.
+  - Command: `python3 -m unittest discover -s tests`
+  - Result: pass.
+  - Evidence: `Ran 91 tests ... OK`.
+  - Command: `python3 -m py_compile lab_agents/run_record.py`
+  - Result: pass.
+  - Evidence: command exited 0.
+  - Command: `python3 -m json.tool registry/runs/20260701T024005Z-claude-build-structured-per-run-record/record.json`
+  - Result: pass.
+  - Evidence: JSON parsed successfully.
+  - Command: `scripts/check-lab`
+  - Result: pass.
+  - Evidence: `OK: lab structure is valid`.
+  - Command: `scripts/check-secrets`
+  - Result: pass.
+  - Evidence: `OK: no committable secrets or README-local user paths detected`.
+  - Command: `scripts/check-collaboration`
+  - Result: pass.
+  - Evidence: `assignments OK: 13 entries`; `Handoffs: 9`.
+  - Boundary: root orchestration files only; no desktop UI, global auth/provider/plugin state, or Codex/Claude home state changed.
+
+## Customer Support Run/Query Auth + Durable Run State Verified
+
+- Date: 2026-07-01
+- Owner lane: current workspace state reviewed by codex.
+- Scope: close `collab-0010` findings in the gitignored
+  `workspaces/agent-dev-workspace` package.
+  - Gateway auth protects assistant work endpoints and `/agent/query` before
+    request bodies are read.
+  - Gateway auth accepts bearer and `X-Agent-Gateway-Token` tokens and fails
+    closed when no token is configured.
+  - Run store persists JSONL snapshots to package-local `.run/assistant-runs.jsonl`
+    and reloads the idempotency index after store reconfiguration.
+  - `scripts/check-agent-packages` and `scripts/check-rule-ladder` now ignore
+    workspace `exports/` folders, preventing historical export copies from
+    inflating live package counts.
+  - Command: `npm test --prefix agents/customer-support/services/gateway`
+  - Cwd: `workspaces/agent-dev-workspace`
+  - Result: pass.
+  - Evidence: Node test runner reported 22 tests, 22 pass, 0 fail.
+  - Command: `scripts/audit-agent-code workspaces/agent-dev-workspace/agents/customer-support`
+  - Result: pass.
+  - Evidence: `status: pass  (fail=0 warn=0)`.
+  - Command: `scripts/check-rule-ladder`
+  - Result: pass.
+  - Evidence: `failed_links: 0`.
+  - Command: `scripts/check-agent-packages`
+  - Result: pass.
+  - Evidence: `workspaces_with_agents: 1`, `agent_registries: 1`, `agent_packages: 1`, `agents: 3`, `failed_links: 0`.
+  - Command: `scripts/check-workspace-safety`
+  - Result: warn with no hard failures.
+  - Evidence: `warnings: 13`, `failed: 0`.
+  - Boundary: support package remains local/private under gitignored `workspaces/`; no global auth/provider/plugin state was touched.
+
+## Lane Division + Run-Record Gate Promotion
+
+- Date: 2026-07-01
+- Owner lane: claude root layer, completed by codex review and package record.
+- Scope: close `collab-0014` by making lane division explicit, proving both-lane
+  run-record coverage, and wiring run-record validation into the root lab gate.
+  - Reviewed and corrected `docs/lane-capabilities-and-division.md` so Codex is
+    not treated as package-only: Codex owns package runtime work by default, but
+    may implement root-layer changes when explicitly routed through the shared
+    collaboration protocol.
+  - Added a Codex-lane package verification record:
+    `registry/runs/20260701T030814Z-codex-verify-customer-support-gateway/record.json`.
+  - The run record captures `npm test --prefix
+    workspaces/agent-dev-workspace/agents/customer-support/services/gateway`
+    and `scripts/audit-agent-code
+    workspaces/agent-dev-workspace/agents/customer-support`; both exited 0.
+  - Wired `scripts/check-run-records` into `scripts/check-lab` after the both-lane
+    record requirement was satisfied.
+  - Strengthened `scripts/check-run-records` after promotion: `registry/runs/`
+    and `latest.json` are now required, both `claude` and `codex` lane records
+    must exist, and `latest.json` must point to the newest run id.
+  - Updated `docs/run-record-schema.md` from draft status to active gate status.
+  - Command: `python3 -m unittest tests.test_run_record`
+  - Result: pass.
+  - Evidence: `Ran 15 tests ... OK`.
+  - Command: `python3 -m unittest discover -s tests`
+  - Result: pass.
+  - Evidence: `Ran 96 tests ... OK`.
+  - Command: `scripts/check-run-records`
+  - Result: pass.
+  - Evidence: `OK: 3 run record(s) valid against schema v1; lanes=claude,codex`.
+  - Command: `scripts/check-lab`
+  - Result: pass.
+  - Evidence: `OK: lab structure is valid`.
+  - Command: `scripts/check-secrets`
+  - Result: pass.
+  - Evidence: `OK: no committable secrets or README-local user paths detected`.
+  - Command: `scripts/check-collaboration`
+  - Result: pass.
+  - Evidence: `assignments OK: 14 entries`; `Handoffs: 10`.
+  - Boundary: no desktop UI, global auth/provider/plugin state, or Codex/Claude home state changed.
