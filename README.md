@@ -2,6 +2,50 @@
 
 Clean, project-scoped environment for long-horizon Codex and Claude agent work.
 
+> **What this is, in one line:** a private, governed workbench where two AI lanes
+> — Claude (`~/.claude`) and Codex (`~/.codex-api-relay`) — collaborate on the
+> same repository with durable state, fail-closed safety gates, and a two-lane
+> review protocol, so their work is traceable, isolated, and non-conflicting.
+
+### Why it exists
+
+Per-agent tooling (OMC/OMX plugins) makes each agent individually capable. It does
+not make two agents work together without clobbering each other's files, sharing a
+single source of truth, or reviewing each other. This lab is that missing layer:
+governance, hand-offs, and collision-safe collaboration — the plumbing plugins
+don't provide.
+
+### What's built (governance layer, working)
+
+- **Rule ladder** — three environment layers (root → workspace → package) with
+  enforced parent-rule inheritance (`scripts/check-rule-ladder`).
+- **Fail-closed safety** — sandbox, secret, and workspace-boundary gates that
+  refuse rather than silently pass (`scripts/check-sandbox` / `check-secrets` /
+  `check-workspace-safety`).
+- **Honest verification** — the self-audit *runs* the gates (exit-code gated), it
+  can't score itself falsely green just because a file exists.
+- **Task lifecycle gates** — rule-acknowledgment before start, concurrency-capped
+  dispatch, and verify-before-done (`scripts/check-gates`, `lab_agents/`).
+- **Collision-safe parallelism** — git-worktree isolation + an ordered merge queue
+  whose pre-merge conflict check fails closed (`scripts/worktree-merge-queue`).
+- **Evidence trail** — structured, secret-scrubbed per-run records, a typed
+  assignments ledger, and a validation chain (`registry/`).
+- **Two-lane collaboration** — dated hand-offs + independent cross-lane review
+  (`docs/codex-claude-collaboration-protocol.md`).
+- **Meta-governance** — an honest constitution for the "who governs those who
+  modify the environment" limit: the human caps the recursion
+  (`docs/meta-governance.md`).
+
+### Honest positioning
+
+This is a **governance / collaboration layer**, not a mature runtime. It is strong
+on trustworthy two-lane collaboration, safety, and verification honesty; it is
+deliberately **not** a "better than LangGraph/CrewAI/AutoGen" execution engine —
+runtime maturity and ecosystem are its weak points. See
+`registry/PLATFORM_SCORECARD_CLAUDE_20260701.md` for the unflinching self-score.
+
+---
+
 This lab is a scenario-neutral development environment for arbitrarily large agent projects. UCP and other domain-specific agents are future scenario workspaces, not the boundary of the lab.
 
 The environment is a force multiplier for Codex and Claude: durable progress, isolated workspaces, Waterflow supervision, benchmarks, skills, prompts, and verification gates should help them work faster and more safely. They do not replace the model agents' reasoning, coding, review, or recovery responsibilities.
