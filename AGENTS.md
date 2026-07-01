@@ -51,6 +51,38 @@ Global Codex rules remain in `/Users/liuchengxu/.codex/AGENTS.md`; do not duplic
   - `outputs/app-plus/` only when the App lane explicitly uses this lab.
   - `outputs/shared/` only for handoff artifacts needed by more than one lane.
 
+## Lane Coordination (CLI <-> App)
+
+Three lanes exist and MUST stay isolated at the home/auth level (never merge homes
+or share `auth.json` — separate credentials = separate quota + no clobbering):
+
+- **Claude lane** (`~/.claude`): governs the lab, audits/reviews, drives the CLI
+  lane via `omx-api exec`. Never edits Codex-owned package code or App/CLI homes.
+- **Codex CLI / API-relay lane** (`~/.codex-api-relay`): Claude's in-lab execution
+  helper; reads the platform's `registry/collaboration/` handoffs + ledger.
+- **Codex App lane** (`~/.codex`): user-driven (e.g. building the customer-support
+  agent). It is NOT in the platform's file-based handoff loop by default and is
+  not driven by Claude.
+
+Coordination rules (highest priority):
+
+- **No lane merge.** Coordinate by files + protocol, never by fusing homes/auth.
+- **App is reached only through an explicit bridge, never by Claude touching
+  `~/.codex`.** The platform-writable bridge is `outputs/shared/app-inbox/` (and
+  `registry/collaboration/`). Claude/CLI MAY write findings there; delivery INTO
+  the App requires either the user relaying it, or a one-time App-side setup that
+  points the App at these paths. Claude MUST NOT modify the App home or config to
+  achieve "automatic" delivery — that safety line outranks convenience.
+- **Cross-lane work still needs a handoff + independent review** (see the
+  collaboration protocol). A finding for App-built code (e.g. customer-support) is
+  written as a handoff/inbox item; Codex (App or CLI, as the package owner)
+  decides and implements; Claude reviews. Claude does not self-approve or edit the
+  App's package.
+- **Full automation into the App is intentionally NOT provided.** The limit is a
+  safety boundary (no touching `~/.codex`), not a gap to close. The most-automatic
+  compliant path is: Claude auto-writes to `outputs/shared/app-inbox/`; the user
+  (or a one-time App-side read rule) pulls from it.
+
 ## Runtime
 
 - Clean isolated runtime: `CODEX_HOME=/Users/liuchengxu/Desktop/codex-agent-lab/.codex-home`.
