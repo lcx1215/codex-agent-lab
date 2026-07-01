@@ -1,6 +1,6 @@
 {
   "schema": "codex-claude-collaboration-assignments/v1",
-  "updated": "2026-07-01T11:12:00+08:00",
+  "updated": "2026-07-01T13:50:00+08:00",
   "assignments": [
     {
       "id": "collab-0009-agent-code-auditor",
@@ -139,8 +139,8 @@
       "artifacts": [
         ".omc/state/team/2026-06-30-omc-lane-1-omc-setu"
       ],
-      "note": "Workers stayed pending; startup failure worker_start_submit_unverified:worker-1:%1:467cbe2c5fa6. Installed but not proven.",
-      "updated": "2026-06-30T15:40:00+08:00"
+      "note": "Workers stayed pending; startup failure worker_start_submit_unverified:worker-1 (recorded 2026-06-30). RE-INVESTIGATED 2026-07-01 (OMC still 4.15.1): the team runtime was reworked to dist/team/runtime-v2.js. The old failure root cause is no longer as described in memory: notifyPaneWithRetry now uses maxAttempts=6 + retryDelayMs=350 (was hardcoded 5x50ms=250ms), and there are now TWO staged checks — verifyWorkerStartCommandDelivered + verifyWorkerStartCommandSubmitted (tmux-session.js:340/358) — with delivered->submitted retry (848-860) and fast-fail for truly hung workers. So the deterministic 250ms bug is rewritten/mitigated. STILL blocked here only because it CANNOT be tested from this non-tmux CLI session (team requires launching inside tmux; the only live tmux session is Codex's agent-dev-gateway, off-limits). NEXT: re-run a small `omc team` from a real tmux session to confirm workers now start; then move to proven or record the new failure mode.",
+      "updated": "2026-07-01T13:50:00+08:00"
     },
     {
       "id": "collab-0002-collaboration-layer",
