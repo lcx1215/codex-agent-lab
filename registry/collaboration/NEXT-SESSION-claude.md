@@ -1,6 +1,6 @@
 # NEXT SESSION — Claude resume point
 
-Last updated: 2026-07-02 (+0800).
+Last updated: 2026-07-03 (+0800).
 Read this first, then `registry/collaboration/assignments.json` for full state.
 
 ## Where we are
@@ -11,8 +11,23 @@ audit are CLOSED and PROVEN. What remains is (c): live multi-agent runtime
 maturity and desktop UI, both deliberately deferred.
 
 **Current tree is clean, both lanes quiet, all ledger items proven.** HEAD =
-`3f67c35`. There is NO in-flight work to resume — this session is a good point to
-pick a fresh (c) item or stop.
+`9fdcb72` (pushed to origin/main). There is NO in-flight work to resume — this
+session is a good point to pick a fresh (c) item or stop.
+
+## Done this session (2026-07-03, Claude, all pushed)
+
+- **collab-0019 ledger + handoffs committed** (`3eeda3b`): recorded the
+  customer-support review governance trail.
+- **Chinese README added** (`9fdcb72`): `README.zh-CN.md` + English TOC/lang-switch.
+  Light polish only; honest positioning kept verbatim, no badges/marketing.
+- **Full read-only code review of the customer-support package** filed to the
+  neutral app-inbox as `outputs/shared/app-inbox/0005-customer-support-code-review.md`
+  (+ layout review `0006`). 4-lane review of the in-flight migrated tree
+  `workspaces/agent-dev-workspace/agents/customer-support/`. No Critical; 6 HIGH
+  before real/multi-tenant use. **Codex-owned package — Claude review-only, no
+  source touched.** These reviews live under `outputs/` (gitignored, not pushed).
+- **Lab health re-verified**: check-lab + 6 granular gates all green; no TODO/skip
+  debt; 24 python test files; README doc-links intact.
 
 ## Everything proven (ledger, as of 2026-07-01 evening)
 
@@ -33,9 +48,11 @@ pick a fresh (c) item or stop.
 ## The ONE open follow-up (not a Claude task)
 
 Tenant-isolation fail-OPEN on untagged runs: `canReadRun` returns true when a run
-has no `tenant_id` (`services/gateway/src/server.mjs:422`). Isolation only binds
-already-tenant-tagged runs; legacy/untagged runs pass. Filed for the **Codex App
-lane** as `outputs/shared/app-inbox/0002-tenant-isolation-failopen.md` (see
+has no `tenant_id`. **Line moved after the customer-support migration: no longer
+`server.mjs:422` — the fail-open branch is now `identityScope.mjs:43`, reached via
+`canReadRun` at `server.mjs:475-478`** (confirmed in 0005 SEC-1). Isolation only
+binds already-tenant-tagged runs; legacy/untagged runs pass. Filed for the **Codex
+App lane** as `outputs/shared/app-inbox/0002-tenant-isolation-failopen.md` (see
 `outputs/shared/app-inbox/INDEX.md`). Acceptable as backward-compat now; tighten
 to fail-closed before true multi-tenant production. This belongs to the
 customer-support package (gitignored medium workspace, Codex-owned) — Claude does
