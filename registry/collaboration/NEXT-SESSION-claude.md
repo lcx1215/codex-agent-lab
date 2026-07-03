@@ -67,6 +67,24 @@ not edit it; review-only.
   `scripts/lab-dashboard` still only reports build timings.
 - desktop UI + full live multi-agent runtime (deliberately last).
 
+### DX backlog (low-risk, Claude-doable, DEFERRED — do not start without a go)
+
+Surfaced 2026-07-03 by a full health sweep (all gates green; no bug debt). These
+are developer-experience polish, NOT runtime maturity. User said record-only for
+now, do not implement:
+
+- **Add `--help`/usage to the check scripts.** 17 of the `scripts/check-*` gates
+  print no usage/args (`check-lab`, `check-collaboration`, `check-rule-ladder`,
+  `check-agent-packages`, `check-workspace-safety`, `check-runtime-compatibility`,
+  `check-task-state`, `check-secrets`, `check-sandbox`, `check-merge-queue`,
+  `check-gates`, `check-run-records`, `check-project-rules`, `check-async-execution`,
+  `check-sandbox-skills`, `check-speed-contract`, `check-workflow-modes`). Comment
+  /usage-string only, no logic change — but it touches gate scripts, so keep it a
+  reviewed pass, not a drive-by. Est: medium (21 files).
+- **Onboarding / getting-started doc.** README is a thorough operating manual but
+  there's no 5-minute "first run" path; no `CONTRIBUTING.md` / `docs/getting-started`.
+  Pure new file, zero-risk. Est: small.
+
 ## Operating reminders (unchanged — see memory)
 
 - `assignments.json` gets concurrent writes from Codex: python read-modify-write
@@ -78,8 +96,9 @@ not edit it; review-only.
 - Wait for both lanes quiet (`find -mmin`) before any commit/merge.
 - `export PATH="/Applications/Codex.app/Contents/Resources:$PATH"` for a real
   `rg` before running check-lab/pytest by hand (macOS has no `timeout` either).
-- Never `git push` without the user. HEAD `3f67c35` is local; last user-authorized
-  push was earlier. Merges so far are LOCAL only.
+- Never `git push` without the user. As of 2026-07-03 HEAD `660ffc0` IS pushed to
+  origin/main (user-authorized this session: ledger, README zh, this handoff).
+  Push only over the gh HTTPS credential helper — SSH port 22 is blocked on this Mac.
 
 ## Still-blocked (unchanged)
 
