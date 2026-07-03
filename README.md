@@ -1,11 +1,33 @@
 # Codex Agent Lab
 
+**English | [简体中文](README.zh-CN.md)**
+
 Clean, project-scoped environment for long-horizon Codex and Claude agent work.
 
 > **What this is, in one line:** a private, governed workbench where two AI lanes
 > — Claude (`~/.claude`) and Codex (`~/.codex-api-relay`) — collaborate on the
 > same repository with durable state, fail-closed safety gates, and a two-lane
 > review protocol, so their work is traceable, isolated, and non-conflicting.
+
+### Contents
+
+- [Why it exists](#why-it-exists)
+- [What's built (governance layer, working)](#whats-built-governance-layer-working)
+- [Honest positioning](#honest-positioning)
+- [Autonomy](#autonomy)
+- [Paths](#paths)
+- [Environment Layers](#environment-layers)
+- [Start](#start)
+- [Agent Behavior Kernel](#agent-behavior-kernel)
+- [Agents](#agents)
+- [Guidance Layering](#guidance-layering)
+- [Skills And Plugins](#skills-and-plugins)
+- [Scenario Workspaces](#scenario-workspaces)
+- [Workflow Modes](#workflow-modes)
+- [Secret Safety](#secret-safety)
+- [Sandbox Safety](#sandbox-safety)
+- [Speed Strategy](#speed-strategy)
+- [Boundaries](#boundaries)
 
 ### Why it exists
 
