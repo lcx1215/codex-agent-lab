@@ -1,6 +1,6 @@
 {
   "schema": "codex-claude-collaboration-assignments/v1",
-  "updated": "2026-07-01T20:20:00+08:00",
+  "updated": "2026-07-02T20:43:12+08:00",
   "assignments": [
     {
       "id": "collab-0009-agent-code-auditor",
@@ -391,6 +391,26 @@
       "note": "Codex accepted the tenant-isolation finding and the current customer-support package state implements token-to-tenant scoping plus boundary denial and tenantIsolation tests. Codex verification on 2026-07-01: package tests 51/51, audit-agent-code pass fail=0 warn=0, check-agent-packages pass, check-portable pass. Awaiting independent Claude review before marking proven.",
       "updated": "2026-07-01T20:20:00+08:00",
       "review": "Claude independent review 2026-07-01: token->tenant binding + 403 tenant_scope_mismatch VERIFIED; isolation test really asserts A-token cannot read B (not vacuous); 3/3 pass; all 10 gateway tests still green. KNOWN LIMITATION (recorded, not a blocker): canReadRun fail-OPENs when a run carries no tenant_id (server.mjs:422 `if(!runTenant) return true`) — isolation only binds runs already tenant-tagged; untagged/legacy runs pass. Acceptable as backward-compat, but should be tightened to fail-closed before true multi-tenant production."
+    },
+    {
+      "id": "collab-0019-customer-support-agent-review",
+      "title": "Independent Claude review of customer-support agent package after identity/session skeleton hardening",
+      "leader": "codex",
+      "workers": [
+        "claude"
+      ],
+      "reviewer": "claude",
+      "status": "proven",
+      "handoff": "registry/collaboration/handoffs/20260702-1653-codex-to-claude-customer-support-agent-review.md",
+      "artifacts": [
+        "registry/collaboration/handoffs/20260702-1653-codex-to-claude-customer-support-agent-review.md",
+        "outputs/shared/app-inbox/0003-customer-support-agent-review.md",
+        "registry/collaboration/handoffs/20260702-1710-claude-to-codex-customer-support-review-findings.md",
+        "registry/collaboration/handoffs/20260702-1710-claude-to-codex-contract-consistency-check-design.md",
+        "registry/collaboration/handoffs/20260702-2040-claude-to-codex-customer-support-reverify.md"
+      ],
+      "note": "Claude completed the read-only independent review. Verdict: Ready with fixes. 8 findings (F1-F8) delivered in the review-findings handoff, ordered by severity; 3 Important (F1 event write-path trusts client per-event identity_scope; F2 billing authorizes tenant-only while contract promises tenant+merchant+person; F3 the token-overrides-client-body gate withGatewayAuthContext has zero tests), 1 Important untested run-read isolation (F4), 4 Minor. Strengths verified and flagged do-not-regress: session binding, LLM scrubbing, idempotency scope hashing, operator dry-run. Meta finding: recurring micro-trap (macro invariant decomposed into local patches; some sites enforce three-level isolation, some one-level, connecting gate untested); companion design proposes a check-contract-consistency gate to make macro<->micro supervision mechanical. Verification run: npm test 100/0, node --check 51 files, eval-context-quality 26/26, audit-agent-code pass, check-secrets OK, check-agent-packages pass, live demo drive. Findings delivered to app-inbox 0003 (as requested) plus two dedicated collaboration handoffs (findings detail + anti-micro-trap gate design). Disclosure: during demo cleanup Claude mistakenly killed pre-existing gateway PID 62373 on port 8787 (not started by Claude); no data loss, restart via start-local-demo.sh. RE-VERIFY (2040): Codex fixed all 4 Important + F7, verified by 115/0 tests + live probe. F1 (per-event scope override), F2 (billing unified on canReadIdentityScopedRecord, 3-level), F3 (new server.test HTTP boundary spoof test), F4 (run-route 403 isolation test), F7 (stable error code) all FIXED. Fixed at root, not local patches. Remaining Minor: F5 operator forced-exec test, F6 idempotency tenant/unscoped dims, F8 event-buffer demo-boundary doc. Verdict: Ready.",
+      "updated": "2026-07-02T20:43:12+08:00"
     }
   ]
 }

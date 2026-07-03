@@ -171,3 +171,154 @@ Create a clean, isolated Desktop Codex agent lab for strict, long-horizon agent 
 - Verdict: ready to commit after audit fixes; remaining findings are should-fix/nit documentation or future gate-automation recommendations.
 - Outright fixes only: unregistered package gate crash path, task_verify state-machine alignment, check-gates malformed-registry fail-closed validation, audit-agent-code `.tmp` source collection, and run-record TMPDIR/git assumption.
 - Customer-support package was not touched.
+
+## Latest Customer-Support Operator Layer - 2026-07-02 10:11 +0800
+
+- Codex continued from `workspaces/agent-dev-workspace` and added the customer-support package's protected Clink operator planning layer.
+- Package scope: `workspaces/agent-dev-workspace/agents/customer-support`.
+- Added `runtime.operator`, `POST /v1/assistant/operator/plan`, OpenAPI schemas, docs, `.env.example`, and tests for default-blocked CLI/secret execution.
+- Runtime evidence: operator plan returns `clink.operator.plan.v1` dry-run command contracts; unauthenticated plan calls return HTTP `401`; default support answers still run through `anthropic-compatible` `claude-opus-4-8` with `fallback=false`.
+
+## Latest Customer-Support Clink Knowledge Refresh - 2026-07-02
+
+- Codex connected the customer-support package knowledge base to public Clink
+  docs, docs index, OpenAPI, and public `clinkbillcom/clink-integ-skills`
+  guidance.
+- Package scope: `workspaces/agent-dev-workspace/agents/customer-support`.
+- Added generated owned knowledge:
+  - `knowledge/clink-official-docs.json`: 129 records from
+    `llms-full.txt`, `llms.txt`, and OpenAPI endpoint summaries.
+  - `knowledge/clink-integ-skills.json`: 175 records from public
+    `clink-integ-skills` commit
+    `c950d41576ffa96d9d07179ca10d4e9c45a254c5`.
+- Boundary preserved: skill-derived knowledge is guidance/validation/operator
+  planning context only; default runtime still does not execute CLI, write
+  secrets, register endpoints, import catalogs, run payment/refund mutations,
+  or approve production promotion.
+- Fresh package evidence: gateway tests `72/72` passed; package audit passed
+  `fail=0 warn=0`; workspace portable check, parent agent-package check, and
+  parent secret check passed.
+- Verification evidence: gateway tests `66/66` pass; package code audit `fail=0 warn=0`; portable, agent-packages, secrets, runtime-compatibility, and workspace-safety gates passed or warned with `failed=0`.
+
+## Latest Customer-Support Continuation Cleanup - 2026-07-02 10:25 +0800
+
+- Codex cleaned continuation blockers for the customer-support package without touching auth/provider/plugin state.
+- Removed stale temporary lab caches under `.tmp/tests`, `.tmp/async-execution`, and `.tmp/research`, including the local `clink-integ-skills` research clone; `.tmp` is now only small residual helper files.
+- Removed `.DS_Store` files from `workspaces/agent-dev-workspace`.
+- Reworded workspace network/runtime rules from ambiguous "local-only" to local-first adapters with explicit config, fallback, tests, docs, and secret boundaries.
+- Replaced stale workspace-level progress/validation summaries with current state pointers so future work is not guided by old test counts, old Sonnet evidence, or a forced generic-URL-ingestion next step.
+- Verification evidence: gateway tests `66/66` pass; `check-portable`, `check-rule-ladder`, `check-agent-packages`, `check-secrets`, `check-runtime-compatibility`, and `check-project-rules` pass; `check-workspace-safety` remains `warn` with `failed=0`.
+
+## Latest Customer-Support Session/Assignment and Single-Seed Docs - 2026-07-02 12:29 +0800
+
+- Codex updated `workspaces/agent-dev-workspace/agents/customer-support` so a
+  single public Clink docs seed URL refreshes the full official docs bundle.
+  The current run used
+  `node agents/customer-support/scripts/ingest-clink-docs.mjs --seed-url https://docs.clinkbill.com/api-reference/SDK`
+  and auto-discovered the docs root, TypeScript SDK, JavaScript SDK, and
+  Clink CLI priority seed pages.
+- Added backend-owned `assistant.session.v1` and
+  `assistant.assignment.v1` to every query response. The model provider input
+  now receives `knowledge_sources` and `runtime_assignment_hint`, but final
+  session/task routing remains deterministic in the backend.
+- Live 8787 verification: SDK/CLI query returned official TypeScript SDK,
+  JavaScript SDK, and Clink CLI citations, caller session `sess_live_docs`,
+  assignment route `documentation`, owner
+  `customer-support/documentation-specialist`, model
+  `claude-opus-4-8`, and `fallback=false`; webhook/CLI query routed to
+  `integration_validation` and blocked default CLI/secret writes.
+- Tracked run POST/GET verified persisted `assistant.session.v1` and
+  `assistant.assignment.v1` in run results.
+- New exports:
+  `workspaces/agent-dev-workspace/exports/customer-support-agent-package-20260702-123734.zip`,
+  `workspaces/agent-dev-workspace/exports/agent-dev-workspace-20260702-123734.zip`,
+  `workspaces/agent-dev-workspace/exports/agent-dev-workspace-20260702-123734.tar.gz`,
+  and
+  `workspaces/agent-dev-workspace/exports/customer-support-agent-demo-20260702-123734.html`.
+  Extracted agent zip smoked on port `8797` with official SDK/JS SDK/CLI
+  citations plus session/assignment; temporary port `8797` was stopped.
+- Verification evidence: gateway tests `78/78` passed; package audit
+  `fail=0 warn=0`; workspace portable check, parent agent-package check,
+  parent secret check, and runtime compatibility passed; workspace safety
+  remains `warn` with `failed=0`.
+
+## Latest Customer-Support Final Demo Closeout - 2026-07-02 19:03 +0800
+
+- Codex closed the customer-support demo package for tonight from
+  `workspaces/agent-dev-workspace`.
+- Local live demo is running at `http://localhost:8787/`.
+- Current runtime is `anthropic-compatible`, model `claude-opus-4-8`,
+  `live_external_systems=true`; the gateway was restarted with
+  `ANTHROPIC_TIMEOUT_MS=45000` so Opus 4.8 has enough demo response time.
+- Live smoke returned `answer.source=runtime:model:anthropic-compatible`,
+  `llm.tool status=ok`, `fallback=false`.
+- Fresh share artifacts:
+  - `workspaces/agent-dev-workspace/exports/customer-support-agent-demo-20260702-190332.html`
+  - `workspaces/agent-dev-workspace/exports/customer-support-agent-package-20260702-190332.zip`
+  - `workspaces/agent-dev-workspace/exports/agent-dev-workspace-20260702-190332.zip`
+  - `workspaces/agent-dev-workspace/exports/agent-dev-workspace-20260702-190332.tar.gz`
+- Zip audit found no `.run`, `.tmp`, `node_modules`, `.git`, `.env`,
+  `auth.json`, or private key/token/secret files in the current package and
+  workspace zips.
+- Extracted package smoke on port `8798` succeeded with Opus 4.8:
+  `docs_qa`, assignment route `documentation`, 3 evidence items,
+  `source=runtime:model:anthropic-compatible`, `fallback=false`; temporary
+  port `8798` was stopped.
+- Verification evidence: gateway tests `109/109`, context eval `26/26`, MJS
+  syntax check, package audit `fail=0 warn=0`, `check-secrets`,
+  `check-agent-packages`, workspace `check-portable.sh`,
+  `check-project-rules`, and `check-collaboration` passed. Workspace safety
+  remains `warn`, `failed=0`.
+
+## Latest Customer-Support Ten-Persona Repair - 2026-07-03 10:35 +0800
+
+- Codex continued from `workspaces/agent-dev-workspace` in App-safe OMX spine
+  and did not touch `.run/`, public-preview runtime state, auth, provider
+  config, or plugin state.
+- Ten user journeys were repaired as durable classes: page guidance, Agent
+  Payment Session, Webhook QA/inbox, Clink operator dry-run, balance/payout,
+  risk handoff, tracked runs, events, and frontend degraded states.
+- Macro direction: answer/page-guidance/card content should move through the
+  package `knowledge` port with a future QA/SQLite/RAG adapter. Deterministic
+  policy remains outside RAG for auth, tenant scope, secrets, refunds,
+  chargebacks, production actions, and handoff.
+- Verification evidence: focused backend `52/52`, frontend fallback `5/5`,
+  server route/contract `10/10`, full gateway `129/129`, context eval `28/28`,
+  ten-journey ephemeral HTTP simulation `10/10`, workspace portable check,
+  package audit `fail=0 warn=0`, `check-secrets`, and `check-agent-packages`
+  passed. Workspace safety remains `warn`, `failed=0`.
+- Current root runtime compatibility gate fails due environment drift:
+  App PATH `python3` is `3.9.6` and lacks `tomllib`; optional `omx` and `tmux`
+  are missing in this App PATH.
+
+## Latest Customer-Support Runtime Bundle Contract - 2026-07-03 +0800
+
+- Codex implemented `assistant.runtime_bundle.v1` in
+  `workspaces/agent-dev-workspace/agents/customer-support` so model APIs,
+  knowledge stores, tools, handoff, events, runs, and queues are replaceable
+  runtime battery slots.
+- `createDefaultRuntime(config, { batteries: { ... } })` now supports slot
+  injection. Tests cover both model and knowledge battery swaps while preserving
+  `/v1/assistant/*`, `/openapi.json`, orchestrator behavior, identity policy,
+  and `assistant.response.v1`.
+- Documented the battery-pack rules inside
+  `docs/contracts/runtime-adapters-contract.md` and exposed the descriptor
+  through runtime/capabilities manifests and OpenAPI.
+- Verification evidence: runtime target tests `12/12`, full gateway `132/132`,
+  OpenAPI parse, `node --check`, workspace portable check, package audit
+  `fail=0 warn=0`, `check-secrets`, and `check-agent-packages` passed.
+- Boundary: no SQLite/database RAG or vector retrieval was implemented; future
+  QA/SQLite/RAG work should enter as a `knowledge` battery.
+
+## Latest Customer-Support Architecture Simplification - 2026-07-03 +0800
+
+- Codex simplified the customer-support package without reducing runtime
+  capability: runtime bundle helpers moved into `runtime/ports.mjs`, duplicate
+  contract docs were folded into `runtime-adapters-contract.md` and
+  `assistant-contract.md`.
+- Size result: package files `131 -> 125`, gateway source files `31 -> 30`,
+  contract docs `9 -> 5`, measured source/test/contract lines `12184 -> 11635`.
+- Verification evidence: full gateway `132/132`, targeted
+  server/runtime/event/Clink validation `30/30`, OpenAPI parse, `node --check`,
+  workspace portable check, package audit `fail=0 warn=0`, `check-secrets`, and
+  `check-agent-packages` passed.
