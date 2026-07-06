@@ -142,9 +142,11 @@ def rule_injection_sink(files: list[FileText]) -> list[Finding]:
     out: list[Finding] = []
     sinks = [
         (re.compile(r"\beval\s*\("), "use of eval()"),
-        (re.compile(r"child_process|execSync|exec\("), "shell exec sink"),
+        (re.compile(r"\bexecSync\s*\(|\bexec\s*\("), "shell exec sink"),
         (re.compile(r"\bos\.system\s*\(|subprocess\.\w+\(.*shell\s*=\s*True"), "python shell sink"),
     ]
+    spawn_call = re.compile(r"\bspawn(?:Sync)?\s*\(")
+    shell_true = re.compile(r"shell\s*:\s*true")
     for ft in files:
         if is_test_file(ft):
             continue
@@ -154,6 +156,14 @@ def rule_injection_sink(files: list[FileText]) -> list[Finding]:
                     out.append(Finding(
                         "INJECTION_SINK", SEV_WARN,
                         f"potential injection sink ({label}); confirm inputs are not attacker-controlled.",
+                        ft.rel, i, line.strip(),
+                    ))
+            if spawn_call.search(line):
+                window = "\n".join(ft.lines[max(0, i - 1):min(len(ft.lines), i + 4)])
+                if shell_true.search(window) or "`" in line or "${" in line:
+                    out.append(Finding(
+                        "INJECTION_SINK", SEV_WARN,
+                        "potential injection sink (child_process spawn with shell or interpolation); confirm inputs are not attacker-controlled.",
                         ft.rel, i, line.strip(),
                     ))
     return out
