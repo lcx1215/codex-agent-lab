@@ -1,8 +1,59 @@
 # Validation
 
-Last updated: 2026-06-30 13:37 +0800
+Last updated: 2026-07-06 15:25 +0800
+
+## Incident + Rollback (Claude, honest record)
+
+- 2026-07-06 ~15:20 — while re-verifying `scripts/cutover-fly-stable-model.sh`,
+  Claude fed a **fake** `LLM_API_KEY` to test the "guards passed" branch. The
+  script has **no dry-run / no confirm gate** — once guards pass it immediately
+  runs `fly secrets set` and rolls the live machine. This triggered a real live
+  cutover to `openai-compatible + fake key`, which would fall back to local-rule.
+- Root cause: Claude tested a side-effecting deploy script with a guard-passing
+  input before confirming it had a dry-run. Should have tested only
+  guard-rejecting inputs (which are safe).
+- Rollback (no secret VALUES ever read/written by Claude):
+  1. `fly secrets set AGENT_MODEL_PROVIDER=anthropic-compatible` — restores the
+     intact `ANTHROPIC_*` relay path (those secrets were never touched).
+  2. `fly secrets unset LLM_API_KEY LLM_BASE_URL LLM_API_STYLE LLM_MODEL
+     LLM_MAX_OUTPUT_TOKENS LLM_TIMEOUT_MS` — removed the fake-key residue.
+- Final verified state: `/health` 200, machine version 9, `started/1 passing`,
+  provider `anthropic-compatible`, `ANTHROPIC_*` intact. Equivalent to the
+  pre-cutover working state.
+- Caveat (honest): the `LLM_*` group existed in the secrets list BEFORE Claude's
+  test, so some may have been Codex's earlier config, not Claude's injection.
+  Claude unset the whole group. Impact is bounded — `LLM_*` is inert while
+  provider is `anthropic-compatible`, and a future real cutover re-sets
+  `LLM_API_KEY` anyway. Flagged for Codex awareness.
+- Follow-up filed: app-inbox 0010 — add `--apply`/dry-run gate to the cutover
+  script so testing it can never mutate live again.
 
 ## Completed Checks
+
+- SEC-1 fail-closed — tenant isolation for sensitive records (Claude reviewer pass, independent)
+  - Result: pass (verifies Codex impl of app-inbox 0009; handoff `registry/collaboration/handoffs/20260706-1445-codex-to-claude-sec1-fail-closed.md`).
+  - Independent behavior assertions (Claude-written, not Codex's tests):
+    - `canReadSensitiveScopedRecord`: unscoped record + scoped requester → **false** (the fix); other-tenant → false; own record → true; unscoped requester → false. All as expected.
+    - `canReadIdentityScopedRecord` (public KB): unscoped doc + scoped requester → **true** — public knowledge preserved, NO AC-1-style regression (this was the critical trap in 0009).
+    - `canReadRuntimeScopedRecord` (runs/events): unchanged, still fail-closed.
+  - Code evidence: `payments.mjs:176` uses the sensitive fail-closed predicate; `knowledge.mjs:53` keeps fail-open with an inline guard comment ("Public knowledge records are intentionally unscoped and readable; do not…").
+  - Test evidence: `node --test` exit=0, full suite green (198/198 per Codex; no fail lines in Claude re-run).
+  - Verdict: SEC-1 now code-enforced for sensitive records. Both Gate B security items (SEC-1, SEC-2) closed. Multi-tenant exposure prerequisite met.
+
+- SEC-2 fix — gateway token no longer embedded in served HTML (Claude reviewer pass)
+  - Result: pass (independent re-verification, separate from Codex's implementation lane)
+  - Scope: `workspaces/agent-dev-workspace/agents/customer-support` per spec `outputs/shared/app-inbox/0008-sec2-token-cookie-fix.md`.
+  - Code evidence: `server.mjs renderFrontendHtml` blanks the `__AGENT_GATEWAY_TOKEN__` placeholder (no token injected); `gatewayAuth.mjs readGatewayToken` gained an HttpOnly-cookie fallback after header/Bearer; `server.mjs frontendCookieHeaders` sets `agent_gateway_token` HttpOnly/Secure/SameSite=Lax cookie; frontend has 5 fetch sites with `credentials`.
+  - Live evidence: gateway started on port 8791 with test tokens; `GET /?preview_token=…` served HTML contained the browser token value **0 times**; response set both `agent_preview_token` and `agent_gateway_token` HttpOnly cookies; `/health` 200.
+  - Test evidence: `node --test` in `services/gateway` exit=0 (full suite green; Gate A AC-1/AC-3/RT-1 also confirmed fixed in same tree).
+  - Verdict: SEC-2 closed. Deploy gate on SEC-2 lifted. SEC-1 remains defense-in-depth, operationally closed by scoped-token-only per app-inbox 0007.
+
+- `scripts/audit-agent-code` — injection-sink detection hardened (Claude, 2026-07-06)
+  - Change: `exec(` matcher tightened to `\bexec\s*\(` (fewer false hits on substrings), and a new `child_process` `spawn`/`spawnSync` rule that warns only when the call window also has `shell: true`, a backtick template, or `${` interpolation.
+  - Result: pass. Self-checks (Claude, this session):
+    - py `ast.parse` of the script OK.
+    - run against `workspaces/.../customer-support` → 67 files, `pass (fail=0 warn=0)` (no false positive on a clean package).
+    - positive probe (`spawn("sh",["-c",\`echo ${x}\`],{shell:true})`) → `warn=1 INJECTION_SINK` at the spawn line (detection fires, not dead code). Probe cleaned.
 
 - `scripts/check-lab`
   - Result: pass
