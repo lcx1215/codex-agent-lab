@@ -1,6 +1,6 @@
 # NEXT SESSION — Claude resume point
 
-Last updated: 2026-07-03 (+0800).
+Last updated: 2026-07-06 (+0800).
 Read this first, then `registry/collaboration/assignments.json` for full state.
 
 ## Where we are
@@ -11,8 +11,27 @@ audit are CLOSED and PROVEN. What remains is (c): live multi-agent runtime
 maturity and desktop UI, both deliberately deferred.
 
 **Current tree is clean, both lanes quiet, all ledger items proven.** HEAD =
-`9fdcb72` (pushed to origin/main). There is NO in-flight work to resume — this
-session is a good point to pick a fresh (c) item or stop.
+`e120a17` (pushed to origin/main). There is NO in-flight Claude work to resume —
+this session is a good point to pick a fresh (c) item or stop.
+
+## Done 2026-07-06 (Claude, pushed)
+
+- **SEC-1 tenant-isolation fail-OPEN is now CLOSED.** Codex implemented+deployed
+  the fail-closed fix (app-inbox `0009`, handoff `20260706-1445`); Claude
+  independently re-verified (Codex suite 34/34 + 7/7 Claude-authored predicate
+  assertions vs `identityScope.mjs`, exit 0), filed receipt handoff
+  `20260706-1530` and ledger `collab-0020-sec1-fail-closed-reverify` (proven).
+  The "ONE open follow-up" section below is therefore RESOLVED (kept for history).
+- **`scripts/audit-agent-code` hardened**: detects `child_process` spawn+shell:true
+  / interpolation injection sinks; `exec(` matcher tightened. Self-verified.
+- **⚠️ Incident (see `registry/VALIDATION.md`):** a cutover-script re-verify fed a
+  guard-PASSING fake `LLM_API_KEY` and triggered a REAL live Fly cutover; rolled
+  back to `anthropic-compatible` (version 9, health 200, `ANTHROPIC_*` intact).
+  Follow-up + Codex backlog filed as app-inbox `0010`. **P0 there = add a
+  `--apply`/dry-run gate to `cutover-fly-stable-model.sh` — that script lives in
+  the Codex-owned customer-support package, so it is a CODEX task; Claude re-verifies
+  with guard-REJECTING inputs only and will NOT run the cutover script again until
+  the gate exists.**
 
 ## Done this session (2026-07-03, Claude, all pushed)
 
@@ -45,7 +64,10 @@ session is a good point to pick a fresh (c) item or stop.
   `tenant_scope_mismatch` + real cross-tenant-denial test (3/3). Claude
   independently reviewed and PROVEN.
 
-## The ONE open follow-up (not a Claude task)
+## The ONE open follow-up — RESOLVED 2026-07-06 (kept for history)
+
+**UPDATE: this is now CLOSED (SEC-1 fail-closed, see "Done 2026-07-06" above).**
+The description below is the historical state before the fix.
 
 Tenant-isolation fail-OPEN on untagged runs: `canReadRun` returns true when a run
 has no `tenant_id`. **Line moved after the customer-support migration: no longer
