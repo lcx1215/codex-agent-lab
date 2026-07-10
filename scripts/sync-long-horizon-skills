@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# side-effects: gated - only mutation is `rm -rf "$DEST/$skill"`, a bounded,
+# idempotent teardown of one validated skill dir under $LAB_ROOT/.agents/ before
+# re-copy. $skill is filtered (no dotfiles / no path separators), $DEST is
+# lab-local; no live/external state is touched.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

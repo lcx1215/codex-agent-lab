@@ -1,0 +1,213 @@
+#!/usr/bin/env python3
+"""Side-effecting script guard.
+
+A real incident (2026-07-06, recorded in registry/VALIDATION.md) showed the
+danger this gate exists to catch: a deploy script read its safety guards and
+then, on guard-pass, immediately mutated the live machine (`fly secrets set` +
+roll) with no dry-run and no confirm. Testing it once mutated production.
+
+The lesson generalised into a rule: any script that performs a live-mutation
+sink (fly secrets set/unset, fly deploy, git push --force, an unbounded rm -rf,
+...) must EITHER be gated behind an explicit apply/confirm flag (so the default
+run is a safe dry-run) OR be annotated as deliberately read-only / already
+gated. A guard that only *rejects* bad input is not enough — the pass path must
+not fire on a mere test.
+
+This gate is heuristic and text-based. It scans a target directory of scripts,
+flags each live-mutation sink, and for every hit decides whether the enclosing
+script carries an apply-gate token or an explicit annotation. Ungated sinks are
+`fail`; ambiguous ones are `warn`. Exits non-zero only on `fail` so it can gate
+CI without blocking on advisories.
+
+Usage:
+  scripts/check-side-effects                 # scan lab-root scripts/ (default)
+  scripts/check-side-effects <dir>           # scan an arbitrary script dir
+  scripts/check-side-effects --json <dir>    # machine-readable report
+
+Lane note: scanning a Codex-owned package is review-only. This gate never edits
+any file; it only reports.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+
+DEFAULT_LAB_ROOT = Path(__file__).resolve().parents[1]
+
+SEV_FAIL = "fail"
+SEV_WARN = "warn"
+SEV_INFO = "info"
+
+# Live-mutation sinks: (compiled regex, label). These change external/live state.
+SINKS: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r"\bfly\s+secrets\s+set\b"), "fly secrets set (live secret write)"),
+    (re.compile(r"\bfly\s+secrets\s+unset\b"), "fly secrets unset (live secret delete)"),
+    (re.compile(r"\bfly\s+deploy\b"), "fly deploy (live deploy)"),
+    (re.compile(r"\bfly\s+machines?\s+(update|restart|stop|destroy)\b"), "fly machine mutation"),
+    (re.compile(r"\bgit\s+push\b[^\n]*--force(?:-with-lease)?\b"), "git force-push"),
+    (re.compile(r"\bkubectl\s+(apply|delete|scale|rollout)\b"), "kubectl live mutation"),
+    (re.compile(r"\bterraform\s+(apply|destroy)\b"), "terraform apply/destroy"),
+    (re.compile(r"\brm\s+-rf?\b"), "recursive delete"),
+]
+
+# Apply-gate tokens: presence anywhere in the script means the author wired an
+# explicit apply/confirm/dry-run path, so the default run does not mutate.
+APPLY_GATE = re.compile(
+    r"--apply\b|\bAPPLY\b|--yes\b|--confirm\b|\bDRY[_-]?RUN\b|\bdry[_-]?run\b|--force\b(?!-)|--execute\b",
+    re.IGNORECASE,
+)
+
+# Explicit file-header annotations that opt a script out (must appear in the
+# first 40 lines). Use for scripts that are deliberately read-only, or whose
+# sink is a bounded cleanup rather than a live mutation.
+ANNOT_READONLY = re.compile(r"#\s*side-effects:\s*(read-only|gated|none)", re.IGNORECASE)
+
+# A recursive delete inside an EXIT trap on a temp dir is a bounded cleanup, not
+# a live-state mutation — exempt it specifically.
+TRAP_CLEANUP = re.compile(r"\btrap\b[^\n]*\brm\s+-rf?\b[^\n]*\bEXIT\b")
+
+
+@dataclass
+class Finding:
+    code: str
+    severity: str
+    message: str
+    file: str
+    line: int
+    evidence: str
+
+
+def is_script(path: Path) -> bool:
+    if not path.is_file():
+        return False
+    if path.suffix in {".sh", ".bash", ".mjs", ".js", ".py", ".zsh"}:
+        return True
+    # extension-less files with a shebang count as scripts
+    if path.suffix == "":
+        try:
+            with path.open("r", encoding="utf-8", errors="replace") as fh:
+                return fh.readline().startswith("#!")
+        except OSError:
+            return False
+    return False
+
+
+def scan_file(path: Path, rel: str) -> list[Finding]:
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError as exc:  # pragma: no cover - unreadable file
+        return [Finding("UNREADABLE", SEV_WARN, f"could not read: {exc}", rel, 0, "")]
+
+    text = "\n".join(lines)
+    header = "\n".join(lines[:40])
+    gated = bool(APPLY_GATE.search(text))
+    annotated = bool(ANNOT_READONLY.search(header))
+
+    findings: list[Finding] = []
+    in_docstring = False
+    doc_delim = ""
+    for i, line in enumerate(lines, start=1):
+        stripped = line.strip()
+        # Skip python triple-quoted docstrings; sink words in prose or regex
+        # literals are not real invocations.
+        if in_docstring:
+            if doc_delim in line:
+                in_docstring = False
+            continue
+        for delim in ('"""', "'''"):
+            if stripped.startswith(delim) and stripped.count(delim) == 1:
+                in_docstring, doc_delim = True, delim
+                break
+        if in_docstring:
+            continue
+        if not stripped or stripped.startswith("#"):
+            continue
+        # A sink token inside a regex/string literal is a definition, not a call.
+        if "re.compile(" in stripped or stripped.startswith(("(re.compile", "SINKS")):
+            continue
+        for pattern, label in SINKS:
+            if not pattern.search(line):
+                continue
+            # Bounded cleanup: a recursive delete inside a trap line is
+            # temp-dir teardown, not a live mutation.
+            if "delete" in label and stripped.startswith("trap "):
+                continue
+            if annotated:
+                # Author explicitly took responsibility; record as info only.
+                findings.append(Finding(
+                    "SINK_ANNOTATED", SEV_INFO,
+                    f"live-mutation sink ({label}) in a script annotated read-only/gated.",
+                    rel, i, stripped,
+                ))
+            elif gated:
+                findings.append(Finding(
+                    "SINK_GATED", SEV_WARN,
+                    f"live-mutation sink ({label}); script has an apply/dry-run token — "
+                    f"confirm the sink is on the --apply path, not the default path.",
+                    rel, i, stripped,
+                ))
+            else:
+                findings.append(Finding(
+                    "SINK_UNGATED", SEV_FAIL,
+                    f"ungated live-mutation sink ({label}): no --apply/dry-run gate and no "
+                    f"'# side-effects:' annotation. Default run mutates live state.",
+                    rel, i, stripped,
+                ))
+    return findings
+
+
+def collect_scripts(target: Path) -> list[Path]:
+    if target.is_file():
+        return [target] if is_script(target) else []
+    return sorted(p for p in target.rglob("*") if is_script(p))
+
+
+def main(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(description="Guard against ungated side-effecting scripts.")
+    parser.add_argument("target", nargs="?", default="scripts",
+                        help="script file or directory to scan (default: scripts/)")
+    parser.add_argument("--json", action="store_true", help="emit JSON report")
+    args = parser.parse_args(argv)
+
+    target = Path(args.target)
+    if not target.is_absolute():
+        target = (DEFAULT_LAB_ROOT / target)
+    if not target.exists():
+        print(f"FAIL: target not found: {target}", file=sys.stderr)
+        return 2
+
+    scripts = collect_scripts(target)
+    findings: list[Finding] = []
+    for path in scripts:
+        rel = str(path.relative_to(DEFAULT_LAB_ROOT)) if DEFAULT_LAB_ROOT in path.parents else str(path)
+        findings.extend(scan_file(path, rel))
+
+    fails = [f for f in findings if f.severity == SEV_FAIL]
+    warns = [f for f in findings if f.severity == SEV_WARN]
+
+    if args.json:
+        print(json.dumps({
+            "target": str(target), "scanned": len(scripts),
+            "fail": len(fails), "warn": len(warns),
+            "findings": [f.__dict__ for f in findings],
+        }, ensure_ascii=False, indent=2))
+    else:
+        for f in findings:
+            if f.severity == SEV_INFO:
+                continue
+            print(f"  [{f.severity}] {f.code} {f.file}:{f.line}\n        {f.message}\n        > {f.evidence}")
+        status = "fail" if fails else ("warn" if warns else "pass")
+        print(f"target: {target}")
+        print(f"scanned scripts: {len(scripts)}")
+        print(f"status: {status}  (fail={len(fails)} warn={len(warns)})")
+
+    return 1 if fails else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
+

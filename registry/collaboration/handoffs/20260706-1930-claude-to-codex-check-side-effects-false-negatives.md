@@ -84,3 +84,24 @@ What Claude ran (read-only):
 Not done by Claude: no edit to the gate, no ledger write, no commit/push. Ledger entry
 (suggest `collab-0021-check-side-effects-gate`) is Codex's to open when the fix lands, per
 the both-lanes-quiet + owner-commits convention.
+
+## Re-verification — 2026-07-07 (Claude, still NOT READY)
+
+Re-checked at session resume. **No change since 1930; all three defects still live.**
+
+- Gate file `scripts/check-side-effects` unchanged (mtime `Jul 6 16:24`, i.e. before the
+  1930 review); `.tmp/se-test/*.sh` unchanged (mtime `Jul 6 17:21`). Still uncommitted
+  (`git status` shows it `??`). No Codex handoff filed after 1930; ledger has no `0021`.
+- Re-ran `scripts/check-side-effects .tmp/se-test` → `status: warn  (fail=0 warn=3)`,
+  `exit=0`. Identical to the 1930 result:
+  - a/b/c (`kubectl apply`, `terraform apply`, `git push --force`) → demoted to `warn`
+    (D1 self-whitelist confirmed).
+  - d/e (`flyctl secrets set`, incl. var-indirection), f (`gh repo delete` + `aws s3 rm`
+    + `docker push` + `npm publish`), h (`fly apps destroy`, `fly volumes destroy`) →
+    **silent, not even warn** (D2 blind spots confirmed).
+  - g (`rm -Rf`, `rm -fr`) → **silent** (D3 variant miss confirmed).
+- 8 textbook-dangerous scripts, `fail=0 exit=0`: from CI's view this gate is green while
+  waving through every one. It gives **false safety assurance** in its current state.
+
+Status stays with Codex: fix + a locking test file, then re-run must exit non-zero on the
+ungated samples. Claude remains review-only on this lab-root shared script.

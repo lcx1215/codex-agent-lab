@@ -24,17 +24,17 @@ modes=(
 )
 
 for mode in "${modes[@]}"; do
-  rg -q "\`$mode\`" "$DOC" || fail "mode missing from docs: $mode"
-  "$SCRIPT" "$mode" | rg -q "^mode: $mode$" || fail "workflow-mode output missing mode header: $mode"
-  "$SCRIPT" "$mode" | rg -q '^entry: ' || fail "workflow-mode output missing entry: $mode"
-  "$SCRIPT" "$mode" | rg -q '^verification: ' || fail "workflow-mode output missing verification: $mode"
-  "$SCRIPT" "$mode" | rg -q '^stop: ' || fail "workflow-mode output missing stop condition: $mode"
+  grep -qE "\`$mode\`" "$DOC" || fail "mode missing from docs: $mode"
+  "$SCRIPT" "$mode" | grep -qE "^mode: $mode$" || fail "workflow-mode output missing mode header: $mode"
+  "$SCRIPT" "$mode" | grep -qE '^entry: ' || fail "workflow-mode output missing entry: $mode"
+  "$SCRIPT" "$mode" | grep -qE '^verification: ' || fail "workflow-mode output missing verification: $mode"
+  "$SCRIPT" "$mode" | grep -qE '^stop: ' || fail "workflow-mode output missing stop condition: $mode"
 done
 
 listed="$("$SCRIPT" list | sort | tr '\n' ' ')"
 expected="$(printf '%s\n' "${modes[@]}" | sort | tr '\n' ' ')"
 test "$listed" = "$expected" || fail "workflow-mode list does not match expected modes"
 
-rg -q '^## Layer 2: Workflow Modes$' "$LAYERS" || fail "Layer 2 registry section missing"
+grep -qE '^## Layer 2: Workflow Modes$' "$LAYERS" || fail "Layer 2 registry section missing"
 
 printf 'OK: workflow modes are valid\n'

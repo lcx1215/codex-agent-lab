@@ -14,6 +14,7 @@ if str(LAB_ROOT) not in sys.path:
     sys.path.insert(0, str(LAB_ROOT))
 
 from lab_agents.run_record import validate_record
+from lab_agents.run_liveness import run_liveness_report
 from lab_agents.task_state import TASKS_REL, read_task_registry, task_state_report
 
 DASHBOARD_ROOT = LAB_ROOT / "outputs" / "shared" / "dashboard"
@@ -165,6 +166,15 @@ def build_dashboard() -> dict[str, object]:
             "issues": [{"code": "TASK_REGISTRY_UNREADABLE", "message": f"{TASKS_REL}: {exc}"}],
         }
     git = git_summary()
+    try:
+        liveness = run_liveness_report(LAB_ROOT / "registry" / "runs")
+    except OSError as exc:
+        liveness = {
+            "schema_version": 1,
+            "status": "fail",
+            "summary": {},
+            "issues": [{"code": "RUNS_DIR_UNREADABLE", "reason": str(exc)}],
+        }
 
     findings = (waterflow_report or {}).get("summary", {}).get("finding_count")
     failed_checks = (validation_results or {}).get("summary", {}).get("failed_count")
@@ -204,6 +214,15 @@ def build_dashboard() -> dict[str, object]:
             issues.append(f"task state {task_state.get('status')}: {codes or 'issue'}")
         else:
             issues.append(f"task state {task_state.get('status')}")
+    if liveness.get("status") != "pass":
+        live_summary = liveness.get("summary") or {}
+        stale = live_summary.get("stale_count")
+        ill = live_summary.get("ill_formed_count")
+        unfinished = live_summary.get("unfinished_count")
+        issues.append(
+            f"run liveness {liveness.get('status')}: "
+            f"stale={stale} ill_formed={ill} unfinished={unfinished}"
+        )
 
     health = "ok" if not issues else "warn"
     return {
@@ -233,6 +252,7 @@ def build_dashboard() -> dict[str, object]:
         },
         "run_records": run_records,
         "task_state": task_state,
+        "run_liveness": liveness,
         "async": {
             "path": None if async_path is None else str(async_path.relative_to(LAB_ROOT)),
             "summary": async_summary,
@@ -257,6 +277,8 @@ def render_markdown(data: dict[str, object]) -> str:
     workspace_safety = data.get("workspace_safety") or {}
     run_records = data.get("run_records") or {}
     task_state = data.get("task_state") or {}
+    run_liveness = data.get("run_liveness") or {}
+    liveness_summary = run_liveness.get("summary") or {}
     git = data.get("git") or {}
     issues = data.get("issues") or []
     lines = [
@@ -320,6 +342,14 @@ def render_markdown(data: dict[str, object]) -> str:
             f"- Latest: `{run_records.get('latest_run_id') or '-'}`",
             f"- Latest matches newest: `{run_records.get('latest_matches_newest', '-')}`",
             f"- Invalid records: `{run_records.get('invalid_count', '-')}`",
+            "",
+            "## Run Liveness",
+            "",
+            f"- Status: `{run_liveness.get('status', '-')}`",
+            f"- Finished: `{liveness_summary.get('finished_count', '-')}`",
+            f"- Unfinished (young): `{liveness_summary.get('unfinished_count', '-')}`",
+            f"- Stale (hung): `{liveness_summary.get('stale_count', '-')}`",
+            f"- Ill-formed: `{liveness_summary.get('ill_formed_count', '-')}`",
             "",
             "## Task State",
             "",

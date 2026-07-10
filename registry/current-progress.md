@@ -1,6 +1,6 @@
 # Current Lab Progress
 
-Last updated: 2026-07-01 15:58 +0800
+Last updated: 2026-07-08 15:12 +0800
 
 ## Objective
 
@@ -141,6 +141,33 @@ Create a clean, isolated Desktop Codex agent lab for strict, long-horizon agent 
 - Async hardening found and fixed real workspace-test collision risks: `scripts/check-async-execution` initially failed because `tests/test_workspace_contract.py` wrote to shared `workspaces/`; after adding guarded `WORKSPACE_ROOT` support and moving the test to lab-local `.tmp/tests`, async execution passed. A second concurrent proof showed the test also needed a unique temp root per process; after switching to `tempfile.mkdtemp`, simultaneous root unit tests and async unit tests passed. Latest async run reports 9/9 checks passed with 0 failures and 0 timeouts.
 - Rule ladder integrity is now a hard metadata gate: `scripts/check-rule-ladder` validates root/workspace/package/subagent rule continuity and is wired into `scripts/check-lab`. Agent catalog integrity is also gated by `scripts/check-agent-packages`, which validates every `agents/` or `subagents/` catalog, `registry.json`, package paths, concrete `*.agent.json` manifests, manifest ids, entry agents, and registry coverage. Latest runs passed with rule ladder `agent_units: 1` and `failed_links: 0`, agent catalogs `agent_registries: 1`, `agents: 3`, and `failed_links: 0`; full tests reported `Ran 76 tests` and `OK`; `scripts/check-lab`, `scripts/check-runtime-compatibility`, `scripts/check-collaboration`, `scripts/check-secrets`, and `scripts/check-project-rules` passed; explicit `scripts/check-workspace-safety` reported `warnings: 8` and `failed: 0`.
 - Claude's new `scripts/audit-agent-code` found a real customer-support gateway fail-open webhook signature bypass and unbounded body warning. Codex accepted the handoff and fixed both locally in `workspaces/agent-dev-workspace/agents/customer-support`: missing signing secrets now fail closed, the gateway reads `SUPPORT_INBOX_WEBHOOK_SECRET` from runtime config/env, request bodies are capped by `MAX_REQUEST_BODY_BYTES`, package tests pass 12/12, and the auditor now reports `pass (fail=0 warn=0)`.
+- Scratch workspace durability mechanism is installed for the active Clink
+  dashboard assistant assembly workspace. `scripts/check-scratch-durability`
+  compares configured release-worthy scratch files against
+  `registry/scratch-durability/current.json`; the current snapshot
+  `dashboard-assistant-20260708-070618Z` records 189 files and copies 41 small
+  text source files. The only current warning is that
+  `customer_support_agent_runtime` still needs a concrete owner repo.
+- Dashboard assistant final delivery package is refreshed:
+  `external/merchant-portal-refactor-main-agent/exports/dashboard-assistant-release-current/`
+  now contains release `dashboard-assistant-20260708-070618Z`, dist archive
+  `dashboard-assistant-dist-20260708-070618Z.tar.gz`, archive SHA-256
+  `3ad3ad8d1611fea3fff607abbcc33920d4acb89f57b53ac1b8c2ce31ad2b684c`,
+  18 backend handoff files, and `dashboard-assistant-final-delivery-checklist.md`
+  for product/frontend/B-end acceptance.
+- The active agent package source-of-truth for this lane is
+  `workspaces/agent-dev-workspace/external/merchant-portal-refactor-main-agent/agents/customer-support/`.
+  The historical `workspaces/agent-dev-workspace/agents/customer-support/`
+  package is retained only as old provenance/development evidence and is not the
+  current deployment source.
+- Current maximum display state: local/release package has the assistant bundle,
+  BFF handoff, same-origin `/agent-api` contract, and local release smoke; the
+  live product domain is not complete until `https://dashboard.clinkbill.dev/`
+  serves this bundle and both `/agent-api` POST routes return JSON before SPA
+  fallback.
+- Remaining production completion requires external deployment authority for
+  `dashboard.clinkbill.dev`: publish the bundle, route same-origin `/agent-api`
+  before SPA fallback, and configure production session resolver + BFF signing.
 
 ## Next Optional Check
 

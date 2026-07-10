@@ -79,6 +79,40 @@ class WorkspaceSafetyTests(unittest.TestCase):
         }
         self.assertIn("WORKSPACE_SCAFFOLD_INCOMPLETE", codes)
 
+    def test_external_nested_checkout_is_not_deep_scanned(self):
+        root = lab_temp_dir("workspace-safety-lab-")
+        self.addCleanup(shutil.rmtree, root, ignore_errors=True)
+        workspace = root / "workspaces" / "active"
+        external = workspace / "external" / "merchant-portal-refactor"
+        external.mkdir(parents=True)
+        (external / ".git").mkdir()
+        (external / "node_modules").mkdir()
+        (external / "local-path.txt").write_text(
+            "/Users/example/should/not/be/scanned\n",
+            encoding="utf-8",
+        )
+        (workspace / "AGENTS.md").write_text("# Parent Environment\n", encoding="utf-8")
+        (workspace / "brief.md").write_text("# Brief\n", encoding="utf-8")
+        (workspace / "progress.md").write_text("# Progress\n", encoding="utf-8")
+        (workspace / ".gitignore").write_text("external/\n", encoding="utf-8")
+        (workspace / "VALIDATION.md").write_text("# Validation\n", encoding="utf-8")
+
+        result = subprocess.run(
+            [str(LAB_ROOT / "scripts" / "check-workspace-safety"), "--root", str(root), "--json"],
+            cwd=LAB_ROOT,
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+
+        report = json.loads(result.stdout)
+        codes = {
+            issue["code"]
+            for workspace_report in report["workspaces"]
+            for issue in workspace_report["issues"]
+        }
+        self.assertNotIn("WORKSPACE_MACHINE_LOCAL_PATH", codes)
+
 
 if __name__ == "__main__":
     unittest.main()

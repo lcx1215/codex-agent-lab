@@ -1,6 +1,8 @@
 .DS_Store
 .tmp/
+.toolchain/
 .worktrees/
+registry/scratch-durability/snapshots/
 .env
 .env.*
 !.env.example

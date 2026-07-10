@@ -1,6 +1,6 @@
 {
   "schema": "codex-claude-collaboration-assignments/v1",
-  "updated": "2026-07-06T15:35:00+08:00",
+  "updated": "2026-07-08T19:29:03+08:00",
   "assignments": [
     {
       "id": "collab-0009-agent-code-auditor",
@@ -430,6 +430,58 @@
       ],
       "note": "Claude independently re-verified Codex SEC-1 fail-closed impl. Codex suite re-run 34/34 pass 0 fail; plus 7/7 Claude-authored predicate assertions (exit 0) against identityScope.mjs: canReadSensitiveScopedRecord denies unscoped-record/unscoped-requester/cross-tenant and allows own-tenant; public-KB canReadIdentityScopedRecord still allows unscoped docs (Chinese/public preserved, AC-1 trap avoided); runtime predicate still fail-closed. Code reading confirms identityScope.mjs:46 public fail-open intended, :59-60 sensitive fail-closed = the fix. customer-support source NOT edited (Codex-owned, review-only). Live Fly evidence from the 1445 handoff accepted as-is (Claude did not re-drive live). Verdict: SEC-1 PASS, may be closed. Both Gate B security items (SEC-1, SEC-2) now closed.",
       "updated": "2026-07-06T15:35:00+08:00"
+    },
+    {
+      "id": "collab-0022-debugloop-portable-cwd",
+      "title": "Fix customer-support debug-loop package-portable cwd after product-package relocation",
+      "leader": "codex",
+      "workers": [
+        "codex"
+      ],
+      "reviewer": "claude",
+      "status": "in_progress",
+      "handoff": "registry/collaboration/handoffs/20260708-1810-claude-to-codex-debugloop-portable-cwd-drift.md",
+      "artifacts": [
+        "registry/collaboration/handoffs/20260708-1810-claude-to-codex-debugloop-portable-cwd-drift.md",
+        "registry/collaboration/handoffs/20260708-1817-codex-to-claude-debugloop-portable-cwd-fixed.md",
+        "workspaces/agent-dev-workspace/external/merchant-portal-refactor-main-agent/agents/customer-support/scripts/debug-loop.mjs"
+      ],
+      "note": "Codex fixed package-portable cwd drift by resolving the nearest ancestor workspace containing scripts/check-portable.sh for that probe only. Verification on 2026-07-08: node --check debug-loop.mjs pass; debug-loop backend profile pass findings=0; debugLoop.test.mjs 12/12 pass; gateway suite 255/255 pass. Awaiting independent Claude reviewer re-verification before marking proven.",
+      "updated": "2026-07-08T18:17:45+08:00"
+    },
+    {
+      "id": "collab-0023-scope-split-frontend-push",
+      "title": "Scope-split customer-support assistant frontend integration for merchant-portal-refactor",
+      "leader": "codex",
+      "workers": [
+        "codex"
+      ],
+      "reviewer": "claude",
+      "status": "in_progress",
+      "handoff": "registry/collaboration/handoffs/20260708-1930-claude-to-codex-scope-split-push-checklist.md",
+      "artifacts": [
+        "workspaces/agent-dev-workspace/external/merchant-portal-refactor-frontend-only",
+        "workspaces/agent-dev-workspace/external/merchant-portal-refactor-main-agent/docs/customer-support-agent-integration-protocol.zh-CN.md"
+      ],
+      "note": "Codex is preparing a clean frontend-only GitLab branch for merchant-portal-refactor. Allowed push scope is the Vue assistant API/component/locales, two layout mount points, .env.example with empty values, and README.zh-CN.md. Agent brain, Java BFF, deploy scripts/templates, exports, runtime state, node_modules, and real secrets are explicitly out of scope. Claude reviewer should re-check the pushed branch against the 20260708 scope-split checklist.",
+      "updated": "2026-07-08T19:29:03+08:00"
+    },
+    {
+      "id": "collab-0024-hardening-adversarial-review",
+      "title": "Adversarial review of 631bfe8 dashboard-auth/replay hardening + Claude off-topic gate follow-up",
+      "leader": "codex",
+      "workers": [
+        "claude"
+      ],
+      "reviewer": "claude",
+      "status": "in_progress",
+      "handoff": "registry/collaboration/handoffs/20260710-1045-claude-to-codex-hardening-adversarial-review-and-offtopic-followup.md",
+      "artifacts": [
+        "registry/collaboration/handoffs/20260709-2230-claude-to-codex-intent-routing-and-model-fallback-findings.md",
+        "registry/collaboration/handoffs/20260710-1045-claude-to-codex-hardening-adversarial-review-and-offtopic-followup.md"
+      ],
+      "note": "Claude independently verified all 4 logbot findings on 631bfe8 against real code: Fix 1(SSE header)/2(pre-login public removed)/4(replay Scan->conditional put) clean and DEPLOY-SAFE; Java gateway auth dimension returned 0 deployable findings (no /agent-api/** prod-open hole reproduced). Fix 3(off-topic) had a residual page-ref-wrapped bypass, closed by Claude in services/gateway/src/agent/intents.mjs + test/intents.test.mjs (uncommitted working tree, +4 regression tests, gateway suite 258 pass/0 fail/2 skip). Dimension-split adversarial-review workflow (frontend-auth/java-gateway/offtopic/replay) + per-finding adversarial re-verify; stopped after Verify phase by user, Review complete, 4 findings CONFIRMED (all medium/low semantic/ops, NON-blocking backlog in the 1045 handoff). Verdict: 631bfe8 SAFE TO DEPLOY; backlog#3 (false-positive rejection of legit support Qs) to prioritize. Claude did NOT commit/push. Codex to accept/rework the off-topic follow-up.",
+      "updated": "2026-07-10T10:45:00+08:00"
     }
   ]
 }

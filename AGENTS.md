@@ -113,6 +113,10 @@ Coordination rules (highest priority):
 - Use `docs/scenario-workspace-contract.md` for scenario boundaries and Codex/Claude amplification declarations.
 - Use `docs/workspace-safety-contract.md` to distinguish hard workspace safety failures from temporary in-progress scaffold warnings.
 - Use file handoffs instead of pasting large context into messages.
+- Scratch or assembly workspaces that are not git source-of-truth repos must not
+  be the only copy of release-worthy work. Reflux the work to the owning real
+  repo, or capture it with `registry/scratch-durability/` and verify with
+  `scripts/check-scratch-durability` before calling a release done.
 - When dispatching agents, name the exact custom agent and give it a narrow task.
 - Do not dispatch unbounded "all agents" work. Use a small set with clear owners.
 - Verify before completion and write evidence to `registry/VALIDATION.md` or a task-specific validation file.

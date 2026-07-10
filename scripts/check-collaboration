@@ -20,13 +20,9 @@ test -f "$ASSIGNMENTS" || fail "collaboration assignments ledger missing"
 test -d "$HANDOFF_DIR" || fail "collaboration handoffs directory missing"
 test -f "$CLAUDE_MD" || fail "lab-local CLAUDE.md missing"
 
-# Portable matcher: prefer ripgrep when it is a real binary on PATH, else fall back to grep -E.
-# (In some lanes `rg` is only an interactive shell function and is not available to scripts.)
-if command -v rg >/dev/null 2>&1; then
-  has() { rg -q "$1" "$2"; }
-else
-  has() { grep -qE "$1" "$2"; }
-fi
+# This gate only checks fixed Markdown/JSON files. Use system grep directly so
+# a bad or unavailable ripgrep binary cannot stall collaboration validation.
+has() { grep -qE "$1" "$2"; }
 
 # --- protocol doc required sections ---
 for section in '^## Roles$' '^## Lane Boundaries$' '^## Handoff Format$' '^## Assignments Ledger$' '^## Workbench State Surfaces$' '^## Proof Bar$' '^## Verification$'; do

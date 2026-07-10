@@ -32,7 +32,7 @@ class GateFailClosedTests(unittest.TestCase):
         env.pop("RIPGREP_CONFIG_PATH", None)
         return env, root
 
-    def test_check_secrets_fails_closed_when_rg_errors(self):
+    def test_check_secrets_ignores_broken_rg_and_scans_source(self):
         env, _ = self.fake_rg_env()
 
         result = subprocess.run(
@@ -44,9 +44,9 @@ class GateFailClosedTests(unittest.TestCase):
             check=False,
         )
 
-        self.assertNotEqual(result.returncode, 0)
-        self.assertNotIn("OK:", result.stdout)
-        self.assertIn("ripgrep", result.stderr)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("OK:", result.stdout)
+        self.assertIn("source files scanned:", result.stdout)
 
     def test_check_secrets_does_not_flag_task_state_slug_as_openai_key(self):
         result = subprocess.run(
@@ -61,7 +61,7 @@ class GateFailClosedTests(unittest.TestCase):
         self.assertIn("OK:", result.stdout)
 
     def test_check_secrets_still_flags_synthetic_openai_key_shape(self):
-        fixture = LAB_ROOT / "synthetic-secret-scan.txt"
+        fixture = LAB_ROOT / "scripts" / "synthetic-secret-scan.txt"
         synthetic_key = "sk-" + ("A" * 24)
         try:
             fixture.write_text(f"fake={synthetic_key}\n", encoding="utf-8")

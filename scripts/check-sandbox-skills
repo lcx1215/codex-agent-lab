@@ -19,7 +19,7 @@ check_pattern() {
   local file="$1"
   local pattern="$2"
   local label="$3"
-  rg -q "$pattern" "$file" || fail "$label missing in $file"
+  grep -qE "$pattern" "$file" || fail "$label missing in $file"
 }
 
 skills=(
@@ -44,10 +44,10 @@ for skill in "${skills[@]}"; do
   check_pattern "$meta" '^[[:space:]]+display_name: ' "$skill display name"
   check_pattern "$meta" '^[[:space:]]+short_description: ' "$skill short description"
   check_pattern "$meta" '^[[:space:]]+default_prompt: ' "$skill default prompt"
-  if rg -q 'TODO|\\[TODO\\]' "$file"; then
+  if grep -qE 'TODO|\\[TODO\\]' "$file"; then
     fail "$skill still contains TODO text"
   fi
-  if rg -q 'TODO|\\[TODO\\]' "$meta"; then
+  if grep -qE 'TODO|\\[TODO\\]' "$meta"; then
     fail "$skill metadata still contains TODO text"
   fi
 done

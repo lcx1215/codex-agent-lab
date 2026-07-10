@@ -1,6 +1,104 @@
 # Validation
 
-Last updated: 2026-07-06 15:25 +0800
+Last updated: 2026-07-08 14:54 +0800
+
+## Dashboard assistant final delivery package (Codex, 2026-07-08)
+
+- Scope: finalized the handoff surface for the hybrid dashboard assistant
+  architecture: release package, deployment instructions, original-domain route
+  requirements, active package source-of-truth, and B-end/frontend/product
+  acceptance checklist.
+- Built:
+  - `docs/dashboard-assistant-final-delivery-checklist.md` in the active product
+    package, covering product, frontend, B-end, verification, and source-of-truth
+    acceptance.
+  - Release generator now copies that final checklist into
+    `exports/dashboard-assistant-release-current/backend-handoff/`.
+  - Release-package verifier now requires the final checklist in the generated
+    B-end handoff set.
+  - Backend-handoff verifier now validates the final checklist content.
+- Current release package:
+  - release id: `dashboard-assistant-20260708-065728Z`
+  - archive: `dashboard-assistant-dist-20260708-065728Z.tar.gz`
+  - archive sha256:
+    `b97fd907d3c1cb378c40eb657397459074846573ea88822dd77ffad71a130d9f`
+  - backend handoff files: 18
+- Verification:
+  - `pnpm run verify:dashboard-assistant-backend` — pass, `failures: []`.
+  - `pnpm run release:dashboard-assistant -- --out exports/dashboard-assistant-release-current`
+    — pass; build succeeded, local release verifier `status: ok`, live not run.
+  - `pnpm run verify:dashboard-assistant-release-package` — pass; 18 backend
+    handoff files, 688 dist checksum entries, 688 extracted dist files, 21
+    release text files secret-scanned.
+  - `pnpm run smoke:dashboard-assistant-release-local` — pass; archive sha,
+    BFF health, root HTML, both `/agent-api` routes, and two gateway signature
+    checks all OK.
+  - `scripts/check-scratch-durability --write-snapshot
+    dashboard-assistant-20260708-065728Z` — pass; 189 files in manifest, 41
+    small text source files copied; pending owner warning remains intentional.
+- Boundary: no GitLab push, merge, staging, reset, clean, production deploy, or
+  live dashboard mutation. The remaining production gap is external deployment:
+  publish this release to `dashboard.clinkbill.dev`, add same-origin
+  `/agent-api` before SPA fallback, and configure production session resolver +
+  BFF signing.
+
+## Scratch workspace durability gate (Codex, 2026-07-08)
+
+- Gap closed: `external/merchant-portal-refactor-main-agent/` is an assembly
+  workspace, not a git source-of-truth repo, so release-worthy dashboard
+  assistant work could remain only as untracked on-disk bytes.
+- Built:
+  - `docs/scratch-workspace-durability.md` — reflux/snapshot rule for scratch
+    workspaces.
+  - `registry/scratch-durability/config.json` — configured Clink dashboard
+    assistant scratch source classes and owner targets.
+  - `lab_agents/scratch_durability.py` and `scripts/check-scratch-durability`
+    — read-only default gate plus explicit `--write-snapshot`.
+  - `registry/scratch-durability/snapshots/clink-dashboard-assistant-main-agent/dashboard-assistant-20260708-065728Z/`
+    — current durability snapshot: 189 configured files in manifest, 41 small
+    text source files copied.
+  - `tests/test_scratch_durability.py` — regression coverage for pass, stale
+    file, uncaptured file, and secret-like path fail-closed behavior.
+- Verification so far: `python3 -m unittest tests.test_scratch_durability` ran
+  4/4 OK; `scripts/check-scratch-durability --write-snapshot
+  dashboard-assistant-20260708-065728Z` wrote the current snapshot; read-only
+  `scripts/check-scratch-durability` reports `fail: 0`, `warn: 1` only because
+  `customer_support_agent_runtime` still has a pending dedicated owner repo.
+- Boundary: no GitLab push, merge, staging, reset, clean, or `.run/` capture.
+  The pending owner warning is intentional; it does not block the gate.
+
+## Run-record liveness seam (Claude, 2026-07-06)
+
+- Gap closed (partial of ORCHESTRATION_LAYER_STATE (c) "no scheduler w/ timeout/
+  liveness"): the task-state kernel already detects stale *tasks*
+  (`lab_agents/task_state.py` `stale_running` via `lease_expires_at`), but the
+  run-record side had NO detector for a run written with `started_at` set and
+  `ended_at = None` that then never finishes — a hung/abandoned run.
+- Built (root layer, headless, additive — no existing logic changed):
+  - `lab_agents/run_liveness.py` — `analyze_record` (finished / unfinished /
+    stale / ill_formed) + `run_liveness_report` (mirrors `task_state_report`
+    shape: status pass/warn/fail + summary + issues). Pure read of
+    `registry/runs/*/record.json`; executes/kills nothing (lab has no live
+    runtime to signal).
+  - `scripts/check-liveness` — gate; FAIL on stale/ill_formed, WARN on young
+    unfinished, PASS otherwise. `STALE_AFTER_SECONDS` env overrides deadline.
+  - `tests/test_run_liveness.py` — 11 tests covering every branch + aggregation.
+  - `scripts/lab-dashboard` — new "Run Liveness" dimension (JSON `run_liveness`
+    + markdown section + issue rollup). This file was git-clean before I edited it.
+- Verified: `python3 -m unittest tests.test_run_liveness` 11/11 OK; targeted
+  suite (liveness+run_record+task_state) 30/30 OK; `scripts/check-liveness`
+  against real runs → `runs:10 finished:10 ... status:pass exit=0`; dashboard
+  renders `Run Liveness status=pass finished=10`, health=ok. (Full `unittest
+  discover` times out on a pre-existing slow/hanging test unrelated to this work;
+  liveness tests run in 0.005s.)
+- NOT wired into `scripts/check-lab`: that file currently carries Codex's
+  uncommitted `check-side-effects` wiring (in-flight, not mine). Wiring
+  `check-liveness` into check-lab is left as a suggestion for Codex to land
+  alongside its own change, to avoid stacking on its undefined state.
+- Boundary: only added `lab_agents/run_liveness.py`, `scripts/check-liveness`,
+  `tests/test_run_liveness.py`, and edited `scripts/lab-dashboard`. Did NOT touch
+  `check-lab`, `sync-long-horizon-skills`, or `check-side-effects` (Codex-owned
+  in-flight). No secrets/auth/provider/Codex state touched.
 
 ## Incident + Rollback (Claude, honest record)
 
@@ -1449,3 +1547,79 @@ Last updated: 2026-07-06 15:25 +0800
   - Result: pass.
   - Evidence: lab structure valid with the merge-queue fast validator wired into the default gate.
   - Boundary: no secrets/auth/provider/plugin state, Codex/Claude home state, or outside-lab files were changed; demo worktrees were temporary under `.tmp/`.
+
+## Dashboard Assistant Final Delivery Release Refresh
+
+- Date: 2026-07-08
+- Owner lane: codex.
+- Scope: refresh the Clink dashboard assistant release package and remove
+  deployment-source ambiguity between the active product-bound package and the
+  historical outer customer-support package.
+  - Active package:
+    `workspaces/agent-dev-workspace/external/merchant-portal-refactor-main-agent/agents/customer-support/`.
+  - Historical package:
+    `workspaces/agent-dev-workspace/agents/customer-support/` is provenance only,
+    not the current deployment source.
+  - Release package:
+    `workspaces/agent-dev-workspace/external/merchant-portal-refactor-main-agent/exports/dashboard-assistant-release-current/`.
+  - Release id: `dashboard-assistant-20260708-070618Z`.
+  - Dist archive: `dashboard-assistant-dist-20260708-070618Z.tar.gz`.
+  - Archive SHA-256:
+    `3ad3ad8d1611fea3fff607abbcc33920d4acb89f57b53ac1b8c2ce31ad2b684c`.
+  - Updated the release generator so normal `pnpm run release:dashboard-assistant`
+    writes a timestamped package and refreshes
+    `exports/dashboard-assistant-release-current`.
+  - Updated the release manifest's `local_product_smoke` command to
+    `pnpm run smoke:dashboard-assistant-release-local`.
+  - Added layered Product / Frontend / B-end acceptance text to
+    `BEND_DEPLOY_NOW.md` and locked it with release-package verifier tests.
+  - Updated three customer-support subagent prompt files so future delegated work
+    starts inside `external/merchant-portal-refactor-main-agent` instead of the
+    historical outer package path.
+  - Wrote scratch durability snapshot
+    `registry/scratch-durability/snapshots/clink-dashboard-assistant-main-agent/dashboard-assistant-20260708-070618Z/`.
+  - Command: `pnpm run release:dashboard-assistant`
+  - Result: pass.
+  - Evidence: generated `exports/dashboard-assistant-release-20260708-070618Z`,
+    refreshed `exports/dashboard-assistant-release-current`, local status `ok`,
+    live status `not_run`.
+  - Command: `pnpm run verify:dashboard-assistant-backend`
+  - Result: pass.
+  - Evidence: `status: ok`, `failures: []`, 17 deploy/handoff files checked.
+  - Command: `pnpm run verify:dashboard-assistant-release-package`
+  - Result: pass.
+  - Evidence: `status: ok`, `failures: []`, 18 backend handoff files, 688 dist
+    checksum entries, 688 extracted dist files, 21 secret-scanned text files.
+  - Command: `pnpm test:assistant-bff`
+  - Result: pass.
+  - Evidence: 5 test files passed, 38 tests passed.
+  - Command: `pnpm run smoke:dashboard-assistant-release-local`
+  - Result: pass.
+  - Evidence: archive SHA, BFF health, root HTML, context-cards route, query
+    route, and 2 gateway signature checks OK.
+  - Command: `scripts/check-agent-packages`
+  - Result: pass.
+  - Evidence: 2 registries, 2 packages, 6 agents, 0 failed links.
+  - Command: `scripts/check-collaboration`
+  - Result: pass.
+  - Evidence: protocol OK, 21 assignments, 29 handoffs.
+  - Command: `scripts/check-secrets`
+  - Result: pass.
+  - Evidence: no committable secrets or README-local user paths detected.
+  - Command: `python3 -m unittest tests.test_scratch_durability`
+  - Result: pass.
+  - Evidence: 4 tests passed.
+  - Command: `scripts/check-scratch-durability`
+  - Result: warn only.
+  - Evidence: fail 0, warn 1, current snapshot
+    `dashboard-assistant-20260708-070618Z`; remaining warning is
+    `SCRATCH_OWNER_REPO_PENDING` for the future dedicated agent-runtime/B-end
+    owner repo decision.
+  - `scripts/check-lab` was started twice but became too slow in this shell and
+    both instances were interrupted. Targeted gates above are the fresh evidence
+    for this release refresh.
+  - Production blocker remains external: the real
+    `https://dashboard.clinkbill.dev/` deployer must publish this bundle, route
+    same-origin `/agent-api` before SPA fallback, and configure production
+    session resolver + BFF signing. No live dashboard deploy, GitLab push, merge,
+    stage, reset, clean, secret read, or `.run/` capture was performed.

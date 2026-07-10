@@ -20,8 +20,11 @@ duplicate them here unless this lab needs a narrower local rule.
 ## Lane Identity
 
 - Claude/OMC is one lane; Codex/OMX is the other. This lab is the shared ground where they collaborate.
-- Claude work stays in Claude/OMC context. Do not attempt to drive Codex lanes (`~/.codex`,
-  `~/.codex-api-relay`), their auth, provider config, or running Codex.app / cc-switch processes.
+- Claude MAY modify Codex-lane work product (code, collaboration artifacts, in-flight files) — standing
+  authorization granted 2026-07-08. Still gated regardless: Codex auth (`~/.codex`, `~/.codex-api-relay`
+  auth.json), provider config, and LIVE running Codex.app / cc-switch processes (verify ownership before
+  touching any process). Route cross-lane coordination through `## Collaboration`; scout before overwriting
+  Codex's in-flight edits; push/MR to a remote still needs an explicit go.
 - OMC runtime state lives in lab-local `.omc/` and is git-ignored except `.omc/skills/**`.
 - When Claude and Codex collaborate, route work through the files in `## Collaboration`, not through copied
   conversation context or copied secrets.
@@ -50,9 +53,14 @@ This is the Claude-lane counterpart to the same section in `AGENTS.md`; both lan
 
 - Lab root: `/Users/liuchengxu/Desktop/codex-agent-lab`. Do not write outside it unless the user names the
   specific outside path.
-- Do not read, print, copy, rewrite, or migrate secrets, `auth.json`, account tokens, cookies, OTPs, or API keys.
+- Do not read, print, copy, rewrite, or migrate secret/token/key VALUES, `auth.json`, account tokens,
+  cookies, OTPs, or API keys. (Not lifted by the 2026-07-08 Codex-lane grant — this protects the user.)
 - Do not change `~/.codex`, `~/.codex-api-relay`, Codex app auth, provider config, LaunchAgents, or plugin
-  install state from this lab unless the user explicitly asks.
+  install state from this lab unless the user explicitly asks. (Auth/provider infrastructure stays gated.)
+- Codex-lane WORK PRODUCT (code, collaboration artifacts, in-flight files, reflux into Codex-owned repo
+  branches) IS editable — standing authorization granted 2026-07-08. The two gated items above + not
+  disturbing LIVE Codex/cc-switch processes (verify ownership first) are the only hard limits on Codex's lane.
+  push/MR/force-push to a remote still needs an explicit go (see git-safety in global rules).
 - Keep generated artifacts under `outputs/`; keep durable state under `registry/`; keep scratch under `.tmp/`.
 
 ## Collaboration (Claude <-> Codex)

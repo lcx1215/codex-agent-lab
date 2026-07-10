@@ -1,0 +1,77 @@
+{
+  "schema": "scratch-durability/v1",
+  "scratch_workspaces": [
+    {
+      "id": "clink-dashboard-assistant-main-agent",
+      "path": "workspaces/agent-dev-workspace/external/merchant-portal-refactor-main-agent",
+      "description": "Assembly workspace for the Clink dashboard assistant integration. This directory is not a git source of truth.",
+      "artifact_classes": [
+        {
+          "id": "dashboard_frontend_integration",
+          "owner_repo": "workspaces/agent-dev-workspace/external/merchant-portal-refactor",
+          "required": true,
+          "copy_policy": "copy_text",
+          "includes": [
+            "apps/web-antd/src/api/assistant-support.ts",
+            "apps/web-antd/src/components/assistant-support/**/*",
+            "apps/web-antd/src/layouts/auth.vue",
+            "apps/web-antd/src/layouts/basic.vue",
+            "apps/web-antd/src/locales/langs/en-US/assistantSupport.json",
+            "apps/web-antd/src/locales/langs/zh-CN/assistantSupport.json"
+          ],
+          "excludes": []
+        },
+        {
+          "id": "dashboard_assistant_bff_and_deploy",
+          "owner_repo": "workspaces/agent-dev-workspace/external/merchant-portal-refactor",
+          "required": true,
+          "copy_policy": "copy_text",
+          "includes": [
+            "scripts/deploy/**/*"
+          ],
+          "excludes": [
+            "scripts/deploy/**/node_modules/**",
+            "scripts/deploy/**/*.log",
+            "scripts/deploy/**/*.tmp"
+          ]
+        },
+        {
+          "id": "dashboard_assistant_handoff_docs",
+          "owner_repo": "workspaces/agent-dev-workspace/external/merchant-portal-refactor",
+          "required": true,
+          "copy_policy": "copy_text",
+          "includes": [
+            "docs/clink-assistant-integration.md",
+            "docs/customer-support-hybrid-architecture.md",
+            "docs/dashboard-assistant-bend-deploy-checklist.md",
+            "docs/dashboard-assistant-production-handoff.md"
+          ],
+          "excludes": []
+        },
+        {
+          "id": "customer_support_agent_runtime",
+          "owner_repo": "pending:dedicated-agent-runtime-or-bend-owned-repo",
+          "required": true,
+          "copy_policy": "manifest_only",
+          "includes": [
+            "agents/registry.json",
+            "agents/customer-support/**/*"
+          ],
+          "excludes": [
+            "agents/customer-support/.run/**",
+            "agents/customer-support/.tmp/**",
+            "agents/customer-support/**/.run/**",
+            "agents/customer-support/**/.tmp/**",
+            "agents/customer-support/**/node_modules/**",
+            "agents/customer-support/**/*.sqlite",
+            "agents/customer-support/**/*.zip",
+            "agents/customer-support/**/*.log",
+            "agents/customer-support/**/*.tmp",
+            "agents/customer-support/**/*.stdout.txt",
+            "agents/customer-support/**/*.stderr.txt"
+          ]
+        }
+      ]
+    }
+  ]
+}

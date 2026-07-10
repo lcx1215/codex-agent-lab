@@ -22,6 +22,8 @@ RUN_RECORD_CHECK="$LAB_ROOT/scripts/check-run-records"
 TASK_STATE_CHECK="$LAB_ROOT/scripts/check-task-state"
 MERGE_QUEUE_CHECK="$LAB_ROOT/scripts/check-merge-queue"
 GATES_CHECK="$LAB_ROOT/scripts/check-gates"
+SIDE_EFFECTS_CHECK="$LAB_ROOT/scripts/check-side-effects"
+SCRATCH_DURABILITY_CHECK="$LAB_ROOT/scripts/check-scratch-durability"
 
 fail() {
   printf 'FAIL: %s\n' "$*" >&2
@@ -51,16 +53,18 @@ test -x "$RUN_RECORD_CHECK" || fail "run record check script missing or not exec
 test -x "$TASK_STATE_CHECK" || fail "task state check script missing or not executable"
 test -x "$MERGE_QUEUE_CHECK" || fail "merge queue check script missing or not executable"
 test -x "$GATES_CHECK" || fail "lifecycle gates check script missing or not executable"
+test -x "$SIDE_EFFECTS_CHECK" || fail "side effects check script missing or not executable"
+test -x "$SCRATCH_DURABILITY_CHECK" || fail "scratch durability check script missing or not executable"
 
 if test -e "$LAB_ROOT/.codex-home/auth.json"; then
   fail "clean home contains auth.json; this lab should not copy secrets"
 fi
 
-rg -q '^model_provider = "custom"$' "$CONFIG" || fail "config model_provider is not custom"
-rg -q '^model = "gpt-5.5"$' "$CONFIG" || fail "config model is not gpt-5.5"
-rg -q '^model_reasoning_effort = "xhigh"$' "$CONFIG" || fail "config reasoning effort is not xhigh"
-rg -q '^sandbox_mode = "workspace-write"$' "$CONFIG" || fail "config sandbox is not workspace-write"
-rg -q 'base_url = "https://api.modextm.com/v1"' "$CONFIG" || fail "custom provider base_url missing"
+grep -qE '^model_provider = "custom"$' "$CONFIG" || fail "config model_provider is not custom"
+grep -qE '^model = "gpt-5.5"$' "$CONFIG" || fail "config model is not gpt-5.5"
+grep -qE '^model_reasoning_effort = "xhigh"$' "$CONFIG" || fail "config reasoning effort is not xhigh"
+grep -qE '^sandbox_mode = "workspace-write"$' "$CONFIG" || fail "config sandbox is not workspace-write"
+grep -qE 'base_url = "https://api.modextm.com/v1"' "$CONFIG" || fail "custom provider base_url missing"
 
 if test -L "$GLOBAL_AGENTS"; then
   target="$(readlink "$GLOBAL_AGENTS")"
@@ -73,9 +77,9 @@ test "$agent_count" -ge 7 || fail "expected at least 7 agent toml files, found $
 
 missing_fields=0
 while IFS= read -r file; do
-  rg -q '^name = ' "$file" || { printf 'Missing name: %s\n' "$file" >&2; missing_fields=1; }
-  rg -q '^description = ' "$file" || { printf 'Missing description: %s\n' "$file" >&2; missing_fields=1; }
-  rg -q '^developer_instructions = ' "$file" || { printf 'Missing developer_instructions: %s\n' "$file" >&2; missing_fields=1; }
+  grep -qE '^name = ' "$file" || { printf 'Missing name: %s\n' "$file" >&2; missing_fields=1; }
+  grep -qE '^description = ' "$file" || { printf 'Missing description: %s\n' "$file" >&2; missing_fields=1; }
+  grep -qE '^developer_instructions = ' "$file" || { printf 'Missing developer_instructions: %s\n' "$file" >&2; missing_fields=1; }
 done < <(find "$AGENT_DIR" -maxdepth 1 -name '*.toml' -type f | sort)
 test "$missing_fields" -eq 0 || fail "one or more agents are missing required fields"
 
@@ -104,5 +108,7 @@ fi
 "$TASK_STATE_CHECK" >/dev/null
 "$MERGE_QUEUE_CHECK" >/dev/null
 "$GATES_CHECK" >/dev/null
+"$SIDE_EFFECTS_CHECK" >/dev/null
+"$SCRATCH_DURABILITY_CHECK" >/dev/null
 
 printf 'OK: lab structure is valid\n'
