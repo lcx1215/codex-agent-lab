@@ -1743,3 +1743,46 @@ Last updated: 2026-07-08 14:54 +0800
   Kubernetes, or company environment action. Internal Agent repository files
   were not modified; root checks were adjusted to avoid default sweeps into
   those paths.
+
+## Root Layer Slimming
+
+- Date: 2026-07-21
+- Owner lane: codex.
+- Scope: slim the top-level `codex-agent-lab` surfaces so root context remains
+  a small governance layer instead of carrying Clink implementation detail,
+  retired runtime history, and long progress logs.
+- Built:
+  - Shortened `AGENTS.md`: kept company write lock, Jenkins user-only lock,
+    harness/loop discipline, placement, and fast verification references; moved
+    Clink branch/TEST/Nacos/incident specifics out of the root rule body.
+  - Shortened `CLAUDE.md` to the same root-level lock/placement/collaboration
+    shape.
+  - Rewrote `README.md` and `README.zh-CN.md` as compact entry pages with fast
+    checks, boundary checks, rules, agents, reports, and hard boundaries.
+  - Replaced the 430-line `registry/current-progress.md` with a 58-line current
+    state file; archived the old detail at
+    `registry/archive/current-progress-20260721-pre-slim.md`.
+  - Updated the local ignored Clink context rules in
+    `workspaces/clink-internal-dev-context/AGENTS.md` with the detailed Clink
+    branch, TEST configuration, and incident-prevention rules.
+- Verification:
+  - `./scripts/check-project-rules` — pass.
+  - `./scripts/check-speed-contract` — pass.
+  - `./scripts/check-collaboration` — pass; 24 assignments, 47 handoffs.
+  - `./scripts/check-rule-ladder` — pass; failed links 0.
+  - `./scripts/check-lab` — pass.
+  - `./scripts/check-secrets` — pass, 468 committable source files scanned.
+  - `python3 -m unittest discover -s tests` — pass, 162 tests. Expected
+    negative-test stderr appeared for rejected legacy benchmark args and invalid
+    task-registry fixture.
+  - `./scripts/check-runtime-compatibility` — pass, 38 checks, 38 passed, 0
+    warnings, 0 failed.
+  - `./scripts/check-workflow-modes` — pass.
+  - `./scripts/check-agent-packages` — pass, failed links 0.
+  - `workspaces/clink-internal-dev-context/scripts/check-context` — pass.
+- Boundary:
+  - Did not run `scripts/check-clink-safe-path` because the current user
+    boundary says internal in-development Agent repositories must not be
+    touched, and that check inspects company checkout metadata.
+  - No Git push, Jenkins, deployment, Nacos, ArgoCD, Kubernetes, or company
+    environment operation was performed.
