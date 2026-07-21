@@ -16,7 +16,7 @@ SECRET_PATH_RE = re.compile(
     r"(^|/)(auth\.json|\.env($|\.)|.*\.(pem|key|p12|pfx|token|secret)$|.*_(token|secret)$)"
 )
 LOCAL_PATH_RE = re.compile(r"/Users/[^/\s`\"']+")
-RUNTIME_DIRS = {".omx", ".omc", ".codex-home"}
+RUNTIME_DIRS = {".omc", ".codex-home"}
 SKIP_RECURSE_DIRS = {
     ".git",
     "__pycache__",

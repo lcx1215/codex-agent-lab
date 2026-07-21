@@ -88,7 +88,7 @@ Use the lab template at ../../docs/project-rule-template.md when this workspace 
 - Default workflow mode: TBD
 - Use Codex App for short review and GUI work.
 - Use codex-api for simple terminal diagnostics.
-- Use omx-api for durable, multi-step, risky, or multi-agent work.
+- Keep the workspace lightweight. Extra orchestration runtime is not used on this machine.
 
 ## Progress And Validation
 
@@ -149,7 +149,6 @@ cat > "$workspace/.gitignore" <<'EOF'
 *.secret
 *_token
 *_secret
-.omx/
 .omc/*
 !.omc/skills/
 !.omc/skills/**

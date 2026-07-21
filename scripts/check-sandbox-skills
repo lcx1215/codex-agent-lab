@@ -25,7 +25,6 @@ check_pattern() {
 skills=(
   secret-boundary-auditor
   async-race-detector
-  tmux-omx-runtime-doctor
   sandbox-artifact-hygiene
 )
 
@@ -54,7 +53,6 @@ done
 
 check_pattern "$SKILL_DIR/secret-boundary-auditor/SKILL.md" 'check-secrets|auth\.json|redacted' "secret auditor boundary terms"
 check_pattern "$SKILL_DIR/async-race-detector/SKILL.md" 'check-async-execution|unexpected stderr|TMPDIR' "async detector race terms"
-check_pattern "$SKILL_DIR/tmux-omx-runtime-doctor/SKILL.md" 'worker_notify_failed|tmux list-panes|omx team' "tmux doctor runtime terms"
 check_pattern "$SKILL_DIR/sandbox-artifact-hygiene/SKILL.md" 'git status|waterflow-scan|transient scratch' "artifact hygiene terms"
 
 printf 'OK: sandbox skills are valid\n'

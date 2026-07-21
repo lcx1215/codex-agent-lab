@@ -44,7 +44,7 @@ Each workspace should describe how it helps Codex and Claude:
 - focused task context instead of broad conversation recall;
 - deterministic harnesses for risky behavior;
 - validation commands for completion claims;
-- handoff notes for App, CLI, OMX, Codex, or Claude continuation;
+- handoff notes for App, CLI, Codex, or Claude continuation;
 - route indexes or dashboards when the workspace grows large.
 
 The stop condition is not "the automation says OK." The stop condition is verified progress that Codex or Claude can explain, inspect, and repair.

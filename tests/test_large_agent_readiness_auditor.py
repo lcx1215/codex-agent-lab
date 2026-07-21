@@ -47,13 +47,13 @@ class LargeAgentReadinessAuditorTests(unittest.TestCase):
             CapabilitySignal("context", "AGENTS.md", "pass", "Rules are discoverable."),
             CapabilitySignal("architecture", "docs/agent-lab-mission.md", "pass", "Mission and quality bar exist."),
             CapabilitySignal("runtime", "scripts/start-api-relay", "pass", "Runtime entrypoint exists."),
-            CapabilitySignal("delegation", ".codex/agents", "mixed", "Official team mode remains unproven."),
+            CapabilitySignal("delegation", ".codex/agents", "mixed", "Bounded subagent routing remains unproven."),
             CapabilitySignal("tooling", ".agents/skills", "pass", "Skill surface exists."),
             CapabilitySignal("verification", "scripts/check-lab", "pass", "Health gate exists."),
             CapabilitySignal("observability", "scripts/lab-dashboard", "pass", "Dashboard exists."),
             CapabilitySignal("safety", "scripts/check-secrets", "pass", "Secret gate exists."),
             CapabilitySignal("handoff", "registry/current-progress.md", "pass", "Progress is durable."),
-            CapabilitySignal("performance", "outputs/shared/benchmarks/ide-loop/history.md", "mixed", "Model smoke is slow."),
+            CapabilitySignal("performance", "outputs/shared/benchmarks/ide-loop/history.md", "mixed", "Full benchmark is slow."),
             CapabilitySignal("model-proof", "outputs/shared/development-experience-auditor/live-model-review.md", "pass", "Live proof exists."),
         ]
 
@@ -64,7 +64,7 @@ class LargeAgentReadinessAuditorTests(unittest.TestCase):
         self.assertGreaterEqual(report["summary"]["readiness_score"], 80)
         self.assertEqual(report["dimensions"]["delegation"]["status"], "mixed")
         self.assertEqual(report["top_risks"][0]["dimension"], "delegation")
-        self.assertIn("Official team mode", report["top_risks"][0]["evidence"])
+        self.assertIn("Bounded subagent routing", report["top_risks"][0]["evidence"])
 
     def test_markdown_report_looks_like_independent_external_assessment(self):
         report = evaluate_large_agent_readiness(

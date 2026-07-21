@@ -23,7 +23,6 @@ registry/scratch-durability/snapshots/
 .codex-home/*.json
 .codex-home/installation_id
 .codex-home/tmp/
-.omx/
 .omc/*
 !.omc/skills/
 !.omc/skills/**

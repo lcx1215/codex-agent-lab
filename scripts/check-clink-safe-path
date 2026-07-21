@@ -1,0 +1,183 @@
+#!/usr/bin/env bash
+# side-effects: read-only
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LAB_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+MAP="$LAB_ROOT/workspaces/clink-internal-dev-context/registry/current-customer-support-map.json"
+CODEX_GLOBAL_RULES="${CODEX_GLOBAL_RULES:-$HOME/.codex/AGENTS.md}"
+CLAUDE_GLOBAL_RULES="${CLAUDE_GLOBAL_RULES:-$HOME/CLAUDE.md}"
+
+fail() {
+  printf 'FAIL: %s\n' "$*" >&2
+  exit 1
+}
+
+require_pattern() {
+  local file="$1"
+  local pattern="$2"
+  local label="$3"
+  rg -q "$pattern" "$file" || fail "$label missing in $file"
+}
+
+test -f "$MAP" || fail "current customer-support map missing"
+test -x "$LAB_ROOT/scripts/check-current-agent" || fail "check-current-agent missing"
+
+require_pattern "$CODEX_GLOBAL_RULES" \
+  'NON-NEGOTIABLE MACHINE-WIDE COMPANY WRITE LOCK' \
+  "machine-wide company write lock"
+require_pattern "$LAB_ROOT/AGENTS.md" \
+  'Non-Negotiable Company Write Boundary' \
+  "lab company write lock"
+require_pattern "$CLAUDE_GLOBAL_RULES" \
+  'Non-Negotiable Company Write Lock' \
+  "Claude company write lock"
+require_pattern "$LAB_ROOT/CLAUDE.md" \
+  'Company Write Boundary \(Highest Priority\)' \
+  "lab Claude company write lock"
+require_pattern "$CODEX_GLOBAL_RULES" \
+  'ABSOLUTE JENKINS USER-ONLY LOCK' \
+  "machine-wide Jenkins user-only lock"
+require_pattern "$CLAUDE_GLOBAL_RULES" \
+  'Absolute Jenkins User-Only Lock' \
+  "Claude Jenkins user-only lock"
+require_pattern "$LAB_ROOT/AGENTS.md" \
+  'Absolute Jenkins User-Only Boundary' \
+  "lab Jenkins user-only lock"
+require_pattern "$LAB_ROOT/CLAUDE.md" \
+  'Jenkins User-Only Boundary' \
+  "lab Claude Jenkins user-only lock"
+require_pattern "$LAB_ROOT/workspaces/agent-dev-workspace/AGENTS.md" \
+  'Jenkins is user-manual-only' \
+  "Agent workspace Jenkins user-only lock"
+require_pattern "$LAB_ROOT/workspaces/clink-internal-dev-context/AGENTS.md" \
+  'Jenkins is user-manual-only' \
+  "internal context Jenkins user-only lock"
+
+python3 - "$LAB_ROOT" "$MAP" <<'PY'
+from __future__ import annotations
+
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+lab = Path(sys.argv[1])
+mapping = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
+
+expected = {
+    "agent": (
+        "clink/pay/clink-merchant-assistant.git",
+        "test",
+    ),
+    "frontend": (
+        "clink/merchant-portal-refactor.git",
+        "test",
+    ),
+    "gateway": (
+        "clink/pay/clink-gateway.git",
+        "test",
+    ),
+}
+
+for name, (remote_suffix, branch) in expected.items():
+    item = mapping["repositories"][name]
+    repo = lab / item["local_path"]
+    if not (repo / ".git").exists():
+        raise SystemExit(f"FAIL: {name} checkout missing: {repo}")
+    actual_remote = subprocess.check_output(
+        ["git", "-C", str(repo), "remote", "get-url", "origin"],
+        text=True,
+    ).strip()
+    actual_branch = subprocess.check_output(
+        ["git", "-C", str(repo), "branch", "--show-current"],
+        text=True,
+    ).strip()
+    if not actual_remote.endswith(remote_suffix):
+        raise SystemExit(f"FAIL: {name} origin mismatch: {actual_remote}")
+    if actual_branch != branch:
+        raise SystemExit(
+            f"FAIL: {name} branch is {actual_branch!r}, expected {branch!r}"
+        )
+
+route = mapping["route"]
+if route["browser_prefix"] != "/prod-api/customer-support-agent":
+    raise SystemExit("FAIL: active browser prefix drifted")
+if route["service_name"] != "customer-support-agent-gateway":
+    raise SystemExit("FAIL: active service name drifted")
+if route["agent_port"] != 19950:
+    raise SystemExit("FAIL: active Agent port drifted")
+if mapping["repositories"]["gateway"]["code_change_required"] is not False:
+    raise SystemExit("FAIL: gateway code must remain unnecessary by default")
+expected_tools = {
+    "gitlab": "read_only",
+    "jenkins": "user_manual_only",
+    "argocd": "read_only",
+    "nacos": "read_only",
+}
+if mapping["company_tools"] != expected_tools:
+    raise SystemExit("FAIL: company-tool policy does not match the hard boundary")
+PY
+
+resolved="$("$LAB_ROOT/workspaces/agent-dev-workspace/scripts/active-customer-support-package.sh")"
+expected="$LAB_ROOT/workspaces/agent-dev-workspace/external/clink-merchant-assistant"
+test "$resolved" = "$expected" || fail "active package resolver returned $resolved"
+
+if rg -q 'jenkins_api|JENKINS_TOKEN|buildWithParameters|configSubmit|argo sync|nacos publish' \
+  "$LAB_ROOT/.tmp/company-tools/company-tool" \
+  "$LAB_ROOT/.tmp/company-tools/README.md" \
+  "$LAB_ROOT/.tmp/company-tools-capability.md"; then
+  fail "company-tools surface still exposes Jenkins access or a write path"
+fi
+
+global_freeze_values="$(git config --global --get-all url.clink-push-freeze://blocked/.pushInsteadOf || true)"
+for freeze_value in \
+  'git@gitlab.clinkpay.team:' \
+  'ssh://git@gitlab.clinkpay.team/' \
+  'https://gitlab.clinkpay.team/' \
+  'http://gitlab.clinkpay.team/'; do
+  printf '%s\n' "$global_freeze_values" | rg -Fxq "$freeze_value" \
+    || fail "global Clink pushInsteadOf freeze missing: $freeze_value"
+done
+
+local_freeze_repos=(
+  "$LAB_ROOT"
+  "$LAB_ROOT/workspaces/agent-dev-workspace"
+)
+
+for repo in "${local_freeze_repos[@]}"; do
+  test -d "$repo" || fail "local freeze checkout missing: $repo"
+  push_url="$(git -C "$repo" remote get-url --push origin 2>/dev/null || true)"
+  case "$push_url" in
+    codex-push-freeze://blocked/*) ;;
+    *) fail "local push URL freeze missing for $repo: $push_url" ;;
+  esac
+  hook="$(git -C "$repo" rev-parse --path-format=absolute --git-path hooks/pre-push)"
+  test -x "$hook" || fail "local push freeze hook missing or not executable: $hook"
+  require_pattern "$hook" \
+    'CODEX_LOCAL_PUSH_FREEZE_V1' \
+    "local push freeze hook marker"
+done
+
+freeze_repos=(
+  "$LAB_ROOT/workspaces/agent-dev-workspace/external/merchant-portal-refactor"
+  "$LAB_ROOT/workspaces/agent-dev-workspace/external/clink-gateway"
+  "$LAB_ROOT/workspaces/agent-dev-workspace/external/clink-merchant-assistant"
+  "$LAB_ROOT/workspaces/agent-dev-workspace/external/clink-platform"
+  "$LAB_ROOT/workspaces/customer-support-production-repo"
+)
+
+for repo in "${freeze_repos[@]}"; do
+  test -d "$repo" || fail "freeze checkout missing: $repo"
+  require_pattern "$repo/.git/config" \
+    'clink-push-freeze://blocked/' \
+    "push URL rewrite freeze"
+  hook="$(git -C "$repo" rev-parse --path-format=absolute --git-path hooks/pre-push)"
+  test -x "$hook" || fail "push freeze hook missing or not executable: $hook"
+  require_pattern "$hook" \
+    'CODEX_CLINK_PUSH_FREEZE_V1' \
+    "push freeze hook marker"
+done
+
+"$LAB_ROOT/scripts/check-current-agent" >/dev/null
+printf 'OK: Clink safe path, Jenkins user-only lock, and push freeze are aligned\n'

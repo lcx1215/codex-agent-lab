@@ -48,7 +48,7 @@ class WorkspaceContractTests(unittest.TestCase):
         self.assertIn("Scenario type: TBD", brief_text)
         self.assertIn("Codex/Claude amplification", brief_text)
         self.assertIn("Rule inheritance", brief_text)
-        self.assertIn(".omx/", gitignore_text)
+        self.assertNotIn(".omx/", gitignore_text)
         self.assertIn(".codex-home/auth.json", gitignore_text)
 
     def test_new_workspace_rejects_roots_outside_lab(self):

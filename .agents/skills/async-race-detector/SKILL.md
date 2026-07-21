@@ -31,7 +31,7 @@ expected, time-bounded, and cleaned up.
    workers:
 
    ```bash
-   ps -axo pid,ppid,stat,command | rg 'omx|codex-agent-lab|team-runtime-repo' | rg -v 'rg'
+   ps -axo pid,ppid,stat,command | rg 'codex-agent-lab|team-runtime-repo' | rg -v 'rg'
    tmux list-sessions 2>/dev/null || true
    ```
 

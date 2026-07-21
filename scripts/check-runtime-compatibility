@@ -33,7 +33,6 @@ REQUIRED_COMMANDS = [
 
 OPTIONAL_COMMANDS = [
     "codex",
-    "omx",
     "tmux",
 ]
 
@@ -244,7 +243,6 @@ def gitignore_checks() -> list[dict[str, object]]:
         return [check("warn", "gitignore runtime state", "not a git checkout; cannot verify ignore contract")]
 
     examples = [
-        (".omx/state/example.json", True, "OMX runtime state should be ignored"),
         (".omc/state/example.json", True, "OMC runtime state should be ignored"),
         (".omc/skills/example/SKILL.md", False, "project OMC skills should remain committable"),
     ]

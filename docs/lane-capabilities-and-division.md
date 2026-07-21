@@ -19,8 +19,8 @@ Codex-lane rows it disagrees with.
   for many **maximum environment (lab root)** surfaces: shared checks,
   protocols, docs, orchestration-layer drafts, cross-cutting audits, and review
   passes.
-- **Codex / OMX lane** — home `~/.codex` + `~/.codex-api-relay`, lab-local
-  `.omx/`. Primary owner for the **agent packages** it builds under
+- **Codex lane** — home `~/.codex` + optional API-relay home `~/.codex-api-relay`.
+  Primary owner for the **agent packages** it builds under
   `workspaces/<scenario>/agents/<package>/` and their runtime code, and also a
   valid root-layer implementer/reviewer when root changes are explicitly routed
   through the shared protocol.

@@ -4,6 +4,13 @@
 
 Clean, project-scoped environment for long-horizon Codex and Claude agent work.
 
+Current Clink customer-support Agent work starts here:
+
+```bash
+./scripts/check-current-agent
+cd "$(cat .current-agent)"
+```
+
 > **What this is, in one line:** a private, governed workbench where two AI lanes
 > — Claude (`~/.claude`) and Codex (`~/.codex-api-relay`) — collaborate on the
 > same repository with durable state, fail-closed safety gates, and a two-lane
@@ -31,7 +38,7 @@ Clean, project-scoped environment for long-horizon Codex and Claude agent work.
 
 ### Why it exists
 
-Per-agent tooling (OMC/OMX plugins) makes each agent individually capable. It does
+Per-agent tooling makes each agent individually capable. It does
 not make two agents work together without clobbering each other's files, sharing a
 single source of truth, or reviewing each other. This lab is that missing layer:
 governance, hand-offs, and collision-safe collaboration — the plumbing plugins
@@ -119,13 +126,13 @@ Strict clean-home lane:
 ./scripts/start-clean-home
 ```
 
-Project-isolated API-relay lane, using the existing API relay auth/config home and OMX by default:
+Project-isolated API-relay lane, using the existing API relay auth/config home:
 
 ```bash
 ./scripts/start-api-relay
 ```
 
-Plain non-OMX API-relay fallback, only for diagnostics or explicit bypass:
+Plain API-relay fallback:
 
 ```bash
 ./scripts/start-api-relay-plain
@@ -185,16 +192,10 @@ Check Waterflow speed contract:
 ./scripts/check-speed-contract
 ```
 
-Run the IDE-loop benchmark with a real API-relay/OMX model smoke test:
+Run the IDE-loop benchmark:
 
 ```bash
 ./scripts/benchmark-ide-loop
-```
-
-Run the same benchmark while explicitly skipping the model smoke test:
-
-```bash
-./scripts/benchmark-ide-loop --skip-omx
 ```
 
 Render the one-screen lab dashboard:
@@ -230,7 +231,7 @@ List workflow modes:
 Print a workflow mode contract:
 
 ```bash
-./scripts/workflow-mode omx-long-horizon
+./scripts/workflow-mode cli-diagnosis
 ```
 
 Run Waterflow Auditor:
@@ -338,7 +339,7 @@ Framework:
 - Development experience auditor agent: `docs/development-experience-auditor-agent.md`
 - Third-party large-agent auditor: `docs/third-party-large-agent-auditor.md`
 - Environment-specific skills: `.agents/skills/*/SKILL.md`
-- Sandbox skills: `.agents/skills/secret-boundary-auditor`, `.agents/skills/async-race-detector`, `.agents/skills/tmux-omx-runtime-doctor`, `.agents/skills/sandbox-artifact-hygiene`
+- Sandbox skills: `.agents/skills/secret-boundary-auditor`, `.agents/skills/async-race-detector`, `.agents/skills/sandbox-artifact-hygiene`
 - Durable progress and validation: `registry/`
 - Task-specific work: `workspaces/`
 - Waterflow reports and repair briefs: `outputs/shared/waterflow/`
@@ -357,7 +358,6 @@ Framework:
 - Lab dashboard: `outputs/shared/dashboard/lab-dashboard.md`
 - Development experience audit: `outputs/shared/development-experience-auditor/latest.md`
 - Workflow mode catalog: `docs/workflow-modes.md`
-- OMX retrospective: `registry/OMX_RETROSPECTIVE.md`
 
 Waterflow scans its own `waterflow/`, `tests/`, and `docs/` paths. Generated `outputs/` are evidence artifacts, not source waterways, so they are excluded from the graph to avoid constant self-diff noise.
 
@@ -377,7 +377,7 @@ Use `docs/scenario-workspace-contract.md` and `scripts/new-workspace` so every s
 
 ## Workflow Modes
 
-Use `docs/workflow-modes.md` and `scripts/workflow-mode` to choose between daily App work, CLI diagnosis, OMX long-horizon execution, multi-agent review, and overnight checkpointed work. These modes are routing contracts; they do not override the global safety rules.
+Use `docs/workflow-modes.md` and `scripts/workflow-mode` to choose between daily App work, CLI diagnosis, multi-agent review, and overnight checkpointed work. These modes are routing contracts; they do not override the global safety rules.
 
 ## Secret Safety
 
@@ -399,7 +399,7 @@ Use `docs/reasoning-speed-playbook.md` to keep `gpt-5.5` + `xhigh` for genuinely
 
 Use `docs/waterflow-speed-contract.md` to keep Waterflow supervision from slowing active Codex or Claude work. Default checks stay metadata-only or changed-only; full Waterflow validation, stress fixtures, and incident fixtures are boundary tools.
 
-Use `scripts/benchmark-ide-loop` to measure the lab's RED/GREEN edit loop, health gates, Waterflow checks, and API-relay/OMX model smoke test over time. Use `scripts/lab-dashboard` for a compact current-state view.
+Use `scripts/benchmark-ide-loop` to measure the lab's RED/GREEN edit loop, health gates, and Waterflow checks over time. Use `scripts/lab-dashboard` for a compact current-state view.
 
 ## Boundaries
 

@@ -32,7 +32,7 @@ Warnings are visible in the report so Codex or Claude can repair them before pro
 
 ## Runtime State
 
-Workspace runtime state should not become source truth. Root `.gitignore` should ignore `.omx/`, `.omc/` runtime state, temporary files, logs, and secret-like paths. Project-scoped OMC skills remain the exception when placed under `.omc/skills/**`.
+Workspace runtime state should not become source truth. Root `.gitignore` should ignore `.omc/` runtime state, temporary files, logs, and secret-like paths. Project-scoped OMC skills remain the exception when placed under `.omc/skills/**`.
 
 ## New Workspace Template
 

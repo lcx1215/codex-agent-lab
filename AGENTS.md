@@ -113,7 +113,12 @@ This workspace is `/Users/liuchengxu/Desktop/codex-agent-lab`.
 - Run `scripts/check-workspace-safety` before treating a changed workspace as
   stable.
 - Run `scripts/check-task-state` when changing long-running task state.
+- Use `docs/waterflow-speed-contract.md` and `scripts/check-speed-contract` to
+  keep default proof loops fast and reserve heavy harnesses for boundary cases.
 - Prefer `rg`, `apply_patch`, and the smallest useful verification; use a better repo-supported tool when it is clearly more suitable.
 - Run `scripts/check-runtime-compatibility` after changing lab runtime scripts or checks when that verification is relevant.
+- Registered Lab support agents include `foundation-amplifier`,
+  `development-experience-auditor`, and `third-party-large-agent-auditor`; use
+  them only when their evidence would help the current task.
 - Keep generated artifacts under `.tmp/` or `outputs/`; clean obvious `.DS_Store`, logs, caches, and temp build output when asked.
 - User-facing status should be concise Chinese. Report conclusions, not raw logs.

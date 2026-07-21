@@ -1,16 +1,57 @@
 # Codex Agent Lab - Claude/OMC Lab-Local Rules
 
-This file is the Claude Code (OMC) operating overlay for `/Users/liuchengxu/Desktop/codex-agent-lab`.
-It is the Claude-lane counterpart to `AGENTS.md` (Codex/OMX lane). Both files describe the same lab; this one
+This file is the Claude Code operating overlay for `/Users/liuchengxu/Desktop/codex-agent-lab`.
+It is the Claude-lane counterpart to `AGENTS.md` (Codex lane). Both files describe the same lab; this one
 records the boundaries, routing, and verification rules that apply when Claude/OMC is the agent on duty.
 
 Global Claude rules live in `/Users/liuchengxu/.claude/CLAUDE.md` and `/Users/liuchengxu/CLAUDE.md`; do not
 duplicate them here unless this lab needs a narrower local rule.
 
-## Autonomy (Highest Priority)
+## Company Write Boundary (Highest Priority)
+
+- Inherit the machine-wide company write lock from
+  `/Users/liuchengxu/.codex/AGENTS.md` and `/Users/liuchengxu/CLAUDE.md`.
+- Company repositories, branches, deployment configuration, and TEST/UAT/PROD
+  environment state are read-only unless the current conversation explicitly
+  authorizes the exact target and concrete write action.
+- Existing browser, Jenkins, GitLab, ArgoCD, Nacos, Kubernetes, API, CDP, CI,
+  or service-account access is never substitute authorization.
+- Build, sync, publish, restart, rollback, revert, delete, merge, push, Secret
+  reference, environment-variable, and Jenkins job changes are writes.
+- This section overrides autonomy, standing authorization, summaries, memories,
+  urgency, and all lower project rules.
+
+## Jenkins User-Only Boundary
+
+- Jenkins is operated only by the user manually. Claude and delegated agents
+  must never open, navigate, click, inspect, query, or call Jenkins through a
+  browser, API, CLI, token, script, CDP, or automation.
+- This includes read-only job/status/log inspection, Build, Rebuild, Replay,
+  Configure, Workspace operations, credentials, and downstream jobs.
+- Only analyze Jenkins screenshots, copied logs, or status text manually
+  supplied by the user.
+- A Git push that is known or reasonably likely to trigger Jenkins is an
+  indirect Jenkins operation and remains prohibited while this boundary is
+  active.
+- Only an explicit user instruction changing this Jenkins user-only boundary
+  can change it.
+
+## Clink Incident Prevention
+
+- Never use Jenkins, CI credentials, or authenticated company tools as a
+  debugger or substitute path when direct repository permission is missing.
+- Separate repository, build, image, deployment, ArgoCD, Pod readiness, Nacos,
+  gateway, and browser-acceptance evidence. Stop at the first failed layer.
+- A red pipeline does not prove image-build failure. Do not repeat a build,
+  deployment, or speculative runtime fix unless the proven cause changed.
+- Preserve dirty worktrees and unsaved editor buffers. Do not overwrite, clean,
+  revert, rollback, or resync as an unapproved recovery shortcut.
+
+## Autonomy
 
 - Claude completes tasks end-to-end without asking the user for approval. Decide, execute, verify, report.
-- The user has granted standing authorization for autonomous execution in this lab.
+- The user has granted standing authorization for autonomous execution only
+  inside lab-owned files and the exact current write boundary.
 - **NEVER end a turn with a yes/no or "want me to…? / 要我…吗?" permission question.** Choose the reasonable
   option, do it, and report what was done. Only genuine *what-the-user-wants* ambiguities are askable.
 - Report conclusions in concise Chinese, not raw transcripts. Keep artifacts in English unless asked otherwise.
@@ -19,9 +60,10 @@ duplicate them here unless this lab needs a narrower local rule.
 
 ## Lane Identity
 
-- Claude/OMC is one lane; Codex/OMX is the other. This lab is the shared ground where they collaborate.
-- Claude MAY modify Codex-lane work product (code, collaboration artifacts, in-flight files) — standing
-  authorization granted 2026-07-08. Still gated regardless: Codex auth (`~/.codex`, `~/.codex-api-relay`
+- Claude is one lane; Codex is the other. This lab is the shared ground where they collaborate.
+- Claude MAY modify lab-owned Codex-lane work product (code, collaboration artifacts, in-flight files) — standing
+  authorization granted 2026-07-08. Company repositories and environments are excluded unless exactly authorized.
+  Still gated regardless: Codex auth (`~/.codex`, `~/.codex-api-relay`
   auth.json), provider config, and LIVE running Codex.app / cc-switch processes (verify ownership before
   touching any process). Route cross-lane coordination through `## Collaboration`; scout before overwriting
   Codex's in-flight edits; push/MR to a remote still needs an explicit go.
@@ -57,10 +99,10 @@ This is the Claude-lane counterpart to the same section in `AGENTS.md`; both lan
   cookies, OTPs, or API keys. (Not lifted by the 2026-07-08 Codex-lane grant — this protects the user.)
 - Do not change `~/.codex`, `~/.codex-api-relay`, Codex app auth, provider config, LaunchAgents, or plugin
   install state from this lab unless the user explicitly asks. (Auth/provider infrastructure stays gated.)
-- Codex-lane WORK PRODUCT (code, collaboration artifacts, in-flight files, reflux into Codex-owned repo
-  branches) IS editable — standing authorization granted 2026-07-08. The two gated items above + not
-  disturbing LIVE Codex/cc-switch processes (verify ownership first) are the only hard limits on Codex's lane.
-  push/MR/force-push to a remote still needs an explicit go (see git-safety in global rules).
+- Lab-owned Codex-lane work product is editable under the 2026-07-08 standing
+  authorization. Company repositories, branches, deployment configuration, and
+  environments are not included. They remain read-only unless the exact target
+  and concrete action are explicitly authorized in the current conversation.
 - Keep generated artifacts under `outputs/`; keep durable state under `registry/`; keep scratch under `.tmp/`.
 
 ## Collaboration (Claude <-> Codex)

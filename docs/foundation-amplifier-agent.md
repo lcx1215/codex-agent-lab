@@ -21,7 +21,7 @@ Use it when a task asks to:
 - start a large or long-horizon agent project;
 - decide whether a pattern belongs in the root lab or a scenario workspace;
 - improve Codex/Claude throughput in the lab;
-- choose between App, CLI, OMX, Waterflow, benchmark, skills, and agents;
+- choose between App, CLI, Waterflow, benchmark, skills, and agents;
 - backtest whether a new lab capability actually improves the environment.
 
 ## Output Contract

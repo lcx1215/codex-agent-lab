@@ -52,8 +52,6 @@ Current sandbox skill pack:
   publishing sandbox artifacts that may expose secrets or machine-local details.
 - `async-race-detector`: use when checks, scans, workers, or validation runners
   run concurrently or leave hidden stderr, timeouts, or residual processes.
-- `tmux-omx-runtime-doctor`: use for OMX team, tmux pane, worker startup,
-  green-light, or `omx-api exec` runtime failures.
 - `sandbox-artifact-hygiene`: use when deciding whether generated outputs,
   logs, workspaces, and Waterflow artifacts should be committed, ignored,
   redacted, archived, or regenerated.

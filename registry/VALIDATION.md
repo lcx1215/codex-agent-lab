@@ -1623,3 +1623,123 @@ Last updated: 2026-07-08 14:54 +0800
     same-origin `/agent-api` before SPA fallback, and configure production
     session resolver + BFF signing. No live dashboard deploy, GitLab push, merge,
     stage, reset, clean, secret read, or `.run/` capture was performed.
+
+## Clink Merchant Assistant HMAC Replay Audit
+
+- Date: 2026-07-16
+- Owner lane: codex.
+- Scope: read-only audit of active Agent repo
+  `workspaces/agent-dev-workspace/external/clink-merchant-assistant` at
+  `8a0fc69`, classifying all `HMAC` / `replay` hits as Java-to-Agent production
+  chain residuals or independent capabilities such as webhook/support-inbox.
+- Commands and results:
+  - `./scripts/check-current-agent`: exit 0; active repo
+    `external/clink-merchant-assistant`, branch `test`.
+  - `git rev-parse --short HEAD`: exit 0; `8a0fc69`.
+  - `rg -n -i --hidden -g '!services/gateway/node_modules/**' -g
+    '!**/.git/**' "hmac|replay"`: exit 0; 37 files matched.
+  - `rg -l -i --hidden -g '!services/gateway/node_modules/**' -g
+    '!**/.git/**' "hmac|replay" | sort | xargs ...`: exit 0; per-file hit
+    counts collected.
+  - `rg -n --hidden -g '!services/gateway/node_modules/**' -g '!**/.git/**'
+    "AGENT_API_BFF_HMAC|AGENT_API_BFF_REPLAY|TRUSTED_HMAC|X-Agent-BFF-(Key-Id|Timestamp|Nonce|Body-SHA256|Signature)|HmacSHA256|backend_only_hmac_secret|nonce_replay_guard|shared_replay_store_required|ASSISTANT_SESSION_RESOLVER_(HMAC|REPLAY)"`:
+    exit 0; narrowed production-chain and local-session hits.
+  - `npm run check:java-gateway && node --test
+    services/gateway/test/gatewayAuth.test.mjs
+    services/gateway/test/runtimeReadiness.test.mjs
+    services/gateway/test/deployConfig.test.mjs`: exit 0; 51 passed, 0 failed.
+- Verified facts: current Java-to-Agent contract tests require trusted identity
+  headers and reject old Agent BFF HMAC/replay headers/config in source; support
+  inbox still has a separate raw-body HMAC verifier; stale production-chain
+  wording remains in `knowledge/payments-support.json` safety flags and one
+  answer template.
+- Unverified assumptions: no live Jenkins, ArgoCD, TEST, UAT, prod, Nacos,
+  dashboard, Java gateway, or support-inbox endpoint was contacted.
+
+## Frontend Query Stream Gap Review
+
+- Date: 2026-07-16
+- Owner lane: codex.
+- Scope: read-only comparison of
+  `workspaces/agent-dev-workspace/external/merchant-portal-refactor-frontend-only`
+  and sibling `external/merchant-portal-refactor-main-agent` for assistant
+  `query`, `context-cards`, and missing `query-stream` frontend integration.
+- Commands and results:
+  - `git status --short && git branch --show-current && git rev-parse --short
+    HEAD` in `merchant-portal-refactor-frontend-only`: exit 0; branch
+    `assistant-support-frontend-only`, head `30899c457`, no file changes from
+    this review.
+  - Same command in `merchant-portal-refactor-main-agent`: exit 0; branch
+    `main`, head `972b968`.
+  - `rg -n "agent-api|query-stream|context-cards|assistant/query|AssistantSupport|..." ...`
+    in both repos: exit 0; frontend-only has query/context-cards source calls,
+    main-agent has query/context-cards/query-stream.
+  - `diff -u .../apps/web-antd/src/api/assistant-support.ts ...`: exit 0 via
+    `|| true`; exact API-client delta captured.
+  - `diff -u .../apps/web-antd/src/components/assistant-support/src/assistant-support.vue ...`:
+    exit 0 via `|| true`; exact component delta captured.
+  - `node -e '... package.json scripts ...'` in both repos: exit 0; typecheck
+    and build scripts confirmed.
+  - `pnpm -F @vben/web-antd run typecheck` in frontend-only: exit 1 because
+    `vue-tsc` was not found and local `node_modules` is missing; no code type
+    result was produced.
+- Verified facts: minimal source port is
+  `apps/web-antd/src/api/assistant-support.ts` plus
+  `apps/web-antd/src/components/assistant-support/src/assistant-support.vue`;
+  frontend-only currently calls `/v1/assistant/query` and
+  `/v1/assistant/context-cards`, while main-agent adds
+  `/v1/assistant/query-stream` SSE handling and streamed UI updates.
+- Unverified assumptions: build was not run to avoid generating `dist`; no
+  push, stage, merge, reset, clean, or dependency install was performed.
+
+## Lightweight Runtime, Harness, And Loop Cleanup
+
+- Date: 2026-07-21
+- Owner lane: codex.
+- Scope: root-layer Agent Lab cleanup after adding harness/loop operating
+  rules. Current surfaces now prefer Codex App plus `codex-api`; old external
+  orchestration runtime references were removed from current docs, workflow
+  modes, benchmark flags, speed checks, sandbox skill checks, and auditor
+  harnesses. Historical validation records remain historical evidence only.
+- Built:
+  - Updated `AGENTS.md` with compact support-agent registration and explicit
+    speed-contract linkage.
+  - Updated `README.md`, `README.zh-CN.md`, `CLAUDE.md`,
+    `docs/workflow-modes.md`, and `registry/CAPABILITY_LAYERS.md` to describe
+    current App/API relay operation.
+  - Updated `scripts/benchmark-ide-loop` and tests so the default benchmark has
+    no model-smoke flag.
+  - Updated `lab_agents/development_experience.py` and
+    `lab_agents/large_agent_readiness.py` to judge benchmark total time instead
+    of the removed model-smoke column.
+  - Kept `scripts/check-scratch-durability` as an explicit boundary gate and
+    removed it from root `scripts/check-lab` fast path so default checks do not
+    sweep historical company-adjacent scratch trees.
+  - Updated `scripts/check-sandbox` to skip ignored `.toolchain/` contents and
+    adjusted `scripts/check-clink-safe-path` to use `$HOME` instead of a
+    machine-local home path in script text.
+- Verification:
+  - `python3 -m py_compile lab_agents/development_experience.py
+    lab_agents/large_agent_readiness.py lab_agents/dispatch.py
+    lab_agents/run_liveness.py scripts/benchmark-ide-loop
+    scripts/check-agent-packages` — pass.
+  - `python3 -m unittest discover -s tests` — pass, 162 tests. Expected
+    negative-test stderr appeared for rejected legacy benchmark args and invalid
+    task-registry fixture.
+  - `./scripts/check-lab` — pass.
+  - `./scripts/check-speed-contract` — pass.
+  - `./scripts/check-project-rules` — pass.
+  - `./scripts/check-workflow-modes` — pass.
+  - `./scripts/check-sandbox` — pass.
+  - `./scripts/check-sandbox-skills` — pass.
+  - `./scripts/check-runtime-compatibility` — pass, 38 checks, 38 passed, 0
+    warnings, 0 failed.
+  - `./scripts/check-secrets` — pass, 468 committable source files scanned.
+  - `./scripts/check-agent-packages` — pass, failed links 0.
+  - `./scripts/check-rule-ladder` — pass, failed links 0.
+  - `./scripts/check-workspace-safety` — warn only, 14 warnings, failed 0.
+  - `git diff --check` — pass.
+- Boundary: no Git push, remote operation, Jenkins, deployment, Nacos, ArgoCD,
+  Kubernetes, or company environment action. Internal Agent repository files
+  were not modified; root checks were adjusted to avoid default sweeps into
+  those paths.

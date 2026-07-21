@@ -300,8 +300,6 @@ def render_markdown(data: dict[str, object]) -> str:
                 f"- Local: `{fmt_seconds(benchmark.get('local_seconds'))}`",
                 f"- Gates: `{fmt_seconds(benchmark.get('gate_seconds'))}`",
                 f"- Waterflow: `{fmt_seconds(benchmark.get('waterflow_seconds'))}`",
-                f"- OMX: `{fmt_seconds(benchmark.get('omx_seconds'))}`",
-                f"- Tokens: `{benchmark.get('omx_tokens') or '-'}`",
                 f"- History: `outputs/shared/benchmarks/ide-loop/history.md`",
             ]
         )

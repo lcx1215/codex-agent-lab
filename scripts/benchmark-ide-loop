@@ -206,27 +206,6 @@ if __name__ == "__main__":
 """
 
 
-OMX_PROMPT = """\
-You are running inside a generated Codex Agent Lab benchmark fixture.
-
-Task:
-- Read README.md, lane_router.py, and tests/test_lane_router.py.
-- Write omx-smoke.md in this same directory only.
-- Keep it concise.
-
-Required omx-smoke.md sections:
-- Summary
-- Evidence
-- Gaps
-
-Constraints:
-- Do not modify files outside this directory.
-- Do not read or print secrets.
-- Do not run broad tests.
-- Mention whether the local unit-test loop appears verifiable from the files.
-"""
-
-
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -384,20 +363,16 @@ def summarize_run(run: dict[str, object]) -> dict[str, object]:
     local_names = {"red_unit_test", "green_unit_test", "compile_check"}
     gate_names = {"speed_contract", "project_rules", "secret_guard", "check_lab", "lab_unit_tests", "async_execution"}
     waterflow_names = {"waterflow_scan", "waterflow_verify"}
-    omx = next((check for check in checks if check["name"] == "omx_model_smoke"), None)
     total_seconds = round(sum(float(check["duration_seconds"]) for check in checks), 3)
     return {
         "schema_version": 1,
         "run_id": run["run_id"],
         "generated_at": run["generated_at"],
         "status": "pass" if not failed else "fail",
-        "with_omx": bool(run["with_omx"]),
         "total_seconds": total_seconds,
         "local_seconds": round(sum(float(durations.get(name, 0)) for name in local_names), 3),
         "gate_seconds": round(sum(float(durations.get(name, 0)) for name in gate_names), 3),
         "waterflow_seconds": round(sum(float(durations.get(name, 0)) for name in waterflow_names), 3),
-        "omx_seconds": None if omx is None else omx.get("duration_seconds"),
-        "omx_tokens": None if omx is None else omx.get("tokens_used"),
         "failed_checks": [check["name"] for check in failed],
         "run_json": run["run_json"],
         "run_markdown": run["run_markdown"],
@@ -425,13 +400,10 @@ def write_history(summary: dict[str, object]) -> None:
             "generated_at",
             "run_id",
             "status",
-            "with_omx",
             "total_seconds",
             "local_seconds",
             "gate_seconds",
             "waterflow_seconds",
-            "omx_seconds",
-            "omx_tokens",
             "failed_checks",
         ]
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
@@ -455,24 +427,21 @@ def build_history_markdown(history: list[dict[str, object]]) -> str:
         f"- Runs recorded: `{len(history)}`",
         f"- Latest run: `{recent[-1].get('run_id')}`",
         "",
-        "| Run | Status | OMX | Total | Local | Gates | Waterflow | Model | Curve |",
-        "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |",
+        "| Run | Status | Total | Local | Gates | Waterflow | Curve |",
+        "| --- | --- | ---: | ---: | ---: | ---: | --- |",
     ]
     for item in recent:
         total = float(item.get("total_seconds") or 0)
         bar_width = max(1, round((total / max_total) * 18))
         bar = "#" * bar_width
-        model = item.get("omx_seconds")
         lines.append(
-            "| {run} | {status} | {with_omx} | {total:.3f}s | {local:.3f}s | {gates:.3f}s | {waterflow:.3f}s | {model} | `{bar}` |".format(
+            "| {run} | {status} | {total:.3f}s | {local:.3f}s | {gates:.3f}s | {waterflow:.3f}s | `{bar}` |".format(
                 run=item.get("run_id"),
                 status=item.get("status"),
-                with_omx="yes" if item.get("with_omx") else "no",
                 total=total,
                 local=float(item.get("local_seconds") or 0),
                 gates=float(item.get("gate_seconds") or 0),
                 waterflow=float(item.get("waterflow_seconds") or 0),
-                model="-" if model is None else f"{float(model):.3f}s",
                 bar=bar,
             )
         )
@@ -488,7 +457,6 @@ def build_run_markdown(run: dict[str, object], summary: dict[str, object]) -> st
         f"- Run id: `{run['run_id']}`",
         f"- Generated: `{run['generated_at']}`",
         f"- Status: `{summary['status']}`",
-        f"- With OMX: `{str(run['with_omx']).lower()}`",
         f"- Run dir: `{Path(str(run['run_dir'])).relative_to(LAB_ROOT)}`",
         "",
         "## Checks",
@@ -512,8 +480,6 @@ def build_run_markdown(run: dict[str, object], summary: dict[str, object]) -> st
             f"- Local seconds: `{summary['local_seconds']}`",
             f"- Gate seconds: `{summary['gate_seconds']}`",
             f"- Waterflow seconds: `{summary['waterflow_seconds']}`",
-            f"- OMX seconds: `{summary['omx_seconds']}`",
-            f"- OMX tokens: `{summary['omx_tokens']}`",
             "",
             "## Artifacts",
             "",
@@ -579,41 +545,12 @@ def run_benchmark(args: argparse.Namespace) -> tuple[dict[str, object], dict[str
     for name, command, timeout in lab_checks:
         checks.append(run_command(name, command, LAB_ROOT, logs, timeout=timeout))
 
-    omx_check = None
-    if args.with_omx:
-        prompt_path = fixture / "omx-smoke-prompt.md"
-        write_text(prompt_path, OMX_PROMPT)
-        omx_path = Path.home() / ".local" / "bin" / "omx-api"
-
-        def verify_omx_output() -> None:
-            output = fixture / "omx-smoke.md"
-            text = output.read_text(encoding="utf-8")
-            missing = [section for section in ("## Summary", "## Evidence", "## Gaps") if section not in text]
-            if missing:
-                raise RuntimeError(f"omx-smoke.md missing sections: {missing}")
-
-        omx_check = run_command(
-            "omx_model_smoke",
-            [str(omx_path), "exec", "-C", str(fixture), "-"],
-            fixture,
-            logs,
-            timeout=args.omx_timeout,
-            stdin_text=OMX_PROMPT,
-            env_extra={"OMX_GREEN_LIGHT_NOTIFY": "0"},
-            post_check=verify_omx_output,
-        )
-        stdout_text = (logs / "omx_model_smoke.stdout.txt").read_text(encoding="utf-8")
-        stderr_text = (logs / "omx_model_smoke.stderr.txt").read_text(encoding="utf-8")
-        omx_check["tokens_used"] = tokens_from_text(stdout_text + "\n" + stderr_text)
-        checks.append(omx_check)
-
     waterflow_summary = parse_waterflow_summary()
     async_summary = latest_async_summary()
     run: dict[str, object] = {
         "schema_version": 1,
         "run_id": run_id,
         "generated_at": utc_now(),
-        "with_omx": args.with_omx,
         "skip_waterflow_verify": args.skip_waterflow_verify,
         "run_dir": str(run_dir),
         "fixture": str(fixture),
@@ -634,14 +571,9 @@ def run_benchmark(args: argparse.Namespace) -> tuple[dict[str, object], dict[str
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the Codex Agent Lab IDE-loop benchmark.")
-    parser.add_argument("--skip-omx", action="store_true", help="Skip the real API-relay OMX model smoke test.")
-    parser.add_argument("--with-omx", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--skip-waterflow-verify", action="store_true", help="Skip boundary-level Waterflow verification.")
-    parser.add_argument("--omx-timeout", type=int, default=300, help="Timeout seconds for the OMX smoke test.")
     parser.add_argument("--run-id", help="Optional run id for deterministic test runs.")
-    args = parser.parse_args(argv)
-    args.with_omx = not args.skip_omx or bool(args.with_omx)
-    return args
+    return parser.parse_args(argv)
 
 
 def main(argv: list[str]) -> int:
@@ -654,7 +586,6 @@ def main(argv: list[str]) -> int:
 
     print(f"run_id: {run['run_id']}")
     print(f"status: {summary['status']}")
-    print(f"with_omx: {str(summary['with_omx']).lower()}")
     print(f"total_seconds: {summary['total_seconds']}")
     print(f"history: {HISTORY_MD.relative_to(LAB_ROOT)}")
     print(f"run_json: {summary['run_json']}")

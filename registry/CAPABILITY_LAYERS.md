@@ -1,6 +1,6 @@
 # Codex Capability Layers
 
-Last updated: 2026-06-30 20:30 +0800
+Last updated: 2026-07-21 00:00 +0800
 
 This file keeps upper-layer expansion separate from the global Codex base. Promote patterns upward only when they have repeated value and clear verification.
 
@@ -28,7 +28,7 @@ Status: complete
 
 - App/default lane and Terminal/API-relay lane are separated.
 - Non-secret context sync is wired.
-- OMX green-light signaling is wired.
+- Codex API relay usage is available when terminal execution is useful.
 - `codex-architecture-doctor` is the machine-level health gate.
 
 ## Layer 1: Project-Level Rules
@@ -39,7 +39,7 @@ Purpose: every important project gets a local operating contract instead of rely
 
 Required surfaces:
 
-- Local `AGENTS.md` with project boundaries, lane routing, OMX usage, and verification rules.
+- Local `AGENTS.md` with project boundaries, lane routing, harness/loop usage, and verification rules.
 - A human start surface: `README.md`, `brief.md`, or equivalent.
 - Durable progress: `progress.md`, `registry/current-progress.md`, or equivalent.
 - Validation evidence: `VALIDATION.md`, `registry/VALIDATION.md`, or task-specific validation notes.
@@ -61,22 +61,20 @@ Implementation in this lab:
 
 Status: active
 
-Purpose: make recurring App / CLI / OMX usage patterns explicit, checkable, and easy to invoke.
+Purpose: make recurring App / CLI / multi-agent usage patterns explicit, checkable, and easy to invoke.
 
 Modes:
 
 - Daily App development.
 - CLI quick diagnosis.
-- OMX long-horizon execution.
 - Multi-agent review or refactor.
 - Overnight checkpointed work.
 
 Implementation in this lab:
 
-- `docs/workflow-modes.md` defines entry command, expected artifacts, verification path, stop condition, and OMX level for each mode.
+- `docs/workflow-modes.md` defines entry command, expected artifacts, verification path, and stop condition for each mode.
 - `scripts/workflow-mode` prints mode contracts from the terminal.
 - `scripts/check-workflow-modes` verifies the catalog and script stay aligned.
-- `registry/OMX_RETROSPECTIVE.md` records the initial evidence-based judgment: OMX helped with routing, auditability, runtime confidence, continuity, and verification discipline, but has not yet proven multi-agent throughput value.
 
 Promotion gate:
 
@@ -101,7 +99,6 @@ Implementation in this lab:
 
 - `secret-boundary-auditor` protects secret, auth, token, and local path boundaries.
 - `async-race-detector` protects concurrent checks, temp paths, hidden stderr, timeouts, and cleanup.
-- `tmux-omx-runtime-doctor` captures staged diagnosis for OMX team/tmux worker failures.
 - `sandbox-artifact-hygiene` classifies generated outputs, logs, workspaces, and proof artifacts before commit.
 - `scripts/check-sandbox-skills` validates the sandbox skill pack and is invoked by `scripts/check-lab`.
 
@@ -114,7 +111,7 @@ Promotion gate:
 
 Status: planned
 
-Purpose: run durable, restartable OMX work with checkpoints, workspaces, and validation.
+Purpose: run durable, restartable long-horizon work with checkpoints, workspaces, and validation.
 
 Required surfaces:
 
@@ -152,7 +149,7 @@ Implementation in this lab:
 - `scripts/check-secrets` uses lab-local `.tmp/` scratch space and redacts token contents from output.
 - `scripts/check-speed-contract` verifies Waterflow supervision stays non-blocking by default and that default lab gates do not invoke heavy Waterflow, stress, incident, broad unit, or async fan-out checks.
 - `scripts/check-task-state` verifies the lightweight task-state scheduler registry, dependency graph, state transitions, stale running leases, and next runnable task view.
-- `scripts/benchmark-ide-loop` records repeatable RED/GREEN, health-gate, Waterflow, and optional OMX model-smoke timings under `outputs/shared/benchmarks/ide-loop/`.
+- `scripts/benchmark-ide-loop` records repeatable RED/GREEN, health-gate, and Waterflow timings under `outputs/shared/benchmarks/ide-loop/`.
 - `scripts/lab-dashboard` renders the latest benchmark, Waterflow, task-state, run-record, async, and git state into one compact Markdown and JSON dashboard.
 - `scripts/check-lab` runs root fast-path gates together while avoiding workspace-wide sweeps that can slow or disturb active Codex/Claude workspace work.
 - `docs/sandbox-boundaries.md` records the local sandbox contract.
@@ -167,9 +164,9 @@ Promotion gate:
 
 ## Layer 6: Codex-Claude Collaboration
 
-Status: active (capabilities available, runtime proof pending)
+Status: active
 
-Purpose: give the Claude/OMC lane and the Codex/OMX lane a durable, auditable way to collaborate inside one lab without crossing isolation boundaries or copying secrets between lanes.
+Purpose: give the Claude lane and the Codex lane a durable, auditable way to collaborate inside one lab without crossing isolation boundaries or copying secrets between lanes.
 
 Required surfaces:
 
@@ -188,8 +185,8 @@ Implementation in this lab:
 
 Honest status:
 
-- Collaboration commands are installed (`omc ask`, `omc team`, `omc interop`; Codex `omx-api exec`/`team`).
-- Real interop is not proven yet: the earlier OMC team run is `blocked` (`worker_start_submit_unverified`), `.omc/state/interop` does not exist, and a real tmux proof must be run from a terminal.
+- Collaboration commands and App-native delegation surfaces are available.
+- Historical OMC-to-Codex interop proof exists, while the old external team/tmux runtime is no longer a current operating surface on this machine.
 
 Promotion gate:
 

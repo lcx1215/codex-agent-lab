@@ -50,7 +50,9 @@ header, so production Sa-Token gateway rejects it.
    tests over string matching — the string test passed even when ClientID was never returned,
    which is exactly why this bug slipped through.
 
-## Verification (Claude, before revert)
+## Verification
+
+(Claude, before revert.)
 
 - gateway suite 259 pass / 0 fail / 2 skip (was 258; +1 the new structural test).
 - node --check on all touched files clean; verify:upload release+eval passed.

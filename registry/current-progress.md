@@ -1,10 +1,10 @@
 # Current Lab Progress
 
-Last updated: 2026-07-08 15:12 +0800
+Last updated: 2026-07-21 00:00 +0800
 
 ## Objective
 
-Create a clean, isolated Desktop Codex agent lab for strict, long-horizon agent development. The lab should become a rich, layered, evidence-driven environment for large Codex, Claude, OMX, and future-agent workflows while preserving lane isolation and secret safety.
+Create a clean, isolated Desktop Codex agent lab for strict, long-horizon agent development. The lab should become a rich, layered, evidence-driven environment for large Codex, Claude, and future-agent workflows while preserving lane isolation and secret safety.
 
 ## Isolation State
 
@@ -42,26 +42,26 @@ Create a clean, isolated Desktop Codex agent lab for strict, long-horizon agent 
 - Secret scanning avoids false positives on ordinary slugs like `task-state-*` while still failing on real `sk-...` token shapes and redacting matching content.
 - README uses reader-friendly relative paths instead of machine-local `/Users/...` prefixes.
 - Capability Layer 1 is installed for project-level rules: `registry/CAPABILITY_LAYERS.md` tracks the upper-layer expansion plan, `docs/project-rule-template.md` defines reusable project-local `AGENTS.md` structure, `scripts/check-project-rules` validates the rule surfaces, and `scripts/new-workspace` now creates a local workspace `AGENTS.md`.
-- Capability Layer 2 is installed for workflow modes: `docs/workflow-modes.md` defines daily App, CLI diagnosis, OMX long-horizon, multi-agent review, and overnight checkpoint modes; `scripts/workflow-mode` prints each mode contract; `scripts/check-workflow-modes` validates the catalog; `registry/OMX_RETROSPECTIVE.md` records the evidence-based OMX usefulness assessment.
-- First bounded OMX execution proof completed in `workspaces/20260629_204008-omx-execution-proof`. `omx-api exec` produced required artifacts and App-side audit added `app-audit.md`. Verdict: mixed but useful; OMX proved bounded CLI artifact execution and auditability, but not team/tmux parallel throughput. A shell quoting incident accidentally invoked `omx-api` and is recorded as an execution risk. App-side audit removed the temporary `/tmp/benefit-matrix-check.txt`.
-- Team/tmux proof workspace `workspaces/20260629_210146-omx-team-tmux-proof` now records a second OMX proof. Official `omx-api team` still failed before useful worker execution (`worker_notify_failed`, missing pane `%1`, missing startup script evidence), but two direct tmux-launched `omx-api exec` workers completed and wrote `tmux-worker-1.md` and `tmux-worker-2.md`.
+- Capability Layer 2 is installed for workflow modes: `docs/workflow-modes.md` defines daily App, CLI diagnosis, multi-agent review, and overnight checkpoint modes; `scripts/workflow-mode` prints each mode contract; `scripts/check-workflow-modes` validates the catalog. The old extra orchestration runtime is no longer a current operating surface on this machine.
+- Historical bounded external-runtime execution proof remains in `workspaces/20260629_204008-omx-execution-proof`. It is evidence of past CLI artifact execution and auditability, not a current default runtime requirement.
+- Historical team/tmux proof remains in `workspaces/20260629_210146-omx-team-tmux-proof`. It recorded mixed results and is not used as the current delegation path.
 - Sandbox boundaries are hardened: `docs/sandbox-boundaries.md` defines the local contract, `scripts/check-sandbox` verifies clean-home config, writable roots, tmp exclusion, symlink escapes, forbidden secret-like files, script portability, and directory permissions, and `scripts/check-lab` now invokes the sandbox gate.
 - Clean-home config now excludes system tmp directories; scripts and tests use lab-local `.tmp/` scratch space.
 - Async execution safety is covered by `scripts/check-async-execution`, which runs independent checks concurrently with per-task `TMPDIR` values and isolated Waterflow output directories. `docs/reasoning-speed-playbook.md` records how to reduce avoidable `gpt-5.5` + `xhigh` latency without lowering reasoning quality for hard decisions.
 - Async execution safety is now stricter: `scripts/check-async-execution` treats unexpected stderr from quiet health checks as failure, while explicitly allowing unittest progress stderr. `scripts/check-sandbox` prunes volatile `.tmp/` scratch subtrees during recursive scans to avoid racing concurrently removed temp directories.
-- Sandbox Skill Pack 1 is installed under `.agents/skills`: `secret-boundary-auditor`, `async-race-detector`, `tmux-omx-runtime-doctor`, and `sandbox-artifact-hygiene`. `scripts/check-sandbox-skills` validates the pack and is invoked by `scripts/check-lab`.
+- Sandbox Skill Pack 1 is installed under `.agents/skills`: `secret-boundary-auditor`, `async-race-detector`, and `sandbox-artifact-hygiene`. `scripts/check-sandbox-skills` validates the pack and is invoked by `scripts/check-lab`.
 - Waterflow speed contract is promoted as a default health gate: `docs/waterflow-speed-contract.md` defines non-blocking supervision, fast/boundary/stress paths, blocking rules, and performance budgets; `scripts/check-speed-contract` validates that default gates stay lightweight.
-- IDE-loop benchmark and dashboard are installed: `scripts/benchmark-ide-loop` records repeatable RED/GREEN, health-gate, Waterflow, async, and optional OMX-smoke timings under `outputs/shared/benchmarks/ide-loop/`; `scripts/lab-dashboard` renders the latest benchmark, Waterflow, async, and git state into `outputs/shared/dashboard/`.
+- IDE-loop benchmark and dashboard are installed: `scripts/benchmark-ide-loop` records repeatable RED/GREEN, health-gate, Waterflow, and async timings under `outputs/shared/benchmarks/ide-loop/`; `scripts/lab-dashboard` renders the latest benchmark, Waterflow, async, and git state into `outputs/shared/dashboard/`.
 - A local-only scenario workspace exists for private agent experimentation and is intentionally excluded from Git/GitHub.
 - Root lab positioning has been corrected: the sandbox is scenario-neutral and can host arbitrarily large agent families. UCP and other domain-specific agents are future scenario workspaces only. The lab's job is to amplify Codex and Claude with durable state, harnesses, Waterflow, benchmarks, skills, and verification gates, not replace their reasoning or coding ability.
-- Codex/OMX and Claude/OMC now share the same environment placement model: `codex-agent-lab` is the maximum environment, `workspaces/<scenario>/` are medium workspaces/projects, and `agents/<package>/` folders are small agent packages. All three levels are sandboxed work surfaces, so the support scenario is named `workspaces/support-agent-workspace/`; `sandbox` is reserved for the safety property of the whole layered environment.
+- Codex and Claude now share the same environment placement model: `codex-agent-lab` is the maximum environment, `workspaces/<scenario>/` are medium workspaces/projects, and `agents/<package>/` folders are small agent packages. All three levels are sandboxed work surfaces, so the support scenario is named `workspaces/support-agent-workspace/`; `sandbox` is reserved for the safety property of the whole layered environment.
 - Nested rule inheritance is installed: `docs/rule-inheritance.md` defines the effective rule chain from root lab to workspace to small agent package. `AGENTS.md`, `CLAUDE.md`, `README.md`, `docs/environment-layering.md`, `docs/scenario-workspace-contract.md`, `docs/project-rule-template.md`, and `workspaces/README.md` now point to it. New workspaces generated by `scripts/new-workspace` include local `AGENTS.md`, a Claude entry `CLAUDE.md`, and `agents/README.md` so Codex or Claude can start inside a medium workspace or small package without dropping parent rules.
 - Scenario workspace contract is installed: `docs/scenario-workspace-contract.md` defines how arbitrary future agent families stay local while amplifying Codex/Claude capability. `scripts/new-workspace` now generates `Scenario Boundary` and `Codex Claude Amplification` sections, and `tests/test_workspace_contract.py` locks that scaffold behavior.
 - Foundation amplifier agent is installed under `.codex/agents/foundation-amplifier.toml` to help Codex and Claude route large lab work, choose the right verification chain, and backtest whether new capabilities actually improve the environment. Backtest artifact: `outputs/shared/foundation-amplifier/backtest-20260630T0330Z.md`.
-- Real model-backed validation is now allowed as normal evidence when it proves the capability being changed. A live API-relay OMX invocation used `gpt-5.5` with `xhigh` reasoning and wrote `outputs/shared/foundation-amplifier/live-model-backed-20260630T034423Z.md`.
+- Real model-backed validation is allowed as normal evidence when it proves the capability being changed. Historical live API-relay model proof wrote `outputs/shared/foundation-amplifier/live-model-backed-20260630T034423Z.md`.
 - Former frugality guidance has been removed from lab rules and mirrored skill surfaces. Security credential protections remain in force: secrets, auth files, API keys, cookies, OTPs, provider config, and plugin state are still protected.
 - Development Experience Auditor is installed under `.codex/agents/development-experience-auditor.toml` with docs in `docs/development-experience-auditor-agent.md`, a deterministic harness in `lab_agents/development_experience.py`, and CLI entrypoint `scripts/development-experience-audit`.
-- Latest development comfort report is `outputs/shared/development-experience-auditor/latest.md`: score 92, status `usable_with_friction`, with runtime as the only mixed dimension because the latest OMX model smoke took 84.959s.
+- Latest development comfort report is `outputs/shared/development-experience-auditor/latest.md`. Re-run it after the current lightweight runtime cleanup before using its runtime score as current evidence.
 - Third-Party Large Agent Readiness Auditor is installed under `.codex/agents/third-party-large-agent-auditor.toml` with docs in `docs/third-party-large-agent-auditor.md`, a deterministic harness in `lab_agents/large_agent_readiness.py`, and CLI entrypoint `scripts/large-agent-readiness-audit`.
 - Latest third-party large-agent readiness report is `outputs/shared/large-agent-readiness-auditor/latest.md`: score 92, status `ready_with_known_constraints`, with delegation and performance as mixed dimensions and no failed or missing dimensions.
 - Runtime compatibility gate is installed: `scripts/check-runtime-compatibility` verifies required local commands, Python support, script hygiene, runtime ignore rules, clean-home auth absence, and documentation wiring. It writes `outputs/shared/compatibility/runtime-compatibility.json` and `.md`, and `scripts/lab-dashboard` now shows compatibility status.
@@ -71,7 +71,7 @@ Create a clean, isolated Desktop Codex agent lab for strict, long-horizon agent 
 - No secrets are copied into the lab.
 - Capability Layer 6 (Codex-Claude Collaboration) is installed: `CLAUDE.md` is the Claude/OMC lane-local contract (counterpart to `AGENTS.md`), `docs/codex-claude-collaboration-protocol.md` defines leader/worker/reviewer roles, lane boundaries, handoff format, assignments-ledger shape, and a proof bar, `registry/collaboration/assignments.json` is the durable ledger (schema `codex-claude-collaboration-assignments/v1`), `registry/collaboration/handoffs/` holds dated English handoffs, and `scripts/check-collaboration` is the lane-portable health gate wired into `scripts/check-lab`.
 - Workbench protocol v2 alignment is installed: `docs/codex-claude-collaboration-protocol.md` now defines how collaboration assignments, handoffs, task state, run records, and dashboard relate; `scripts/check-collaboration` enforces the new workbench-state section and non-substitution rule.
-- Collaboration honest status: commands are installed (`omc ask`, `omc team`, `omc interop`, Codex `omx-api`). Real OMC-to-OMX interop is now proven by assignment `collab-0003-interop-proof`; official OMC team bootstrap remains blocked in `collab-0001` with `worker_start_submit_unverified`.
+- Collaboration honest status: current collaboration uses Codex/Claude handoffs and App-native bounded delegation. Historical OMC-to-Codex interop proof is recorded by assignment `collab-0003-interop-proof`; the old external team bootstrap remains historical blocked evidence, not a current default path.
 - Cross-lane script portability root cause documented: lab scripts call `rg`, which is the Codex.app-bundled ripgrep at `/Applications/Codex.app/Contents/Resources/rg`, not a system binary; the Claude bash lane has no `rg`, so `scripts/check-collaboration` falls back to `grep -E` and runs in both lanes.
 - Self-audit honesty hardening is installed: `lab_agents/large_agent_readiness.py` now executes `scripts/check-lab` for the verification dimension and validates live model-proof artifact content/recency instead of passing on file existence alone.
 - Structured per-run records are installed and active: `docs/run-record-schema.md` defines schema v1, `lab_agents/run_record.py` builds and validates records, `scripts/check-run-records` validates every `registry/runs/*/record.json` plus `registry/runs/latest.json`, and `scripts/check-lab` now runs the validator.
@@ -172,11 +172,90 @@ Create a clean, isolated Desktop Codex agent lab for strict, long-horizon agent 
 ## Next Optional Check
 
 - Add a generic JSONL batch eval runner template for local-only scenario workspaces.
-- Run a stricter OMX team/tmux or longer-running proof only when there is a real task that benefits from parallelism or checkpointed runtime state.
+- Run heavier multi-agent or longer-running proof only when there is a real task that benefits from parallelism or checkpointed runtime state.
 - Add sampled rotation checks for unchanged low-risk route families.
 - Add a small registry index for live model-backed invocation artifacts if more than one such proof is created.
 - Use `development-experience-auditor` after the next medium/large agent build to compare whether comfort improves beyond 92 and whether the runtime friction is reduced or intentionally accepted as a boundary-only cost.
 - Use `third-party-large-agent-auditor` before the first truly large long-horizon workspace pilot and after any delegation/runtime promotion.
+
+## Latest Customer-Support Production Review Fix - 2026-07-13
+
+- Target repo: `workspaces/customer-support-production-repo`.
+- Completed commit: `59366bbd8c869895ac16f4ed15be089618938250`.
+- Remote `test` and `import-customer-support-agent` both point to the completed commit.
+- Scope: close the reviewed runtime DynamoDB readiness, atomic index writes,
+  Java BFF upstream validation, browser identity stripping, UAT handoff
+  documentation gaps, Node BFF SSE anti-buffering header mismatch, and the
+  Turborepo build-time feature-flag handoff gap.
+- Constraints: only push the two target branches in the target repository; do not create an MR or modify other repositories.
+- Verification: DynamoDB Local was started; upload gate passed with 314 gateway tests, 314 passed, 0 failed, and 0 skipped; context eval passed 29/29; isolated Java BFF tests passed 22/22; backend handoff checksum passed 20/20.
+- Portable Node BFF now also recursively strips browser identity fields across nested objects and arrays, including snake_case, camelCase, case, and separator variants.
+- Frontend probe used `merchant-portal-refactor origin/test@2eee5331`.
+  Negative control proved that inline
+  `VITE_CLINK_ASSISTANT_ENABLED=true pnpm run build:staging` can report Turbo
+  11/11 while omitting the flag from final JS. Positive control with
+  `apps/web-antd/.env.staging.local` produced
+  `VITE_CLINK_ASSISTANT_ENABLED:"true"`.
+- Handoff docs now require `apps/web-antd/.env.test/.env.staging`, or CI
+  declaration through `turbo.json` `globalEnv/tasks.build.env`, plus final
+  `dist/static/js` inspection. Turbo 11/11 alone is not an acceptance result.
+- Root README was rewritten around the implemented end-to-end workflow and
+  production deployment path. It now explains browser input, Java BFF identity,
+  HMAC/replay verification, Agent routing, knowledge/tools/model handling,
+  persistence, deployment units, frontend incremental integration, and UAT
+  acceptance. Roadmap sections, optional channels, temporary widget guidance,
+  and repeated future storage discussion were removed.
+- Removed the unreferenced `scripts/export-runtime-dropin.sh`, which still
+  generated a second production sidecar path on port 8787. Official deployment
+  remains `services/gateway/Dockerfile` or `deploy/start.sh` on port 19950.
+- Turbo CI documentation now consistently uses `globalEnv` or
+  `tasks.build.env`; the duplicated browser security bullet was removed.
+- Full local backend chain passed: same-origin signed BFF JSON/SSE, nonce replay
+  rejection, DynamoDB persistence, cross-merchant isolation, and post-restart
+  conversation read.
+- Multi-replica runtime health checks now retry explicit DynamoDB transaction conflicts with short backoff while keeping IAM, schema, and other failures fail-closed.
+- Mac handoff document: `outputs/app-plus/客服Agent前端对接说明.docx`; DOCX structural and text checks passed without render by explicit user request.
+
+## Latest Company-Entry And Test-Environment Alignment - 2026-07-14
+
+- Canonical production delivery repo for this work:
+  `workspaces/customer-support-production-repo`.
+- Fixed local product port `8790` is removed from this delivery repo. Local
+  verification now uses an auto-assigned internal port recorded in the private
+  `.run/local-product/session.env`; the only product entrypoint shown to users
+  and deployment docs is `https://dashboard.clinkbill.dev/`.
+- The frontend assistant now uses one generated request id for both JSON
+  `request_id` and `X-Request-Id`. Staging `X-Clink-Env`, request id, and
+  language headers are forwarded by the Node BFF and Java BFF. These headers
+  are observability/environment context only and never grant identity or
+  permissions.
+- Agent gateway, Node BFF, and Java BFF now align SSE responses on
+  `Cache-Control: no-cache, no-store, no-transform` plus
+  `X-Accel-Buffering: no`. Standard public health probes are available at
+  `/actuator/health/liveness` and `/actuator/health/readiness`; readiness fails
+  closed without exposing runtime errors.
+- The Java delivery allowlist (6 production classes and 4 tests) was synced
+  into the real company checkout
+  `workspaces/agent-dev-workspace/external/clink-gateway`. Existing global
+  `AuthFilter.java` and `AgentApiKeyAuthFilter.java` were deliberately not
+  overwritten. Delivery and source files match byte-for-byte within the
+  allowlist.
+- Fresh verification: gateway `322 tests` -> `320 pass / 0 fail / 2 skipped`
+  (only DynamoDB Local tests skipped because Docker daemon is unavailable);
+  context eval `29/29`; portable check pass; root secret check pass; local
+  company-path smoke pass for `/prod-api`, `context-cards`, synchronous
+  `query`, and SSE `query-stream` with a real non-degraded model.
+- Nacos read-only probe: both `192.168.5.137:8848` and
+  `172.31.40.117:8848` report version `2.3.2` and return `200` for liveness and
+  readiness. Config/service APIs return `403` because auth is enabled; no
+  Nacos credential was read or used, so no config-center mutation was made.
+- Live product probe: `https://dashboard.clinkbill.dev/` returns `200`, but
+  `POST /agent-api/v1/assistant/context-cards` still returns
+  `405 text/html`. Company Nacos/nginx `/agent-api` routing is therefore not
+  deployed yet and production completion must not be claimed.
+- Current verification gap: this Mac has no Java Runtime, Maven, or Maven
+  Wrapper in the `clink-gateway` checkout, so the freshly synced Java tests
+  could not be executed in this session.
 
 ## Latest Integration Probe - 2026-07-01 15:58 +0800
 

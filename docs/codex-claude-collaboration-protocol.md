@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-01 14:25 +0800
 
-This document defines how the Claude/OMC lane and the Codex/OMX lane collaborate inside this lab without
+This document defines how the Claude/OMC lane and the Codex lane collaborate inside this lab without
 crossing the isolation boundaries in `AGENTS.md` (Codex lane) and `CLAUDE.md` (Claude lane).
 
 ## Purpose
@@ -21,7 +21,7 @@ This protocol governs *how* the two lanes exchange work. It sits alongside:
   starts from a nested directory.
 - `docs/task-state-scheduler.md` — the shared task-state registry and next-runnable-task view.
 - `docs/run-record-schema.md` — the structured evidence record for meaningful lane runs.
-- `AGENTS.md` (`## Environment Scale Placement`, `## Isolation`) — the Codex/OMX lane-local contract.
+- `AGENTS.md` — the Codex lane-local contract.
 - `CLAUDE.md` (`## Environment Scale Placement`, `## Collaboration`) — the Claude/OMC lane-local contract.
 
 Together these are the unified development-environment protocol: placement (layering), inheritance, exchange
@@ -53,7 +53,7 @@ Codex and Claude must describe the lab the same way:
 ## Lane Boundaries
 
 - Claude/OMC drives only `~/.claude` context and lab-local `.omc/`.
-- Codex/OMX drives only `~/.codex`, `~/.codex-api-relay`, and lab-local `.omx/`.
+- Codex drives only `~/.codex` and optional API-relay state under `~/.codex-api-relay`.
 - Neither lane reads or copies the other lane's secrets, `auth.json`, tokens, or provider config.
 - Cross-lane data moves only through `registry/collaboration/` and `outputs/shared/`.
 
@@ -107,7 +107,7 @@ command. Examples of proof:
 
 - A real tmux-based `omc interop` session that produced split-pane output, with an artifact recorded under
   `outputs/shared/` and an assignment entry moved to `proven`.
-- An OMC leader plus a Codex/OMX worker where the worker wrote a real handoff file and the reviewer recorded a
+- An OMC leader plus a Codex worker where the worker wrote a real handoff file and the reviewer recorded a
   verdict.
 
 Installed-but-unproven capabilities (e.g. `omc team`, `omc interop` that never ran to completion) stay at
@@ -118,9 +118,9 @@ run (`worker_start_submit_unverified`).
 
 - `omc ask <lane> ...` — single-shot cross-model question; artifacts land under `.omc/artifacts/ask/`.
 - `omc team N:agent-type[:role] ...` — OMC implicit agent team.
-- `omc interop` — Claude/OMC + Codex/OMX split-pane tmux session; must be launched from inside tmux in a real
+- `omc interop` — Claude/OMC + Codex split-pane tmux session; must be launched from inside tmux in a real
   terminal, so it cannot be proven from a GUI-only session.
-- Codex/OMX side: `omx-api exec` and `omx-api team` from the API-relay lane.
+- Codex side: Codex App or `codex-api` from the API-relay lane.
 
 ## Verification
 

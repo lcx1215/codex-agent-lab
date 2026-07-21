@@ -31,7 +31,7 @@
 
 ### 为什么存在
 
-各自的 agent 工具(OMC/OMX 插件)让每个 agent 单独看都很能干,但并不能让两个
+各自的 agent 工具让每个 agent 单独看都很能干,但并不能让两个
 agent 协同工作时不互相覆盖文件、不共享同一个事实来源、也不互相评审。这个 lab
 补的正是这缺失的一层:治理、交接(hand-off)、以及防碰撞的协作——插件不提供的
 那套管道。
@@ -120,13 +120,13 @@ lab 里的 agent 自主运行:端到端完成任务,不向用户请求批准—�
 ./scripts/start-clean-home
 ```
 
-项目隔离的 API-relay lane(默认用已有的 API relay 认证/配置 home 和 OMX):
+项目隔离的 API-relay lane(使用已有的 API relay 认证/配置 home):
 
 ```bash
 ./scripts/start-api-relay
 ```
 
-非 OMX 的 API-relay 回退(仅用于诊断或显式绕过):
+普通 API-relay 回退:
 
 ```bash
 ./scripts/start-api-relay-plain
@@ -153,7 +153,7 @@ API 认证。
 | `check-task-state` | 检查轻量任务状态调度器 registry |
 | `check-collaboration` | 校验 Codex-Claude 协作面 |
 | `check-secrets` | 提交前的密钥扫描 |
-| `benchmark-ide-loop [--skip-omx]` | 跑 IDE 循环基准(可跳过模型 smoke test) |
+| `benchmark-ide-loop` | 跑 IDE 循环基准 |
 | `lab-dashboard` | 渲染一屏 lab 仪表盘 |
 | `development-experience-audit` | 审计 lab 里 Codex/Claude 的开发舒适度 |
 | `large-agent-readiness-audit` | 以第三方评审视角审计大 agent 就绪度 |
@@ -229,7 +229,7 @@ Codex 可在活跃 lane 里使用它正常的全局技能和插件。本 lab 专
 ## 工作流模式
 
 用 `docs/workflow-modes.md` 和 `scripts/workflow-mode` 在日常 App 工作、CLI 诊断、
-OMX 长周期执行、多 agent 评审、以及过夜检查点工作之间选择。这些模式是路由契约,不
+多 agent 评审、以及过夜检查点工作之间选择。这些模式是路由契约,不
 覆盖全局安全规则。
 
 ## 密钥安全
@@ -263,4 +263,3 @@ lab 本地临时文件应放 `.tmp/`。改动沙箱配置、符号链接、临�
 
 本 lab 不得改动用户默认的 App/Plus lane 或 API-relay lane。它可以用 API-relay
 启动器获取模型访问,同时把项目文件、输出、自定义 agent 和任务工作区都留在本 lab 内。
-

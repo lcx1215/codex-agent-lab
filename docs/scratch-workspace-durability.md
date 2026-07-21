@@ -1,30 +1,30 @@
 # Scratch Workspace Durability
 
-Some integration work happens in assembly directories that are useful for speed
-but are not git-backed source-of-truth repos. The current Clink dashboard
-assistant workspace is one of them:
+Some historical integration work happened in assembly directories that were
+useful for speed but were not git-backed source-of-truth repos. The retired
+Clink dashboard assistant assembly is:
 
 `workspaces/agent-dev-workspace/external/merchant-portal-refactor-main-agent/`
 
-The rule is simple: a release-worthy file authored in a scratch workspace must
+It is not a current implementation or release source. The rule is simple: a
+release-worthy file authored in a scratch workspace must
 be captured before anyone calls the release done. Capture means either refluxing
 the file to its owning real repo, or recording a durability snapshot under
 `registry/scratch-durability/`.
 
 ## Reflux Targets
 
-- Dashboard frontend integration files belong in
-  `workspaces/agent-dev-workspace/external/merchant-portal-refactor`.
-- Dashboard assistant deploy/BFF handoff files currently reflux to
-  `workspaces/agent-dev-workspace/external/merchant-portal-refactor` unless the
-  production B-end owner moves them into `clink-gateway` or `clink-platform`.
-- Customer-support agent runtime files are currently snapshot-required. The
-  durable owner repo is still pending; until it exists, the snapshot is the
-  mandatory capture proof.
+- Dashboard frontend integration belongs to the real company repository
+  `clink/merchant-portal-refactor`.
+- Customer-support Agent runtime belongs to the real company repository
+  `clink/pay/clink-merchant-assistant`.
+- Old deploy/BFF handoffs are retired and must not be refluxed into
+  `clink-gateway`, `clink-platform`, or ArgoCD configuration.
 
-Do not use the historical
-`workspaces/agent-dev-workspace/agents/customer-support/` package for this
-integration.
+Do not use either historical local package for current integration:
+
+- `workspaces/agent-dev-workspace/agents/customer-support/`
+- `workspaces/agent-dev-workspace/external/merchant-portal-refactor-main-agent/agents/customer-support/`
 
 ## Gate
 
@@ -33,6 +33,10 @@ Run:
 ```sh
 scripts/check-scratch-durability
 ```
+
+This is an explicit boundary gate, not part of the root default fast path. Run
+it only when validating retired scratch captures or release-worthy assembly
+work; it can inspect historical company-adjacent scratch trees.
 
 The gate compares configured scratch files with the current snapshot pointer in
 `registry/scratch-durability/current.json`.

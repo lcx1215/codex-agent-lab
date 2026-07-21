@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -13,7 +14,6 @@ OUTPUT_DIR = Path("outputs/shared/agent-packages")
 CATALOG_DIR_NAMES = {"agents", "subagents"}
 IGNORED_DIR_NAMES = {
     ".git",
-    ".omx",
     ".omc",
     ".tmp",
     ".venv",
@@ -21,6 +21,7 @@ IGNORED_DIR_NAMES = {
     "build",
     "coverage",
     "dist",
+    "external",
     "exports",
     "node_modules",
     "outputs",
@@ -66,6 +67,10 @@ def is_ignored(path: Path, boundary: Path) -> bool:
 def has_catalog_content(catalog_dir: Path, workspace: Path) -> bool:
     if is_ignored(catalog_dir, workspace):
         return False
+    if catalog_dir.parent.name == "config":
+        # Product runtime agent manifests live under config/agents. They are not
+        # Lab agent-package catalogs and should not be forced into registry.json.
+        return False
     if (catalog_dir / "registry.json").is_file():
         return True
     if any(catalog_dir.glob("*.agent.json")):
@@ -78,8 +83,10 @@ def has_catalog_content(catalog_dir: Path, workspace: Path) -> bool:
 
 def iter_agent_catalogs(workspace: Path) -> list[Path]:
     catalogs: list[Path] = []
-    for path in workspace.rglob("*"):
-        if not path.is_dir() or path.name not in CATALOG_DIR_NAMES:
+    for dirpath, dirnames, _filenames in os.walk(workspace):
+        dirnames[:] = [name for name in dirnames if name not in IGNORED_DIR_NAMES]
+        path = Path(dirpath)
+        if path.name not in CATALOG_DIR_NAMES:
             continue
         if has_catalog_content(path, workspace):
             catalogs.append(path)

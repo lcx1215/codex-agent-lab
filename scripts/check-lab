@@ -109,6 +109,7 @@ fi
 "$MERGE_QUEUE_CHECK" >/dev/null
 "$GATES_CHECK" >/dev/null
 "$SIDE_EFFECTS_CHECK" >/dev/null
-"$SCRATCH_DURABILITY_CHECK" >/dev/null
+# Scratch durability is an explicit boundary gate. Do not sweep scratch or
+# internal company workspaces from the root fast path.
 
 printf 'OK: lab structure is valid\n'

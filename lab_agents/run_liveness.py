@@ -5,8 +5,8 @@ The task-state kernel already detects stale *tasks* (a `running` task whose
 gap on the *run-record* side had no detector: a run can be written with
 ``started_at`` set and ``ended_at = None`` (unfinished), and nothing flagged a
 run that started and then never finished — a hung or abandoned run. The
-``registry/ORCHESTRATION_LAYER_STATE.md`` gap list calls this out (no scheduler
-with timeout/liveness; the omx-exec hang is the live evidence).
+``registry/ORCHESTRATION_LAYER_STATE.md`` gap list calls this out: no scheduler
+with timeout/liveness.
 
 This module is the headless liveness seam for run records. It reads finalized
 records under ``registry/runs/*/record.json`` (it does NOT execute or kill

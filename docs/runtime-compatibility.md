@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The lab should fail early on environment drift instead of letting Codex, Claude, OMX, or local harnesses discover basic setup problems halfway through a large agent build.
+The lab should fail early on environment drift instead of letting Codex, Claude, or local harnesses discover basic setup problems halfway through a large agent build.
 
 `scripts/check-runtime-compatibility` is the lightweight preflight for that layer. It checks local command availability, Python runtime support, script hygiene, runtime ignore rules, clean-home auth boundaries, and documentation wiring.
 
@@ -20,7 +20,7 @@ The lab should fail early on environment drift instead of letting Codex, Claude,
 
 ## Warning Checks
 
-Optional runtime tools such as `codex`, `omx`, and `tmux` produce warnings instead of failures. They are needed for live runtime proofs, but ordinary static checks and documentation work should still be able to run without them.
+Optional runtime tools such as `codex` and `tmux` produce warnings instead of failures. They are needed for live runtime proofs, but ordinary static checks and documentation work should still be able to run without them.
 
 If `CODEX_HOME` is set outside the expected lab or API-relay homes, the preflight warns instead of failing so the operator can confirm the lane before launching long work.
 
@@ -28,7 +28,6 @@ If `CODEX_HOME` is set outside the expected lab or API-relay homes, the prefligh
 
 Runtime state belongs outside committable source:
 
-- `.omx/` runtime state is ignored.
 - `.omc/` runtime state is ignored.
 - `.omc/skills/**` remains committable for future project-scoped OMC skills.
 

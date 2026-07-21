@@ -12,24 +12,24 @@ The lab amplifies Codex and Claude. It gives them durable memory surfaces, harne
 
 ## Quality Bar
 
-- Isolation first: App, CLI, API-relay, OMX, clean-home, and project workspaces must have explicit boundaries.
+- Isolation first: App, CLI, API-relay, clean-home, and project workspaces must have explicit boundaries.
 - Secrets stay out: auth files, API keys, tokens, cookies, private keys, and session files are never copied into this lab or printed in logs.
 - Durable state wins: important work writes progress, validation, and handoff artifacts before it depends on conversation memory.
 - Evidence before claims: every completed capability needs a runnable check, captured result, or explicit validation gap.
 - Richness means layered capability, not uncontrolled sprawl.
 - Simplicity wins at equal effect: if two designs preserve the same safety, speed, isolation, and verification value, choose the one with fewer moving parts.
 - Openness means new agent families can be added without rewriting the lab's identity.
-- Amplification over replacement: scripts, skills, Waterflow, OMX, and dashboards should increase Codex/Claude leverage while leaving final reasoning, integration, and verification ownership explicit.
+- Amplification over replacement: scripts, skills, Waterflow, and dashboards should increase Codex/Claude leverage while leaving final reasoning, integration, and verification ownership explicit.
 - Agents stay bounded: every delegated agent needs a named role, narrow task, expected output, and integration owner.
 - Harnesses must test detection and reporting, not just happy-path success.
 - Reader-facing docs should use relative paths and placeholders instead of machine-local paths.
 - Promote repeated workflows into scripts, skills, prompts, or global rules only after they prove value locally.
-- Keep heavyweight harnesses, broad scans, model-smoke checks, and multi-agent orchestration on demand unless they are needed to prove the current claim.
+- Keep heavyweight harnesses, broad scans, live-model checks, and multi-agent orchestration on demand unless they are needed to prove the current claim.
 
 ## Capability Targets
 
 - Project-local rule surfaces for every serious workspace.
-- Workflow modes for App, CLI, OMX, multi-agent review, and checkpointed long-horizon work.
+- Workflow modes for App, CLI, multi-agent review, and checkpointed long-horizon work.
 - Agent catalog with bounded roles, handoff contracts, and verification expectations.
 - Lab-local skills and prompt packs for repeated workflows.
 - Waterflow-style path auditing, route indexes, changed-only validation, stress fixtures, and incident rehearsals.

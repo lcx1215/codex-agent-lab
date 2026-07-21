@@ -8,7 +8,7 @@ This ties the three lifecycle gates together (see docs/proposal-subagent-gates.m
 - Gate 3 (task_verify): a task may only reach verified/done with passing checks.
 
 Pure/testable: this module DECIDES what to dispatch; it does not itself run
-subprocesses or call omx-api. The operator script wires that.
+subprocesses. The operator script wires execution.
 """
 from __future__ import annotations
 

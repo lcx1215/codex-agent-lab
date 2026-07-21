@@ -7,7 +7,7 @@ from lab_agents.development_experience import (
     collect_lab_comfort_signals,
     evaluate_development_experience,
     render_development_experience_markdown,
-    latest_model_seconds_from_history,
+    latest_total_seconds_from_history,
 )
 
 
@@ -41,8 +41,8 @@ class DevelopmentExperienceAuditorTests(unittest.TestCase):
     def test_evaluation_scores_comfort_and_prioritizes_blockers(self):
         signals = [
             ComfortSignal("context", "AGENTS.md", True, "Rules are discoverable."),
-            ComfortSignal("runtime", "scripts/benchmark-ide-loop", True, "Model smoke exists."),
-            ComfortSignal("runtime", "outputs/shared/benchmarks/ide-loop/run.md", False, "Model smoke too slow."),
+            ComfortSignal("runtime", "scripts/benchmark-ide-loop", True, "Benchmark exists."),
+            ComfortSignal("runtime", "outputs/shared/benchmarks/ide-loop/run.md", False, "Full benchmark too slow."),
             ComfortSignal("verification", "scripts/check-lab", True, "Health gate exists."),
             ComfortSignal("handoff", "registry/current-progress.md", True, "Progress is durable."),
             ComfortSignal("safety", "scripts/check-secrets", True, "Secret gate exists."),
@@ -55,7 +55,7 @@ class DevelopmentExperienceAuditorTests(unittest.TestCase):
         self.assertGreaterEqual(report["summary"]["comfort_score"], 80)
         self.assertEqual(report["dimensions"]["runtime"]["status"], "mixed")
         self.assertEqual(report["top_friction"][0]["dimension"], "runtime")
-        self.assertIn("Model smoke too slow", report["top_friction"][0]["evidence"])
+        self.assertIn("Full benchmark too slow", report["top_friction"][0]["evidence"])
 
     def test_markdown_report_is_restartable_and_actionable(self):
         report = evaluate_development_experience(
@@ -88,7 +88,17 @@ class DevelopmentExperienceAuditorTests(unittest.TestCase):
         self.assertNotIn("auth.json", sources)
         self.assertNotIn("config.toml", sources)
 
-    def test_parses_latest_model_seconds_from_benchmark_history(self):
+    def test_parses_latest_total_seconds_from_benchmark_history(self):
+        history = """# IDE Benchmark History
+
+| Run | Status | Total | Local | Gates | Waterflow | Curve |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| 20260721T035103Z | pass | 18.590s | 0.356s | 9.969s | 8.306s | `##################` |
+"""
+
+        self.assertEqual(latest_total_seconds_from_history(history), 18.590)
+
+    def test_parses_legacy_total_seconds_from_benchmark_history(self):
         history = """# IDE Benchmark History
 
 | Run | Status | OMX | Total | Local | Gates | Waterflow | Model | Curve |
@@ -96,7 +106,7 @@ class DevelopmentExperienceAuditorTests(unittest.TestCase):
 | 20260630T035103Z | pass | yes | 103.590s | 0.356s | 9.969s | 8.306s | 84.959s | `##################` |
 """
 
-        self.assertEqual(latest_model_seconds_from_history(history), 84.959)
+        self.assertEqual(latest_total_seconds_from_history(history), 103.590)
 
 
 if __name__ == "__main__":

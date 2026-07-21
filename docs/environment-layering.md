@@ -12,7 +12,7 @@ the whole environment, not a name for one medium workspace.
 
 Location: lab root.
 
-Purpose: the open integrated development environment for Codex, Claude, OMX,
+Purpose: the open integrated development environment for Codex, Claude,
 Waterflow, shared harnesses, neutral kernels, and cross-scenario verification.
 Both Codex and Claude enter this maximum environment by reading the root
 lane-local rules (`AGENTS.md` for Codex, `CLAUDE.md` for Claude), this layering

@@ -292,38 +292,39 @@ def _benchmark_signal(root: Path) -> ComfortSignal:
             "No benchmark history found, so runtime comfort cannot be trended.",
         )
     text = history.read_text(encoding="utf-8", errors="replace")
-    omx_seconds = latest_model_seconds_from_history(text)
-    if omx_seconds is None:
+    total_seconds = latest_total_seconds_from_history(text)
+    if total_seconds is None:
         return ComfortSignal(
             "runtime",
             "outputs/shared/benchmarks/ide-loop/history.md",
             True,
-            "Benchmark history exists, but OMX smoke duration was not parsed.",
+            "Benchmark history exists, but total duration was not parsed.",
         )
-    if omx_seconds > 60:
+    if total_seconds > 90:
         return ComfortSignal(
             "runtime",
             "outputs/shared/benchmarks/ide-loop/history.md",
             False,
-            f"Latest OMX model smoke took {omx_seconds:.3f}s; keep it as a boundary check, not the default edit loop.",
+            f"Latest IDE benchmark took {total_seconds:.3f}s; keep full benchmarks out of the default edit loop.",
         )
     return ComfortSignal(
         "runtime",
         "outputs/shared/benchmarks/ide-loop/history.md",
         True,
-        f"Latest OMX model smoke took {omx_seconds:.3f}s.",
+        f"Latest IDE benchmark took {total_seconds:.3f}s.",
     )
 
 
-def latest_model_seconds_from_history(history_markdown: str) -> float | None:
+def latest_total_seconds_from_history(history_markdown: str) -> float | None:
     for line in reversed(history_markdown.splitlines()):
-        if not line.startswith("| ") or line.startswith("| ---") or "Model" in line:
+        if not line.startswith("| ") or line.startswith("| ---") or "Total" in line:
             continue
         cells = [cell.strip().strip("`") for cell in line.strip("|").split("|")]
-        if len(cells) >= 8:
-            model_cell = cells[7].removesuffix("s")
-            if re.fullmatch(r"\d+(?:\.\d+)?", model_cell):
-                return float(model_cell)
+        if len(cells) >= 7:
+            total_cell_index = 3 if cells[2].lower() in {"yes", "no"} else 2
+            total_cell = cells[total_cell_index].removesuffix("s")
+            if re.fullmatch(r"\d+(?:\.\d+)?", total_cell):
+                return float(total_cell)
     return None
 
 

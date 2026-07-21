@@ -14,7 +14,6 @@ OUTPUT_DIR = Path("outputs/shared/rule-ladder")
 CATALOG_DIR_NAMES = {"agents", "subagents"}
 IGNORED_DIR_NAMES = {
     ".git",
-    ".omx",
     ".omc",
     ".tmp",
     ".venv",
@@ -22,9 +21,15 @@ IGNORED_DIR_NAMES = {
     "build",
     "coverage",
     "dist",
+    "external",
     "exports",
     "node_modules",
     "outputs",
+}
+IGNORED_WORKSPACE_NAMES = {
+    # Historical company checkout. It is read-only and must not receive Lab
+    # rule files merely to satisfy a Lab-owned metadata check.
+    "customer-support-production-repo-nacos-agent-gateway",
 }
 RULE_MARKERS = (
     "Rule Inheritance",
@@ -106,7 +111,11 @@ def iter_workspaces(root: Path) -> list[Path]:
     workspaces_root = root / "workspaces"
     if not workspaces_root.is_dir():
         return []
-    return sorted(item for item in workspaces_root.iterdir() if item.is_dir())
+    return sorted(
+        item
+        for item in workspaces_root.iterdir()
+        if item.is_dir() and item.name not in IGNORED_WORKSPACE_NAMES
+    )
 
 
 def is_ignored(path: Path, boundary: Path) -> bool:

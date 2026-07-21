@@ -222,8 +222,8 @@ def collect_large_agent_readiness_signals(lab_root: str | Path) -> list[Capabili
             root,
             "context",
             "AGENTS.md",
-            "## Long-Horizon Work Contract",
-            "Long-horizon operating context is explicit.",
+            "Harness and loop mastery",
+            "Harness and loop operating context is explicit.",
         ),
         _exists_signal(
             root,
@@ -235,7 +235,7 @@ def collect_large_agent_readiness_signals(lab_root: str | Path) -> list[Capabili
             root,
             "runtime",
             "scripts/start-api-relay",
-            "API-relay OMX runtime entrypoint exists.",
+            "API-relay runtime entrypoint exists.",
         ),
         _delegation_signal(root),
         _skill_surface_signal(root),
@@ -345,9 +345,9 @@ def _external_reviewer_notes(dimensions: dict[str, dict[str, Any]]) -> list[str]
         "A passing dashboard is treated as health evidence, not as proof that future large-agent work will succeed automatically.",
     ]
     if dimensions["delegation"]["status"] != "pass":
-        notes.append("Delegation remains the largest scale risk until official team/tmux execution is freshly proven or deliberately bypassed.")
+        notes.append("Delegation remains a scale risk until bounded App-native subagent routing is proven on the target task.")
     if dimensions["performance"]["status"] != "pass":
-        notes.append("Real model-backed proof is valuable, but slow model smoke tests should remain boundary checks instead of default edit-loop steps.")
+        notes.append("Full benchmarks and live model-backed proof are valuable, but they should stay boundary checks instead of default edit-loop steps.")
     if dimensions["safety"]["status"] != "pass":
         notes.append("Safety failures outrank speed and ergonomics because this lab is intended for strict agent development.")
     return notes
@@ -356,9 +356,9 @@ def _external_reviewer_notes(dimensions: dict[str, dict[str, Any]]) -> list[str]
 def _recommended_next_actions(dimensions: dict[str, dict[str, Any]]) -> list[str]:
     actions: list[str] = []
     if dimensions["delegation"]["status"] != "pass":
-        actions.append("Keep direct `omx-api exec` as the proven worker path, and re-test official team mode only with a task that benefits from it.")
+        actions.append("Use bounded App-native subagents for independent slices, and keep integration ownership with the lead agent.")
     if dimensions["performance"]["status"] != "pass":
-        actions.append("Use `scripts/benchmark-ide-loop --skip-omx` for default health checks and reserve model smoke for boundary proof.")
+        actions.append("Use targeted checks for the active edit loop and reserve `scripts/benchmark-ide-loop` for boundary proof.")
     if dimensions["model-proof"]["status"] != "pass":
         actions.append("Create a short live model-backed review artifact after each promoted large-agent workflow change.")
     if dimensions["verification"]["status"] != "pass":
@@ -467,17 +467,7 @@ def _contains_signal(
 
 
 def _delegation_signal(root: Path) -> CapabilitySignal:
-    proof = root / "workspaces" / "20260629_210146-omx-team-tmux-proof" / "team-summary.md"
     agents_dir = root / ".codex" / "agents"
-    if proof.exists():
-        text = proof.read_text(encoding="utf-8", errors="replace").lower()
-        if "failed" in text or "unproven" in text or "mixed" in text:
-            return CapabilitySignal(
-                "delegation",
-                "workspaces/20260629_210146-omx-team-tmux-proof/team-summary.md",
-                "mixed",
-                "Official team mode remains mixed or unproven, while direct `omx-api exec` workers have proof artifacts.",
-            )
     if agents_dir.exists():
         return CapabilitySignal(
             "delegation",
@@ -532,26 +522,26 @@ def _performance_signal(root: Path) -> CapabilitySignal:
             "mixed",
             "No benchmark history found, so large-agent latency cannot be trended.",
         )
-    seconds = _latest_model_seconds_from_history(history.read_text(encoding="utf-8", errors="replace"))
+    seconds = _latest_total_seconds_from_history(history.read_text(encoding="utf-8", errors="replace"))
     if seconds is None:
         return CapabilitySignal(
             "performance",
             history_rel,
             "mixed",
-            "Benchmark history exists, but the latest model smoke duration was not parsed.",
+            "Benchmark history exists, but the latest total duration was not parsed.",
         )
-    if seconds > 60:
+    if seconds > 120:
         return CapabilitySignal(
             "performance",
             history_rel,
             "mixed",
-            f"Latest OMX model smoke took {seconds:.3f}s; acceptable for boundary proof, too slow for the default edit loop.",
+            f"Latest IDE benchmark took {seconds:.3f}s; useful for boundary proof, too slow for the default edit loop.",
         )
     return CapabilitySignal(
         "performance",
         history_rel,
         "pass",
-        f"Latest OMX model smoke took {seconds:.3f}s.",
+        f"Latest IDE benchmark took {seconds:.3f}s.",
     )
 
 
@@ -605,15 +595,16 @@ def _model_proof_signal(root: Path) -> CapabilitySignal:
     )
 
 
-def _latest_model_seconds_from_history(history_markdown: str) -> float | None:
+def _latest_total_seconds_from_history(history_markdown: str) -> float | None:
     for line in reversed(history_markdown.splitlines()):
-        if not line.startswith("| ") or line.startswith("| ---") or "Model" in line:
+        if not line.startswith("| ") or line.startswith("| ---") or "Total" in line:
             continue
         cells = [cell.strip().strip("`") for cell in line.strip("|").split("|")]
-        if len(cells) >= 8:
-            model_cell = cells[7].removesuffix("s")
-            if re.fullmatch(r"\d+(?:\.\d+)?", model_cell):
-                return float(model_cell)
+        if len(cells) >= 7:
+            total_cell_index = 3 if cells[2].lower() in {"yes", "no"} else 2
+            total_cell = cells[total_cell_index].removesuffix("s")
+            if re.fullmatch(r"\d+(?:\.\d+)?", total_cell):
+                return float(total_cell)
     return None
 
 

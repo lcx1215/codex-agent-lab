@@ -67,7 +67,7 @@ The scheduler view is deterministic and advisory:
    stale. Stale leases make the report `warn`, not `fail`, so another lane can
    repair the task without blocking unrelated safe work.
 
-This is not a process scheduler. It does not launch Codex, Claude, OMX, OMC,
+This is not a process scheduler. It does not launch Codex, Claude, OMC,
 tmux, or subagents.
 
 ## Health Gate

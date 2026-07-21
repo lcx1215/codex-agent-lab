@@ -7,8 +7,8 @@ Use this as the starting point for a project-local `AGENTS.md`. Keep global poli
 - Project path: `TBD`
 - Project purpose: `TBD`
 - Scenario type: `TBD`
-- Primary lane: `Codex App`, `codex-api`, or `omx-api`
-- OMX level: `none`, `App-safe spine`, or `CLI runtime`
+- Primary lane: `Codex App` or `codex-api`
+- Extra orchestration runtime: `none`
 - Durable state file: `TBD`
 - Output directory: `TBD`
 - Environment scale: `medium environment` or `small agent package`
@@ -47,8 +47,7 @@ Use this as the starting point for a project-local `AGENTS.md`. Keep global poli
 
 - Use Codex App for ordinary daily edits, GUI review, and short feedback loops.
 - Use `codex-api` for simple terminal diagnostics or API-relay one-off work.
-- Use `omx-api` when work is long-horizon, multi-agent, multi-file, risky, automation-heavy, or needs durable checkpoints.
-- When OMX architecture is active, show the green-light signal required by the global rules.
+- Extra orchestration runtime is not used on this machine.
 
 ## Local Workflow
 
@@ -68,4 +67,4 @@ Use this as the starting point for a project-local `AGENTS.md`. Keep global poli
 
 - Handoff file: `TBD`
 - Include current status, changed files, verification evidence, known risks, and next action.
-- Keep the handoff concise enough for App, CLI, or OMX to resume without rereading the whole project.
+- Keep the handoff concise enough for App or CLI to resume without rereading the whole project.
