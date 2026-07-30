@@ -1,8 +1,6 @@
 .DS_Store
 .tmp/
-.toolchain/
 .worktrees/
-registry/scratch-durability/snapshots/
 .env
 .env.*
 !.env.example
@@ -16,17 +14,6 @@ registry/scratch-durability/snapshots/
 *.secret
 *_token
 *_secret
-.codex-home/log/
-.codex-home/sessions/
-.codex-home/state_*.sqlite*
-.codex-home/auth.json
-.codex-home/*.json
-.codex-home/installation_id
-.codex-home/tmp/
-.omc/*
-!.omc/skills/
-!.omc/skills/**
-.agents/skills/.system/
 __pycache__/
 *.pyc
 outputs/
@@ -35,7 +22,6 @@ outputs/**/*.tmp
 outputs/**/*.stdout.txt
 outputs/**/*.stderr.txt
 workspaces/*
-!workspaces/README.md
 workspaces/**/.env
 workspaces/**/.env.*
 workspaces/**/*.log

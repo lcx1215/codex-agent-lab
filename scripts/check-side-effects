@@ -1,74 +1,54 @@
 #!/usr/bin/env python3
-"""Side-effecting script guard.
-
-A real incident (2026-07-06, recorded in registry/VALIDATION.md) showed the
-danger this gate exists to catch: a deploy script read its safety guards and
-then, on guard-pass, immediately mutated the live machine (`fly secrets set` +
-roll) with no dry-run and no confirm. Testing it once mutated production.
-
-The lesson generalised into a rule: any script that performs a live-mutation
-sink (fly secrets set/unset, fly deploy, git push --force, an unbounded rm -rf,
-...) must EITHER be gated behind an explicit apply/confirm flag (so the default
-run is a safe dry-run) OR be annotated as deliberately read-only / already
-gated. A guard that only *rejects* bad input is not enough — the pass path must
-not fire on a mere test.
-
-This gate is heuristic and text-based. It scans a target directory of scripts,
-flags each live-mutation sink, and for every hit decides whether the enclosing
-script carries an apply-gate token or an explicit annotation. Ungated sinks are
-`fail`; ambiguous ones are `warn`. Exits non-zero only on `fail` so it can gate
-CI without blocking on advisories.
-
-Usage:
-  scripts/check-side-effects                 # scan lab-root scripts/ (default)
-  scripts/check-side-effects <dir>           # scan an arbitrary script dir
-  scripts/check-side-effects --json <dir>    # machine-readable report
-
-Lane note: scanning a Codex-owned package is review-only. This gate never edits
-any file; it only reports.
-"""
 from __future__ import annotations
 
 import argparse
+from dataclasses import asdict, dataclass
 import json
+from pathlib import Path
 import re
 import sys
-from dataclasses import dataclass
-from pathlib import Path
 
-DEFAULT_LAB_ROOT = Path(__file__).resolve().parents[1]
 
+LAB_ROOT = Path(__file__).resolve().parents[1]
 SEV_FAIL = "fail"
-SEV_WARN = "warn"
 SEV_INFO = "info"
 
-# Live-mutation sinks: (compiled regex, label). These change external/live state.
-SINKS: list[tuple[re.Pattern[str], str]] = [
-    (re.compile(r"\bfly\s+secrets\s+set\b"), "fly secrets set (live secret write)"),
-    (re.compile(r"\bfly\s+secrets\s+unset\b"), "fly secrets unset (live secret delete)"),
-    (re.compile(r"\bfly\s+deploy\b"), "fly deploy (live deploy)"),
-    (re.compile(r"\bfly\s+machines?\s+(update|restart|stop|destroy)\b"), "fly machine mutation"),
-    (re.compile(r"\bgit\s+push\b[^\n]*--force(?:-with-lease)?\b"), "git force-push"),
-    (re.compile(r"\bkubectl\s+(apply|delete|scale|rollout)\b"), "kubectl live mutation"),
-    (re.compile(r"\bterraform\s+(apply|destroy)\b"), "terraform apply/destroy"),
-    (re.compile(r"\brm\s+-rf?\b"), "recursive delete"),
+SINKS: list[tuple[re.Pattern[str], str, str]] = [
+    (re.compile(r"\b(?:fly|flyctl)\s+secrets\s+(?:set|unset)\b"), "Fly secret mutation", "external"),
+    (re.compile(r"\b(?:fly|flyctl)\s+deploy\b"), "Fly deploy", "external"),
+    (re.compile(r"\b(?:fly|flyctl)\s+(?:destroy|machines?\s+(?:update|restart|stop|destroy))\b"), "Fly runtime mutation", "external"),
+    (re.compile(r"\bgit\s+push\b"), "git push", "external"),
+    (re.compile(r"\bgit\s+(?:merge|rebase)\b"), "git history mutation", "repository"),
+    (re.compile(r"\bgit\s+(?:reset\s+--hard|clean\s+-[A-Za-z]*[dfx]|checkout\s+--)"), "destructive git command", "repository"),
+    (re.compile(r"\bgit\s+worktree\s+(?:add|move|remove|prune)\b"), "git worktree mutation", "repository"),
+    (re.compile(r"\bkubectl\s+(?:apply|delete|patch|replace|scale|set|rollout)\b"), "Kubernetes mutation", "external"),
+    (re.compile(r"\bhelm\s+(?:install|upgrade|uninstall|rollback)\b"), "Helm mutation", "external"),
+    (re.compile(r"\bterraform\s+(?:apply|destroy|import)\b"), "Terraform mutation", "external"),
+    (re.compile(r"\baws\s+s3\s+(?:rm|sync|cp)\b"), "AWS S3 mutation", "external"),
+    (re.compile(r"\baws\s+(?:cloudformation\s+deploy|ecs\s+update-service|lambda\s+update-function-code|ssm\s+put-parameter)\b"), "AWS service mutation", "external"),
+    (
+        re.compile(r"\brm\s+(?:--\s+)?-(?=[A-Za-z]*[rR])(?=[A-Za-z]*[fF])[A-Za-z]+\b"),
+        "recursive delete",
+        "local-delete",
+    ),
 ]
 
-# Apply-gate tokens: presence anywhere in the script means the author wired an
-# explicit apply/confirm/dry-run path, so the default run does not mutate.
-APPLY_GATE = re.compile(
-    r"--apply\b|\bAPPLY\b|--yes\b|--confirm\b|\bDRY[_-]?RUN\b|\bdry[_-]?run\b|--force\b(?!-)|--execute\b",
+ANNOTATION = re.compile(
+    r"#\s*side-effects:\s*(gated|local-bounded|read-only|none)\b",
     re.IGNORECASE,
 )
-
-# Explicit file-header annotations that opt a script out (must appear in the
-# first 40 lines). Use for scripts that are deliberately read-only, or whose
-# sink is a bounded cleanup rather than a live mutation.
-ANNOT_READONLY = re.compile(r"#\s*side-effects:\s*(read-only|gated|none)", re.IGNORECASE)
-
-# A recursive delete inside an EXIT trap on a temp dir is a bounded cleanup, not
-# a live-state mutation — exempt it specifically.
-TRAP_CLEANUP = re.compile(r"\btrap\b[^\n]*\brm\s+-rf?\b[^\n]*\bEXIT\b")
+EXPLICIT_GATE = re.compile(
+    r"--apply\b|--confirm\b|--execute\b|\bDRY[_-]?RUN\b|\bAPPLY_CHANGES\b",
+    re.IGNORECASE,
+)
+GATE_GUARD = re.compile(
+    r"case\b[^\n]*--(?:apply|confirm|execute)|"
+    r"if\b[^\n]*--(?:apply|confirm|execute)|"
+    r"add_argument\([^\n]*--(?:apply|confirm|execute)|"
+    r"\bDRY[_-]?RUN\s*=\s*(?:1|true)|"
+    r"\bAPPLY_CHANGES\s*=\s*(?:0|false)",
+    re.IGNORECASE,
+)
 
 
 @dataclass
@@ -86,96 +66,102 @@ def is_script(path: Path) -> bool:
         return False
     if path.suffix in {".sh", ".bash", ".mjs", ".js", ".py", ".zsh"}:
         return True
-    # extension-less files with a shebang count as scripts
     if path.suffix == "":
         try:
-            with path.open("r", encoding="utf-8", errors="replace") as fh:
-                return fh.readline().startswith("#!")
+            return path.open("r", encoding="utf-8", errors="replace").readline().startswith("#!")
         except OSError:
             return False
     return False
 
 
-def scan_file(path: Path, rel: str) -> list[Finding]:
-    try:
-        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
-    except OSError as exc:  # pragma: no cover - unreadable file
-        return [Finding("UNREADABLE", SEV_WARN, f"could not read: {exc}", rel, 0, "")]
+def normalized_code(line: str) -> str:
+    return re.sub(r"\s+", " ", re.sub(r"""["',\[\]()]""", " ", line)).strip()
 
+
+def scan_file(path: Path, rel: str) -> list[Finding]:
+    lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
     text = "\n".join(lines)
-    header = "\n".join(lines[:40])
-    gated = bool(APPLY_GATE.search(text))
-    annotated = bool(ANNOT_READONLY.search(header))
+    annotation_match = ANNOTATION.search("\n".join(lines[:40]))
+    annotation = annotation_match.group(1).lower() if annotation_match else ""
+    has_gate = bool(EXPLICIT_GATE.search(text) and GATE_GUARD.search(text))
 
     findings: list[Finding] = []
     in_docstring = False
-    doc_delim = ""
-    for i, line in enumerate(lines, start=1):
+    delimiter = ""
+    for line_no, line in enumerate(lines, start=1):
         stripped = line.strip()
-        # Skip python triple-quoted docstrings; sink words in prose or regex
-        # literals are not real invocations.
         if in_docstring:
-            if doc_delim in line:
+            if delimiter in line:
                 in_docstring = False
             continue
-        for delim in ('"""', "'''"):
-            if stripped.startswith(delim) and stripped.count(delim) == 1:
-                in_docstring, doc_delim = True, delim
+        for candidate in ('"""', "'''"):
+            if stripped.startswith(candidate) and stripped.count(candidate) == 1:
+                in_docstring = True
+                delimiter = candidate
                 break
-        if in_docstring:
+        if in_docstring or not stripped or stripped.startswith("#"):
             continue
-        if not stripped or stripped.startswith("#"):
+        if "re.compile(" in stripped or stripped.startswith(("SINKS", "(re.compile")):
             continue
-        # A sink token inside a regex/string literal is a definition, not a call.
-        if "re.compile(" in stripped or stripped.startswith(("(re.compile", "SINKS")):
-            continue
-        for pattern, label in SINKS:
-            if not pattern.search(line):
+
+        code = normalized_code(line)
+        for pattern, label, category in SINKS:
+            if not pattern.search(code):
                 continue
-            # Bounded cleanup: a recursive delete inside a trap line is
-            # temp-dir teardown, not a live mutation.
-            if "delete" in label and stripped.startswith("trap "):
+            if category == "local-delete" and stripped.startswith("trap "):
                 continue
-            if annotated:
-                # Author explicitly took responsibility; record as info only.
-                findings.append(Finding(
-                    "SINK_ANNOTATED", SEV_INFO,
-                    f"live-mutation sink ({label}) in a script annotated read-only/gated.",
-                    rel, i, stripped,
-                ))
-            elif gated:
-                findings.append(Finding(
-                    "SINK_GATED", SEV_WARN,
-                    f"live-mutation sink ({label}); script has an apply/dry-run token — "
-                    f"confirm the sink is on the --apply path, not the default path.",
-                    rel, i, stripped,
-                ))
-            else:
-                findings.append(Finding(
-                    "SINK_UNGATED", SEV_FAIL,
-                    f"ungated live-mutation sink ({label}): no --apply/dry-run gate and no "
-                    f"'# side-effects:' annotation. Default run mutates live state.",
-                    rel, i, stripped,
-                ))
+            if category == "local-delete" and annotation == "local-bounded":
+                findings.append(
+                    Finding(
+                        "LOCAL_DELETE_ANNOTATED",
+                        SEV_INFO,
+                        f"{label} is explicitly limited to a local bounded path.",
+                        rel,
+                        line_no,
+                        stripped,
+                    )
+                )
+                continue
+            if annotation == "gated" and has_gate:
+                findings.append(
+                    Finding(
+                        "MUTATION_GATED",
+                        SEV_INFO,
+                        f"{label} has an explicit opt-in gate.",
+                        rel,
+                        line_no,
+                        stripped,
+                    )
+                )
+                continue
+            findings.append(
+                Finding(
+                    "MUTATION_UNGATED",
+                    SEV_FAIL,
+                    f"{label} is reachable without a verified default-safe apply/confirm gate.",
+                    rel,
+                    line_no,
+                    stripped,
+                )
+            )
     return findings
 
 
 def collect_scripts(target: Path) -> list[Path]:
     if target.is_file():
         return [target] if is_script(target) else []
-    return sorted(p for p in target.rglob("*") if is_script(p))
+    return sorted(path for path in target.rglob("*") if is_script(path))
 
 
-def main(argv: list[str]) -> int:
-    parser = argparse.ArgumentParser(description="Guard against ungated side-effecting scripts.")
-    parser.add_argument("target", nargs="?", default="scripts",
-                        help="script file or directory to scan (default: scripts/)")
-    parser.add_argument("--json", action="store_true", help="emit JSON report")
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Reject scripts with ungated mutation sinks.")
+    parser.add_argument("target", nargs="?", default="scripts")
+    parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
 
     target = Path(args.target)
     if not target.is_absolute():
-        target = (DEFAULT_LAB_ROOT / target)
+        target = LAB_ROOT / target
     if not target.exists():
         print(f"FAIL: target not found: {target}", file=sys.stderr)
         return 2
@@ -183,31 +169,38 @@ def main(argv: list[str]) -> int:
     scripts = collect_scripts(target)
     findings: list[Finding] = []
     for path in scripts:
-        rel = str(path.relative_to(DEFAULT_LAB_ROOT)) if DEFAULT_LAB_ROOT in path.parents else str(path)
+        try:
+            rel = str(path.relative_to(LAB_ROOT))
+        except ValueError:
+            rel = str(path)
         findings.extend(scan_file(path, rel))
-
-    fails = [f for f in findings if f.severity == SEV_FAIL]
-    warns = [f for f in findings if f.severity == SEV_WARN]
+    failures = [finding for finding in findings if finding.severity == SEV_FAIL]
 
     if args.json:
-        print(json.dumps({
-            "target": str(target), "scanned": len(scripts),
-            "fail": len(fails), "warn": len(warns),
-            "findings": [f.__dict__ for f in findings],
-        }, ensure_ascii=False, indent=2))
+        print(
+            json.dumps(
+                {
+                    "target": str(target),
+                    "scanned": len(scripts),
+                    "fail": len(failures),
+                    "findings": [asdict(finding) for finding in findings],
+                },
+                indent=2,
+                ensure_ascii=False,
+            )
+        )
     else:
-        for f in findings:
-            if f.severity == SEV_INFO:
-                continue
-            print(f"  [{f.severity}] {f.code} {f.file}:{f.line}\n        {f.message}\n        > {f.evidence}")
-        status = "fail" if fails else ("warn" if warns else "pass")
+        for finding in failures:
+            print(
+                f"  [fail] {finding.code} {finding.file}:{finding.line}\n"
+                f"        {finding.message}\n"
+                f"        > {finding.evidence}"
+            )
         print(f"target: {target}")
         print(f"scanned scripts: {len(scripts)}")
-        print(f"status: {status}  (fail={len(fails)} warn={len(warns)})")
-
-    return 1 if fails else 0
+        print(f"status: {'fail' if failures else 'pass'}  (fail={len(failures)})")
+    return 1 if failures else 0
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
-
+    raise SystemExit(main())

@@ -1,0 +1,407 @@
+#!/usr/bin/env python3
+"""Small native-first entry point for Agent Lab."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any
+
+
+SCRIPT_PATH = Path(__file__).resolve()
+LAB_ROOT = SCRIPT_PATH.parents[1]
+SCRIPTS_DIR = SCRIPT_PATH.parent
+GIT_TIMEOUT_SECONDS = 2
+COMMAND_TIMEOUT_SECONDS = 10
+MIN_CMUX_VERSION = (0, 64, 20)
+MARKER_PREFIX = "agent-lab:v1:"
+
+
+class LabError(RuntimeError):
+    pass
+
+
+def run(
+    command: list[str],
+    *,
+    cwd: Path = LAB_ROOT,
+    timeout: int = COMMAND_TIMEOUT_SECONDS,
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        command,
+        cwd=cwd,
+        text=True,
+        capture_output=True,
+        timeout=timeout,
+        check=False,
+    )
+
+
+def resolve_target(raw_target: str | None, current_agent: bool) -> Path:
+    if current_agent:
+        result = run([str(SCRIPTS_DIR / "check-current-agent"), "--print-path"])
+        if result.returncode != 0:
+            raise LabError("current Agent validation failed")
+        raw_target = result.stdout.strip()
+    elif raw_target is None:
+        raw_target = os.getcwd()
+
+    target = Path(raw_target).expanduser()
+    if not target.is_dir():
+        raise LabError(f"directory does not exist: {target}")
+    try:
+        return target.resolve(strict=True)
+    except OSError as exc:
+        raise LabError(f"cannot resolve directory: {target}") from exc
+
+
+def workspace_marker(target: Path) -> str:
+    digest = hashlib.sha256(os.fsencode(str(target))).hexdigest()
+    return MARKER_PREFIX + digest
+
+
+def command_output(command: list[str], *, cwd: Path, timeout: int) -> str | None:
+    result = run(command, cwd=cwd, timeout=timeout)
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip()
+
+
+def git_status(target: Path) -> dict[str, Any]:
+    git = shutil.which("git")
+    if git is None:
+        return {"is_repo": False, "error": "git is not installed"}
+
+    try:
+        root = command_output(
+            [git, "-C", str(target), "rev-parse", "--show-toplevel"],
+            cwd=target,
+            timeout=GIT_TIMEOUT_SECONDS,
+        )
+        if root is None:
+            return {"is_repo": False}
+
+        branch = command_output(
+            [git, "-C", str(target), "symbolic-ref", "--quiet", "--short", "HEAD"],
+            cwd=target,
+            timeout=GIT_TIMEOUT_SECONDS,
+        )
+        head = command_output(
+            [git, "-C", str(target), "rev-parse", "HEAD"],
+            cwd=target,
+            timeout=GIT_TIMEOUT_SECONDS,
+        )
+        dirty = run(
+            [
+                git,
+                "-C",
+                str(target),
+                "status",
+                "--porcelain=v1",
+                "--untracked-files=no",
+            ],
+            cwd=target,
+            timeout=GIT_TIMEOUT_SECONDS,
+        )
+        if dirty.returncode != 0:
+            dirty_state = "unknown"
+            dirty_count = None
+        else:
+            rows = [line for line in dirty.stdout.splitlines() if line]
+            dirty_state = "dirty" if rows else "clean"
+            dirty_count = len(rows)
+        return {
+            "is_repo": True,
+            "root": str(Path(root).resolve()),
+            "branch": branch,
+            "head": head,
+            "tracked_dirty": dirty_state,
+            "tracked_dirty_count": dirty_count,
+        }
+    except subprocess.TimeoutExpired:
+        return {
+            "is_repo": True,
+            "root": None,
+            "branch": None,
+            "head": None,
+            "tracked_dirty": "unknown",
+            "tracked_dirty_count": None,
+            "error": "git status timed out after 2 seconds",
+        }
+
+
+def flatten_workspaces(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for window in payload.get("windows") or []:
+        if not isinstance(window, dict):
+            continue
+        for workspace in window.get("workspaces") or []:
+            if isinstance(workspace, dict):
+                rows.append(workspace)
+    return rows
+
+
+def cmux_status(target: Path) -> dict[str, Any]:
+    cmux = shutil.which("cmux")
+    if cmux is None:
+        return {"installed": False, "running": False, "matches": []}
+
+    try:
+        ping = run([cmux, "ping"], timeout=5)
+    except subprocess.TimeoutExpired:
+        return {
+            "installed": True,
+            "running": None,
+            "matches": [],
+            "error": "cmux ping timed out",
+        }
+    if ping.returncode != 0:
+        return {
+            "installed": True,
+            "running": False,
+            "matches": [],
+        }
+
+    try:
+        tree = run([cmux, "--json", "tree", "--all"], timeout=5)
+    except subprocess.TimeoutExpired:
+        return {
+            "installed": True,
+            "running": True,
+            "matches": [],
+            "error": "cmux tree timed out",
+        }
+    if tree.returncode != 0:
+        return {
+            "installed": True,
+            "running": True,
+            "matches": [],
+            "error": (tree.stderr or tree.stdout).strip() or "cmux tree failed",
+        }
+    try:
+        payload = json.loads(tree.stdout)
+    except json.JSONDecodeError:
+        return {
+            "installed": True,
+            "running": True,
+            "matches": [],
+            "error": "cmux returned invalid JSON",
+        }
+
+    marker = workspace_marker(target)
+    matches = []
+    for workspace in flatten_workspaces(payload):
+        if workspace.get("description") != marker:
+            continue
+        matches.append(
+            {
+                "ref": workspace.get("ref") or workspace.get("id"),
+                "title": workspace.get("title"),
+            }
+        )
+    return {
+        "installed": True,
+        "running": True,
+        "matches": matches,
+    }
+
+
+def status_report(target: Path) -> dict[str, Any]:
+    return {
+        "schema": "agent-lab.status.v1",
+        "ok": True,
+        "target": str(target),
+        "git": git_status(target),
+        "cmux": cmux_status(target),
+    }
+
+
+def print_status(report: dict[str, Any]) -> None:
+    print(f"target: {report['target']}")
+    git = report["git"]
+    if not git.get("is_repo"):
+        print("git: not a repository")
+    elif git.get("error"):
+        print(f"git: {git['tracked_dirty']} ({git['error']})")
+    else:
+        branch = git.get("branch") or "detached"
+        head = git.get("head") or "unknown"
+        dirty = git.get("tracked_dirty")
+        count = git.get("tracked_dirty_count")
+        suffix = f" ({count})" if isinstance(count, int) else ""
+        print(f"git: {branch} {head[:12]} tracked={dirty}{suffix}")
+
+    cmux = report["cmux"]
+    if not cmux.get("installed"):
+        print("cmux: not installed")
+    elif cmux.get("running") is False:
+        print("cmux: not running")
+    elif cmux.get("error"):
+        print(f"cmux: running ({cmux['error']})")
+    else:
+        matches = cmux.get("matches") or []
+        if not matches:
+            print("cmux: no workspace")
+        elif len(matches) == 1:
+            print(f"cmux: {matches[0]['ref']} {matches[0]['title']}")
+        else:
+            print(f"cmux: duplicate workspaces ({len(matches)})")
+
+
+def parse_version(text: str) -> tuple[int, int, int] | None:
+    match = re.search(r"\b(\d+)\.(\d+)\.(\d+)\b", text)
+    if match is None:
+        return None
+    return tuple(int(value) for value in match.groups())
+
+
+def cmux_doctor() -> dict[str, Any]:
+    cmux = shutil.which("cmux")
+    errors: list[str] = []
+    if cmux is None:
+        return {
+            "ok": False,
+            "path": None,
+            "version": None,
+            "errors": ["cmux is not installed or not on PATH"],
+        }
+
+    version_result = run([cmux, "--version"])
+    version_text = (version_result.stdout or version_result.stderr).strip()
+    version = parse_version(version_text)
+    if version_result.returncode != 0 or version is None:
+        errors.append("cannot determine cmux version")
+    elif version < MIN_CMUX_VERSION:
+        required = ".".join(str(value) for value in MIN_CMUX_VERSION)
+        errors.append(f"cmux {required} or newer is required")
+
+    checks = (
+        ([cmux, "new-workspace", "--help"], "--layout", "workspace layouts"),
+        ([cmux, "tree", "--help"], "--json", "structured tree output"),
+        ([cmux, "workspace", "--help"], "create", "workspace create"),
+    )
+    for command, needle, label in checks:
+        result = run(command)
+        if result.returncode != 0 or needle not in result.stdout:
+            errors.append(f"cmux does not support {label}")
+    return {
+        "ok": not errors,
+        "path": cmux,
+        "version": version_text or None,
+        "errors": errors,
+    }
+
+
+def run_open(args: argparse.Namespace) -> int:
+    arguments: list[str] = []
+    if args.current_agent:
+        arguments.append("--current-agent")
+    if args.dry_run:
+        arguments.append("--dry-run")
+    if args.check:
+        arguments.append("--check")
+    if args.path is not None:
+        arguments.append(args.path)
+    return subprocess.call([str(SCRIPTS_DIR / "open-workbench"), *arguments])
+
+
+def run_doctor(arguments: list[str], json_output: bool) -> int:
+    cmux = cmux_doctor()
+    if json_output:
+        parity_command = [str(SCRIPTS_DIR / "check-native-parity"), "--json", *arguments]
+        parity = run(parity_command, timeout=1800)
+        try:
+            native = json.loads(parity.stdout)
+        except json.JSONDecodeError:
+            native = {
+                "ok": False,
+                "errors": ["native parity returned invalid JSON"],
+            }
+        report = {
+            "schema": "agent-lab.doctor.v1",
+            "ok": cmux["ok"] and parity.returncode == 0 and native.get("ok") is True,
+            "cmux": cmux,
+            "native": native,
+        }
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0 if report["ok"] else 1
+
+    cmux_status_text = "OK" if cmux["ok"] else "FAIL"
+    print(
+        f"{cmux_status_text}: cmux {cmux.get('version') or '<unavailable>'}",
+        flush=True,
+    )
+    for error in cmux["errors"]:
+        print(f"FAIL: {error}")
+    native_result = subprocess.run(
+        [str(SCRIPTS_DIR / "check-native-parity"), *arguments],
+        check=False,
+    )
+    return 0 if cmux["ok"] and native_result.returncode == 0 else 1
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    open_parser = subparsers.add_parser("open")
+    open_parser.add_argument("path", nargs="?")
+    open_parser.add_argument("--current-agent", action="store_true")
+    open_parser.add_argument("--dry-run", action="store_true")
+    open_parser.add_argument("--check", action="store_true")
+
+    status_parser = subparsers.add_parser("status")
+    status_parser.add_argument("path", nargs="?")
+    status_parser.add_argument("--current-agent", action="store_true")
+    status_parser.add_argument("--json", action="store_true", dest="json_output")
+
+    doctor_parser = subparsers.add_parser("doctor")
+    doctor_parser.add_argument("--live", action="store_true")
+    doctor_parser.add_argument("--inside-cmux", action="store_true")
+    doctor_parser.add_argument("--json", action="store_true", dest="json_output")
+
+    args = parser.parse_args()
+    if args.command == "open" and args.current_agent and args.path is not None:
+        parser.error("PATH and --current-agent cannot be used together")
+    if args.command == "open" and args.dry_run and args.check:
+        parser.error("--dry-run and --check cannot be used together")
+    if args.command == "status" and args.current_agent and args.path is not None:
+        parser.error("PATH and --current-agent cannot be used together")
+    return args
+
+
+def main() -> int:
+    args = parse_args()
+    try:
+        if args.command == "open":
+            return run_open(args)
+        if args.command == "status":
+            target = resolve_target(args.path, args.current_agent)
+            report = status_report(target)
+            if args.json_output:
+                print(json.dumps(report, ensure_ascii=False, indent=2))
+            else:
+                print_status(report)
+            return 0
+        if args.command == "doctor":
+            arguments = []
+            if args.live:
+                arguments.append("--live")
+            if args.inside_cmux:
+                arguments.append("--inside-cmux")
+            return run_doctor(arguments, args.json_output)
+    except (LabError, OSError, subprocess.TimeoutExpired) as exc:
+        print(f"FAIL: {exc}", file=sys.stderr)
+        return 1
+    return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

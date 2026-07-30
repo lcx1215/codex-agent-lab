@@ -16,6 +16,29 @@ def lab_temp_dir(prefix: str) -> Path:
 
 
 class GateFailClosedTests(unittest.TestCase):
+    def secret_repo(self) -> Path:
+        root = lab_temp_dir("secret-scan-")
+        self.addCleanup(shutil.rmtree, root, ignore_errors=True)
+        subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+        (root / "scripts").mkdir()
+        (root / "README.md").write_text("# Fixture\n", encoding="utf-8")
+        return root
+
+    def run_secret_scan(
+        self,
+        root: Path,
+        *,
+        env: dict[str, str] | None = None,
+    ) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [str(LAB_ROOT / "scripts" / "check-secrets"), "--root", str(root)],
+            cwd=LAB_ROOT,
+            text=True,
+            capture_output=True,
+            env=env,
+            check=False,
+        )
+
     def fake_rg_env(self) -> tuple[dict[str, str], Path]:
         root = lab_temp_dir("gate-fail-closed-")
         self.addCleanup(shutil.rmtree, root, ignore_errors=True)
@@ -34,68 +57,35 @@ class GateFailClosedTests(unittest.TestCase):
 
     def test_check_secrets_ignores_broken_rg_and_scans_source(self):
         env, _ = self.fake_rg_env()
+        root = self.secret_repo()
+        (root / "scripts" / "clean.txt").write_text("ordinary source\n", encoding="utf-8")
 
-        result = subprocess.run(
-            [str(LAB_ROOT / "scripts" / "check-secrets")],
-            cwd=LAB_ROOT,
-            text=True,
-            capture_output=True,
-            env=env,
-            check=False,
-        )
+        result = self.run_secret_scan(root, env=env)
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("OK:", result.stdout)
         self.assertIn("source files scanned:", result.stdout)
 
-    def test_check_secrets_does_not_flag_task_state_slug_as_openai_key(self):
-        result = subprocess.run(
-            [str(LAB_ROOT / "scripts" / "check-secrets")],
-            cwd=LAB_ROOT,
-            text=True,
-            capture_output=True,
-            check=False,
-        )
+    def test_check_secrets_does_not_flag_ordinary_sk_prefix_text(self):
+        root = self.secret_repo()
+        (root / "scripts" / "clean.txt").write_text("skipped-state\n", encoding="utf-8")
+
+        result = self.run_secret_scan(root)
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("OK:", result.stdout)
 
     def test_check_secrets_still_flags_synthetic_openai_key_shape(self):
-        fixture = LAB_ROOT / "scripts" / "synthetic-secret-scan.txt"
+        root = self.secret_repo()
+        fixture = root / "scripts" / "synthetic-secret-scan.txt"
         synthetic_key = "sk-" + ("A" * 24)
-        try:
-            fixture.write_text(f"fake={synthetic_key}\n", encoding="utf-8")
+        fixture.write_text(f"fake={synthetic_key}\n", encoding="utf-8")
 
-            result = subprocess.run(
-                [str(LAB_ROOT / "scripts" / "check-secrets")],
-                cwd=LAB_ROOT,
-                text=True,
-                capture_output=True,
-                check=False,
-            )
-        finally:
-            fixture.unlink(missing_ok=True)
+        result = self.run_secret_scan(root)
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("secret-like token detected", result.stderr)
         self.assertNotIn(synthetic_key, result.stderr)
-
-    def test_check_sandbox_fails_closed_when_rg_errors(self):
-        env, _ = self.fake_rg_env()
-
-        result = subprocess.run(
-            [str(LAB_ROOT / "scripts" / "check-sandbox")],
-            cwd=LAB_ROOT,
-            text=True,
-            capture_output=True,
-            env=env,
-            check=False,
-        )
-
-        self.assertNotEqual(result.returncode, 0)
-        self.assertNotIn("OK:", result.stdout)
-        self.assertIn("ripgrep", result.stderr)
-
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,482 @@
+#!/usr/bin/env python3
+"""Open or verify an Agent Lab pure-shell cmux workspace."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import shlex
+import shutil
+import subprocess
+import sys
+import time
+from pathlib import Path
+from typing import Any
+
+
+SCRIPT_PATH = Path(__file__).resolve()
+LAB_ROOT = SCRIPT_PATH.parents[1]
+SOCKET_WAIT_SECONDS = 10
+WORKSPACE_WAIT_SECONDS = 8
+MARKER_PREFIX = "agent-lab:v1:"
+EXPECTED_SURFACES = ("Codex CLI", "Claude Code", "Shell")
+TRANSPORT_FAILURES = (
+    "failed to connect to socket",
+    "connection refused",
+    "no such file",
+)
+WORKBENCH_LAYOUT: dict[str, Any] = {
+    "direction": "horizontal",
+    "split": 0.5,
+    "children": [
+        {
+            "pane": {
+                "surfaces": [
+                    {
+                        "type": "terminal",
+                        "name": "Codex CLI",
+                    }
+                ]
+            }
+        },
+        {
+            "direction": "vertical",
+            "split": 0.5,
+            "children": [
+                {
+                    "pane": {
+                        "surfaces": [
+                            {
+                                "type": "terminal",
+                                "name": "Claude Code",
+                            }
+                        ]
+                    }
+                },
+                {
+                    "pane": {
+                        "surfaces": [
+                            {
+                                "type": "terminal",
+                                "name": "Shell",
+                                "focus": True,
+                            }
+                        ]
+                    }
+                },
+            ],
+        },
+    ],
+}
+
+
+class WorkbenchError(RuntimeError):
+    pass
+
+
+def run(
+    command: list[str],
+    *,
+    timeout: int = 30,
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        command,
+        cwd=LAB_ROOT,
+        text=True,
+        capture_output=True,
+        timeout=timeout,
+        check=False,
+    )
+
+
+def cmux_binary() -> str:
+    path = shutil.which("cmux")
+    if path is None:
+        raise WorkbenchError("cmux is not installed or not on PATH")
+    return path
+
+
+def resolve_target(raw_target: str | None, current_agent: bool) -> Path:
+    if current_agent:
+        result = run([str(LAB_ROOT / "scripts" / "check-current-agent"), "--print-path"])
+        if result.returncode != 0:
+            raise WorkbenchError("current Agent validation failed")
+        raw_target = result.stdout.strip()
+    elif raw_target is None:
+        raw_target = os.getcwd()
+
+    target = Path(raw_target).expanduser()
+    if not target.is_dir():
+        raise WorkbenchError(f"directory does not exist: {target}")
+    try:
+        return target.resolve(strict=True)
+    except OSError as exc:
+        raise WorkbenchError(f"cannot resolve directory: {target}") from exc
+
+
+def workspace_marker(target: Path) -> str:
+    digest = hashlib.sha256(os.fsencode(str(target))).hexdigest()
+    return MARKER_PREFIX + digest
+
+
+def run_json(command: list[str]) -> dict[str, Any]:
+    result = run(command)
+    if result.returncode != 0:
+        message = (result.stderr or result.stdout).strip()
+        raise WorkbenchError(message or f"command failed: {shlex.join(command)}")
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise WorkbenchError(f"cmux returned invalid JSON: {shlex.join(command)}") from exc
+    if not isinstance(payload, dict):
+        raise WorkbenchError("cmux JSON response is not an object")
+    return payload
+
+
+def ping(cmux: str) -> tuple[bool, str]:
+    result = run([cmux, "ping"], timeout=5)
+    message = (result.stderr or result.stdout).strip()
+    return result.returncode == 0, message
+
+
+def is_transport_failure(message: str) -> bool:
+    normalized = message.lower()
+    return any(pattern in normalized for pattern in TRANSPORT_FAILURES)
+
+
+def tree_all(cmux: str) -> dict[str, Any]:
+    return run_json([cmux, "--json", "tree", "--all"])
+
+
+def tree_workspace(cmux: str, workspace: str) -> dict[str, Any]:
+    return run_json([cmux, "--json", "tree", "--workspace", workspace])
+
+
+def flatten_workspaces(tree: dict[str, Any]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for window in tree.get("windows") or []:
+        if not isinstance(window, dict):
+            continue
+        window_ref = window.get("ref") or window.get("id")
+        for workspace in window.get("workspaces") or []:
+            if not isinstance(workspace, dict):
+                continue
+            row = dict(workspace)
+            row["_window_ref"] = window_ref
+            rows.append(row)
+    return rows
+
+
+def workspace_handle(workspace: dict[str, Any]) -> str | None:
+    value = workspace.get("ref") or workspace.get("id")
+    return str(value) if value else None
+
+
+def validate_workbench(workspace: dict[str, Any], require_tty: bool) -> list[str]:
+    errors: list[str] = []
+    panes = workspace.get("panes") or []
+    if len(panes) != 3:
+        errors.append(f"expected 3 panes, found {len(panes)}")
+
+    surfaces: list[dict[str, Any]] = []
+    for pane in panes:
+        pane_surfaces = pane.get("surfaces") or [] if isinstance(pane, dict) else []
+        if len(pane_surfaces) != 1:
+            errors.append("each pane must contain exactly one surface")
+        surfaces.extend(item for item in pane_surfaces if isinstance(item, dict))
+
+    if len(surfaces) != 3:
+        errors.append(f"expected 3 surfaces, found {len(surfaces)}")
+        return errors
+
+    titles = [str(surface.get("title") or "") for surface in surfaces]
+    if sorted(titles) != sorted(EXPECTED_SURFACES):
+        errors.append(f"unexpected surface titles: {titles}")
+    non_terminals = [
+        surface.get("type")
+        for surface in surfaces
+        if str(surface.get("type") or "").lower() != "terminal"
+    ]
+    if non_terminals:
+        errors.append(f"non-terminal surfaces present: {non_terminals}")
+    if require_tty:
+        missing_tty = [
+            surface.get("title") or surface.get("ref") or surface.get("id")
+            for surface in surfaces
+            if not surface.get("tty")
+        ]
+        if missing_tty:
+            errors.append(f"terminal TTY is not ready: {missing_tty}")
+
+    focused = [surface for surface in surfaces if surface.get("focused") is True]
+    if len(focused) != 1 or focused[0].get("title") != "Shell":
+        errors.append("Shell surface is not the unique focused surface")
+    return errors
+
+
+def wait_for_workbench(cmux: str, workspace: str) -> dict[str, Any]:
+    deadline = time.monotonic() + WORKSPACE_WAIT_SECONDS
+    last_errors: list[str] = ["workspace did not appear"]
+    while time.monotonic() < deadline:
+        try:
+            rows = flatten_workspaces(tree_workspace(cmux, workspace))
+        except WorkbenchError as exc:
+            last_errors = [str(exc)]
+            time.sleep(0.2)
+            continue
+        if len(rows) == 1:
+            last_errors = validate_workbench(rows[0], require_tty=True)
+            if not last_errors:
+                return rows[0]
+        else:
+            last_errors = [f"expected one workspace in verification tree, found {len(rows)}"]
+        time.sleep(0.2)
+    raise WorkbenchError("workspace verification failed: " + "; ".join(last_errors))
+
+
+def is_bootstrap_workspace(workspace: dict[str, Any], target: Path) -> bool:
+    if workspace.get("description") not in (None, ""):
+        return False
+    title = str(workspace.get("title") or "")
+    if title != target.name:
+        try:
+            if Path(title).expanduser().resolve(strict=True) != target:
+                return False
+        except OSError:
+            return False
+
+    for key in ("cwd", "working_directory", "workingDirectory"):
+        value = workspace.get(key)
+        if not value:
+            continue
+        try:
+            if Path(str(value)).expanduser().resolve(strict=True) != target:
+                return False
+        except OSError:
+            return False
+
+    panes = workspace.get("panes") or []
+    if len(panes) != 1 or not isinstance(panes[0], dict):
+        return False
+    surfaces = panes[0].get("surfaces") or []
+    return (
+        len(surfaces) == 1
+        and isinstance(surfaces[0], dict)
+        and str(surfaces[0].get("type") or "").lower() == "terminal"
+    )
+
+
+def launch_cmux(cmux: str, target: Path) -> dict[str, Any]:
+    launch = run([cmux, str(target)], timeout=15)
+    if launch.returncode != 0:
+        message = (launch.stderr or launch.stdout).strip()
+        raise WorkbenchError(message or "failed to launch cmux")
+
+    deadline = time.monotonic() + SOCKET_WAIT_SECONDS
+    while time.monotonic() < deadline:
+        ready, message = ping(cmux)
+        if ready:
+            break
+        if message and not is_transport_failure(message):
+            raise WorkbenchError(message)
+        time.sleep(0.2)
+    else:
+        raise WorkbenchError("cmux socket did not become ready")
+
+    last_count = 0
+    deadline = time.monotonic() + SOCKET_WAIT_SECONDS
+    while time.monotonic() < deadline:
+        rows = flatten_workspaces(tree_all(cmux))
+        last_count = len(rows)
+        if len(rows) == 1 and is_bootstrap_workspace(rows[0], target):
+            return rows[0]
+        if len(rows) > 1:
+            break
+        time.sleep(0.2)
+    raise WorkbenchError(
+        f"cannot prove ownership of cold-start bootstrap workspace; found {last_count}"
+    )
+
+
+def create_workspace(
+    cmux: str,
+    target: Path,
+    marker: str,
+) -> str:
+    layout = json.dumps(WORKBENCH_LAYOUT, separators=(",", ":"))
+    command = [
+        cmux,
+        "--json",
+        "workspace",
+        "create",
+        "--name",
+        target.name,
+        "--description",
+        marker,
+        "--cwd",
+        str(target),
+        "--layout",
+        layout,
+        "--focus",
+        "true",
+    ]
+    payload = run_json(command)
+    handle = payload.get("workspace_ref") or payload.get("workspace_id")
+    if not handle:
+        raise WorkbenchError("cmux workspace create returned no workspace identifier")
+    return str(handle)
+
+
+def close_workspace(cmux: str, workspace: str) -> None:
+    result = run([cmux, "workspace", "close", workspace])
+    if result.returncode != 0:
+        message = (result.stderr or result.stdout).strip()
+        raise WorkbenchError(message or f"failed to close workspace {workspace}")
+
+
+def focus_workspace(cmux: str, workspace: dict[str, Any]) -> None:
+    workspace_ref = workspace_handle(workspace)
+    window_ref = workspace.get("_window_ref")
+    if workspace_ref is None or not window_ref:
+        raise WorkbenchError("workspace or window identifier is missing")
+    focus = run([cmux, "focus-window", "--window", str(window_ref)])
+    if focus.returncode != 0:
+        raise WorkbenchError((focus.stderr or focus.stdout).strip())
+    select = run(
+        [
+            cmux,
+            "select-workspace",
+            "--workspace",
+            workspace_ref,
+            "--window",
+            str(window_ref),
+        ]
+    )
+    if select.returncode != 0:
+        raise WorkbenchError((select.stderr or select.stdout).strip())
+
+    open_binary = os.environ.get("OPEN_WORKBENCH_OPEN_BIN") or shutil.which("open")
+    if open_binary:
+        run([open_binary, "-a", "cmux"], timeout=10)
+
+
+def find_marker_matches(cmux: str, marker: str) -> list[dict[str, Any]]:
+    return [
+        workspace
+        for workspace in flatten_workspaces(tree_all(cmux))
+        if workspace.get("description") == marker
+    ]
+
+
+def creation_command(cmux: str, target: Path, marker: str) -> list[str]:
+    return [
+        cmux,
+        "--json",
+        "workspace",
+        "create",
+        "--name",
+        target.name,
+        "--description",
+        marker,
+        "--cwd",
+        str(target),
+        "--layout",
+        json.dumps(WORKBENCH_LAYOUT, separators=(",", ":")),
+        "--focus",
+        "true",
+    ]
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("path", nargs="?")
+    parser.add_argument("--current-agent", action="store_true")
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--check", action="store_true")
+    args = parser.parse_args()
+    if args.current_agent and args.path is not None:
+        parser.error("PATH and --current-agent cannot be used together")
+    if args.dry_run and args.check:
+        parser.error("--dry-run and --check cannot be used together")
+    return args
+
+
+def direct_hint(target: Path | None) -> str:
+    if target is None:
+        return ""
+    return f" Native fallback: cd {shlex.quote(str(target))}, then run codex or claude."
+
+
+def main() -> int:
+    args = parse_args()
+    target: Path | None = None
+    try:
+        target = resolve_target(args.path, args.current_agent)
+        marker = workspace_marker(target)
+        cmux = cmux_binary()
+
+        if args.dry_run:
+            print("DRY-RUN:", shlex.join(creation_command(cmux, target, marker)))
+            return 0
+
+        ready, message = ping(cmux)
+        bootstrap: dict[str, Any] | None = None
+        if not ready:
+            if args.check:
+                raise WorkbenchError("cmux is not running")
+            if not is_transport_failure(message):
+                raise WorkbenchError(message or "cmux is unavailable")
+            bootstrap = launch_cmux(cmux, target)
+
+        matches = find_marker_matches(cmux, marker)
+        if len(matches) > 1:
+            raise WorkbenchError(
+                f"multiple Agent Lab workspaces match this directory: {len(matches)}"
+            )
+        if len(matches) == 1:
+            errors = validate_workbench(matches[0], require_tty=True)
+            if args.check:
+                if errors:
+                    raise WorkbenchError("existing workspace is invalid: " + "; ".join(errors))
+                print(f"OK: checked {workspace_handle(matches[0])} {target}")
+                return 0
+            focus_workspace(cmux, matches[0])
+            if errors:
+                raise WorkbenchError("existing workspace is invalid: " + "; ".join(errors))
+            print(f"OK: reused {workspace_handle(matches[0])} {target}")
+            return 0
+
+        if args.check:
+            raise WorkbenchError("no Agent Lab workspace exists for this directory")
+
+        created = create_workspace(cmux, target, marker)
+        try:
+            verified = wait_for_workbench(cmux, created)
+        except WorkbenchError:
+            try:
+                close_workspace(cmux, created)
+            except WorkbenchError:
+                pass
+            raise
+
+        cleanup_warning = ""
+        if bootstrap is not None:
+            bootstrap_ref = workspace_handle(bootstrap)
+            if bootstrap_ref and bootstrap_ref != created:
+                try:
+                    close_workspace(cmux, bootstrap_ref)
+                except WorkbenchError as exc:
+                    cleanup_warning = f" WARN: bootstrap cleanup failed: {exc}"
+
+        focus_workspace(cmux, verified)
+        print(f"OK: created {created} {target}{cleanup_warning}")
+        return 0
+    except (WorkbenchError, OSError, subprocess.TimeoutExpired) as exc:
+        print(f"FAIL: {exc}.{direct_hint(target)}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

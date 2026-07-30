@@ -1,115 +1,265 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LAB_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-CONFIG="$LAB_ROOT/.codex-home/config.toml"
-GLOBAL_AGENTS="$LAB_ROOT/.codex-home/AGENTS.md"
-AGENT_DIR="$LAB_ROOT/.codex/agents"
-SKILL_DIR="$LAB_ROOT/.agents/skills"
-PROJECT_RULE_CHECK="$LAB_ROOT/scripts/check-project-rules"
-RUNTIME_COMPAT_CHECK="$LAB_ROOT/scripts/check-runtime-compatibility"
-WORKSPACE_SAFETY_CHECK="$LAB_ROOT/scripts/check-workspace-safety"
-RULE_LADDER_CHECK="$LAB_ROOT/scripts/check-rule-ladder"
-AGENT_PACKAGE_CHECK="$LAB_ROOT/scripts/check-agent-packages"
-WORKFLOW_MODE_CHECK="$LAB_ROOT/scripts/check-workflow-modes"
-SANDBOX_CHECK="$LAB_ROOT/scripts/check-sandbox"
-ASYNC_CHECK="$LAB_ROOT/scripts/check-async-execution"
-SANDBOX_SKILL_CHECK="$LAB_ROOT/scripts/check-sandbox-skills"
-SPEED_CHECK="$LAB_ROOT/scripts/check-speed-contract"
-COLLAB_CHECK="$LAB_ROOT/scripts/check-collaboration"
-RUN_RECORD_CHECK="$LAB_ROOT/scripts/check-run-records"
-TASK_STATE_CHECK="$LAB_ROOT/scripts/check-task-state"
-MERGE_QUEUE_CHECK="$LAB_ROOT/scripts/check-merge-queue"
-GATES_CHECK="$LAB_ROOT/scripts/check-gates"
-SIDE_EFFECTS_CHECK="$LAB_ROOT/scripts/check-side-effects"
-SCRATCH_DURABILITY_CHECK="$LAB_ROOT/scripts/check-scratch-durability"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+lab_root="$(cd "$script_dir/.." && pwd)"
+open_workbench="$script_dir/open-workbench"
+lab_cli="$script_dir/lab"
 
 fail() {
   printf 'FAIL: %s\n' "$*" >&2
   exit 1
 }
 
-printf 'Lab root: %s\n' "$LAB_ROOT"
+for file in AGENTS.md CLAUDE.md README.md SECURITY.md .current-agent .gitignore; do
+  [[ -f "$lab_root/$file" ]] || fail "missing $file"
+done
 
-test -d "$LAB_ROOT" || fail "lab root missing"
-test -f "$LAB_ROOT/AGENTS.md" || fail "AGENTS.md missing"
-test -f "$CONFIG" || fail "clean-home config missing"
-test -e "$GLOBAL_AGENTS" || fail "clean-home global AGENTS.md reference missing"
-test -d "$AGENT_DIR" || fail "agent directory missing"
-test -d "$SKILL_DIR" || fail "skill directory missing"
-test -x "$PROJECT_RULE_CHECK" || fail "project rule check script missing or not executable"
-test -x "$RUNTIME_COMPAT_CHECK" || fail "runtime compatibility check script missing or not executable"
-test -x "$WORKSPACE_SAFETY_CHECK" || fail "workspace safety check script missing or not executable"
-test -x "$RULE_LADDER_CHECK" || fail "rule ladder check script missing or not executable"
-test -x "$AGENT_PACKAGE_CHECK" || fail "agent package check script missing or not executable"
-test -x "$WORKFLOW_MODE_CHECK" || fail "workflow mode check script missing or not executable"
-test -x "$SANDBOX_CHECK" || fail "sandbox check script missing or not executable"
-test -x "$ASYNC_CHECK" || fail "async execution check script missing or not executable"
-test -x "$SANDBOX_SKILL_CHECK" || fail "sandbox skill check script missing or not executable"
-test -x "$SPEED_CHECK" || fail "speed contract check script missing or not executable"
-test -x "$COLLAB_CHECK" || fail "collaboration check script missing or not executable"
-test -x "$RUN_RECORD_CHECK" || fail "run record check script missing or not executable"
-test -x "$TASK_STATE_CHECK" || fail "task state check script missing or not executable"
-test -x "$MERGE_QUEUE_CHECK" || fail "merge queue check script missing or not executable"
-test -x "$GATES_CHECK" || fail "lifecycle gates check script missing or not executable"
-test -x "$SIDE_EFFECTS_CHECK" || fail "side effects check script missing or not executable"
-test -x "$SCRATCH_DURABILITY_CHECK" || fail "scratch durability check script missing or not executable"
+for directory in scripts tests workspaces .worktrees; do
+  [[ -d "$lab_root/$directory" ]] || fail "missing $directory/"
+done
 
-if test -e "$LAB_ROOT/.codex-home/auth.json"; then
-  fail "clean home contains auth.json; this lab should not copy secrets"
-fi
+required_scripts=(
+  check-current-agent
+  check-lab
+  check-native-parity
+  check-secrets
+  check-side-effects
+  lab
+  open-workbench
+)
+python_scripts=(
+  check-native-parity
+  check-secrets
+  check-side-effects
+  lab
+  open-workbench
+)
 
-grep -qE '^model_provider = "custom"$' "$CONFIG" || fail "config model_provider is not custom"
-grep -qE '^model = "gpt-5.5"$' "$CONFIG" || fail "config model is not gpt-5.5"
-grep -qE '^model_reasoning_effort = "xhigh"$' "$CONFIG" || fail "config reasoning effort is not xhigh"
-grep -qE '^sandbox_mode = "workspace-write"$' "$CONFIG" || fail "config sandbox is not workspace-write"
-grep -qE 'base_url = "https://api.modextm.com/v1"' "$CONFIG" || fail "custom provider base_url missing"
+is_python_script() {
+  local candidate="$1"
+  local name
+  for name in "${python_scripts[@]}"; do
+    [[ "$candidate" == "$name" ]] && return 0
+  done
+  return 1
+}
 
-if test -L "$GLOBAL_AGENTS"; then
-  target="$(readlink "$GLOBAL_AGENTS")"
-  expected_global="${HOME}/.codex/AGENTS.md"
-  test "$target" = "$expected_global" || fail "global AGENTS symlink points to $target"
-fi
+for name in "${required_scripts[@]}"; do
+  [[ -x "$script_dir/$name" ]] || fail "missing executable scripts/$name"
+  if is_python_script "$name"; then
+    python3 -c \
+      'import ast, pathlib, sys; ast.parse(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))' \
+      "$script_dir/$name" ||
+      fail "invalid Python syntax: scripts/$name"
+  else
+    bash -n "$script_dir/$name" || fail "invalid shell syntax: scripts/$name"
+  fi
+done
 
-agent_count="$(find "$AGENT_DIR" -maxdepth 1 -name '*.toml' -type f | wc -l | tr -d ' ')"
-test "$agent_count" -ge 7 || fail "expected at least 7 agent toml files, found $agent_count"
-
-missing_fields=0
 while IFS= read -r file; do
-  grep -qE '^name = ' "$file" || { printf 'Missing name: %s\n' "$file" >&2; missing_fields=1; }
-  grep -qE '^description = ' "$file" || { printf 'Missing description: %s\n' "$file" >&2; missing_fields=1; }
-  grep -qE '^developer_instructions = ' "$file" || { printf 'Missing developer_instructions: %s\n' "$file" >&2; missing_fields=1; }
-done < <(find "$AGENT_DIR" -maxdepth 1 -name '*.toml' -type f | sort)
-test "$missing_fields" -eq 0 || fail "one or more agents are missing required fields"
+  name="$(basename "$file")"
+  case "$name" in
+    check-current-agent|check-lab|check-native-parity|check-secrets|check-side-effects|lab|open-workbench)
+      ;;
+    *)
+      fail "unexpected Lab script: scripts/$name"
+      ;;
+  esac
+done < <(find "$script_dir" -maxdepth 1 -type f | sort)
 
-skill_count="$(find "$SKILL_DIR" -mindepth 2 -maxdepth 2 -name SKILL.md -type f | wc -l | tr -d ' ')"
-printf 'Agents: %s\n' "$agent_count"
-printf 'Skills: %s\n' "$skill_count"
+legacy_paths=(
+  .agents
+  .codex
+  .codex-home
+  .toolchain
+  clink
+  docs
+  lab_agents
+  registry
+  waterflow
+  README.zh-CN.md
+)
+for relative in "${legacy_paths[@]}"; do
+  [[ ! -e "$lab_root/$relative" ]] || fail "obsolete Lab layer remains: $relative"
+done
 
-if command -v codex >/dev/null 2>&1; then
-  printf 'Codex CLI: %s\n' "$(command -v codex)"
-else
-  printf 'Codex CLI: not found on PATH\n'
-fi
+[[ ! -e "$lab_root/.cmux/cmux.json" ]] ||
+  fail "project-level .cmux/cmux.json is forbidden"
 
-"$PROJECT_RULE_CHECK" >/dev/null
-"$RUNTIME_COMPAT_CHECK" >/dev/null
-"$RULE_LADDER_CHECK" >/dev/null
-"$AGENT_PACKAGE_CHECK" >/dev/null
-# Workspace safety is an explicit boundary gate. Do not sweep active
-# workspaces in the root fast path.
-"$WORKFLOW_MODE_CHECK" >/dev/null
-"$SANDBOX_CHECK" >/dev/null
-"$SANDBOX_SKILL_CHECK" >/dev/null
-"$SPEED_CHECK" >/dev/null
-"$COLLAB_CHECK" >/dev/null
-"$RUN_RECORD_CHECK" >/dev/null
-"$TASK_STATE_CHECK" >/dev/null
-"$MERGE_QUEUE_CHECK" >/dev/null
-"$GATES_CHECK" >/dev/null
-"$SIDE_EFFECTS_CHECK" >/dev/null
-# Scratch durability is an explicit boundary gate. Do not sweep scratch or
-# internal company workspaces from the root fast path.
+python3 - "$open_workbench" "$lab_cli" <<'PY' ||
+import ast
+import pathlib
+import re
+import sys
 
-printf 'OK: lab structure is valid\n'
+open_path = pathlib.Path(sys.argv[1])
+lab_path = pathlib.Path(sys.argv[2])
+open_source = open_path.read_text(encoding="utf-8")
+lab_source = lab_path.read_text(encoding="utf-8")
+open_tree = ast.parse(open_source)
+lab_tree = ast.parse(lab_source)
+
+expected_layout = {
+    "direction": "horizontal",
+    "split": 0.5,
+    "children": [
+        {
+            "pane": {
+                "surfaces": [
+                    {
+                        "type": "terminal",
+                        "name": "Codex CLI",
+                    }
+                ]
+            }
+        },
+        {
+            "direction": "vertical",
+            "split": 0.5,
+            "children": [
+                {
+                    "pane": {
+                        "surfaces": [
+                            {
+                                "type": "terminal",
+                                "name": "Claude Code",
+                            }
+                        ]
+                    }
+                },
+                {
+                    "pane": {
+                        "surfaces": [
+                            {
+                                "type": "terminal",
+                                "name": "Shell",
+                                "focus": True,
+                            }
+                        ]
+                    }
+                },
+            ],
+        },
+    ],
+}
+
+layout = None
+for node in open_tree.body:
+    if not isinstance(node, (ast.Assign, ast.AnnAssign)):
+        continue
+    targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+    if any(isinstance(target, ast.Name) and target.id == "WORKBENCH_LAYOUT" for target in targets):
+        layout = ast.literal_eval(node.value)
+        break
+if layout != expected_layout:
+    raise SystemExit("WORKBENCH_LAYOUT does not match the native three-shell contract")
+
+constants = {
+    node.value
+    for node in ast.walk(open_tree)
+    if isinstance(node, ast.Constant) and isinstance(node.value, str)
+}
+required = {
+    "workspace",
+    "create",
+    "--name",
+    "--description",
+    "--cwd",
+    "--layout",
+    "--focus",
+    "--print-path",
+}
+missing = sorted(required - constants)
+if missing:
+    raise SystemExit("open-workbench creation contract is incomplete: " + ", ".join(missing))
+
+forbidden_literals = {
+    "--command",
+    "--env",
+    "--env-file",
+    "send",
+    "new-split",
+    "hooks",
+}
+present = sorted(forbidden_literals & constants)
+if present:
+    raise SystemExit("forbidden cmux automation is present: " + ", ".join(present))
+
+combined_source = open_source + "\n" + lab_source
+if re.search(r"CODEX_HOME|CLAUDE_CONFIG_DIR|[A-Z][A-Z0-9_]*API_KEY", combined_source):
+    raise SystemExit("client home or API key injection is present")
+if re.search(r"\bgit\s+(push|merge|rebase|commit|reset|clean|checkout|switch|worktree)\b", combined_source):
+    raise SystemExit("Git write operation is present")
+
+def literal_command_tokens(node):
+    if not isinstance(node, (ast.List, ast.Tuple)):
+        return []
+    return [
+        item.value
+        for item in node.elts
+        if isinstance(item, ast.Constant) and isinstance(item.value, str)
+    ]
+
+for tree in (open_tree, lab_tree):
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or not node.args:
+            continue
+        tokens = literal_command_tokens(node.args[0])
+        if tokens and tokens[0] in {"codex", "claude"}:
+            raise SystemExit("native client auto-start is present")
+PY
+  fail "native-first script structure is invalid"
+
+dry_run="$("$open_workbench" --dry-run "$lab_root")" ||
+  fail "open-workbench dry-run failed"
+python3 - "$dry_run" <<'PY' ||
+import json
+import shlex
+import sys
+
+line = sys.argv[1]
+prefix = "DRY-RUN: "
+if not line.startswith(prefix):
+    raise SystemExit("missing dry-run prefix")
+tokens = shlex.split(line[len(prefix):])
+if len(tokens) < 4 or tokens[1:4] != ["--json", "workspace", "create"]:
+    raise SystemExit("dry-run does not use canonical workspace create")
+for required in ("--name", "--description", "--cwd", "--layout", "--focus"):
+    if required not in tokens:
+        raise SystemExit(f"dry-run is missing {required}")
+for forbidden in ("--command", "--env", "--env-file", "send", "new-split", "hooks"):
+    if forbidden in tokens:
+        raise SystemExit(f"dry-run contains forbidden token {forbidden}")
+layout = json.loads(tokens[tokens.index("--layout") + 1])
+surfaces = []
+def walk(node):
+    pane = node.get("pane")
+    if isinstance(pane, dict):
+        surfaces.extend(pane.get("surfaces") or [])
+    for child in node.get("children") or []:
+        walk(child)
+walk(layout)
+if [item.get("name") for item in surfaces] != ["Codex CLI", "Claude Code", "Shell"]:
+    raise SystemExit("dry-run layout titles are invalid")
+if any(item.get("type") != "terminal" for item in surfaces):
+    raise SystemExit("dry-run layout contains a non-terminal surface")
+if [item.get("name") for item in surfaces if item.get("focus") is True] != ["Shell"]:
+    raise SystemExit("dry-run layout focus is invalid")
+PY
+  fail "open-workbench dry-run contract is invalid"
+
+for command_name in cmux codex claude; do
+  command_path="$(command -v "$command_name" || true)"
+  [[ -n "$command_path" ]] || fail "$command_name is not on PATH"
+  printf '%s: %s\n' "$command_name" "$command_path"
+done
+
+"$script_dir/check-native-parity" --json >/dev/null ||
+  fail "native client parity failed"
+"$lab_cli" status --json "$lab_root" >/dev/null ||
+  fail "Lab status command failed"
+"$script_dir/check-secrets" >/dev/null
+"$script_dir/check-side-effects" >/dev/null
+
+printf 'OK: native-first Agent Lab is valid\n'

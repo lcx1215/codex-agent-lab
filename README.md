@@ -1,126 +1,120 @@
 # Codex Agent Lab
 
-**English | [简体中文](README.zh-CN.md)**
+Agent Lab 是原生 Codex、Claude Code 和 Codex App 的可选开发入口。
 
-Clean, project-scoped workbench for Codex and Claude agent development.
+它只负责：
 
-The root layer should stay thin: safety locks, placement rules, small proof
-loops, and fast health gates. Scenario history, company details, release notes,
-and heavy harness evidence belong in workspaces, docs, outputs, or registry
-records.
+- 打开或复用正确的 cmux 工作目录。
+- 显示当前项目、Git 和 cmux 状态。
+- 按需检查原生客户端是否被覆盖或拖慢。
 
-## What This Is
+它不管理认证、模型、Provider、Skill、记忆、插件、会话、Agent、
+worktree 或项目开发流程，也不要求任何客户端 API Key。
 
-- Governance and collaboration layer, not a production agent runtime.
-- Shared lab root for Codex and Claude with durable state and validation gates.
-- Scenario-neutral maximum environment; product or company work starts under
-  `workspaces/`.
-- Evidence-first workflow: use the smallest harness or check that proves the
-  current claim, then stop or iterate.
+## 日常使用
 
-## Start
+打开普通项目：
 
-| Need | Command or file |
-| --- | --- |
-| Root fast health | `./scripts/check-lab` |
-| Clean-home Codex lane | `./scripts/start-clean-home` |
-| API-relay Codex lane | `./scripts/start-api-relay` |
-| Workflow mode help | `./scripts/workflow-mode list` |
-| Current dashboard | `./scripts/lab-dashboard` |
-| Clink context entry | `workspaces/clink-internal-dev-context/README.md` |
+```bash
+./scripts/lab open /path/to/repo
+```
 
-Do not use the Clink context or `.current-agent` pointer unless the task is
-actually about Clink company work.
+打开当前客服 Agent：
 
-## Rules And Placement
+```bash
+./scripts/lab open --current-agent
+```
 
-- Codex root overlay: `AGENTS.md`
-- Claude root overlay: `CLAUDE.md`
-- Placement contract: `docs/environment-layering.md`
-- Rule inheritance: `docs/rule-inheritance.md`
-- Scenario workspace contract: `docs/scenario-workspace-contract.md`
-- Collaboration protocol: `docs/codex-claude-collaboration-protocol.md`
-- Mission and promotion bar: `docs/agent-lab-mission.md`
+cmux workspace 固定包含三个初始纯 Shell：
 
-Root assets must be scenario-neutral. Workspaces hold product or company
-context. Agent packages live inside workspaces under `agents/` or `subagents/`.
+- 左侧：`Codex CLI`
+- 右上：`Claude Code`
+- 右下：`Shell`
 
-## Fast Checks
+Lab 不会自动启动 Codex 或 Claude。进入对应 Shell 后，由用户运行原生
+`codex` 或 `claude`。
 
-Use these in normal edit loops:
+只查看将执行的 cmux 命令：
 
-| Check | Command |
-| --- | --- |
-| Project rules | `./scripts/check-project-rules` |
-| Runtime compatibility | `./scripts/check-runtime-compatibility` |
-| Rule ladder | `./scripts/check-rule-ladder` |
-| Agent packages | `./scripts/check-agent-packages` |
-| Sandbox | `./scripts/check-sandbox` |
-| Sandbox skills | `./scripts/check-sandbox-skills` |
-| Speed contract | `./scripts/check-speed-contract` |
-| Task state | `./scripts/check-task-state` |
-| Secrets | `./scripts/check-secrets` |
+```bash
+./scripts/lab open --dry-run /path/to/repo
+```
 
-Use targeted tests for changed behavior before wider suites.
+只检查已有 workspace，不创建或聚焦：
 
-## Boundary Checks
+```bash
+./scripts/lab open --check /path/to/repo
+```
 
-Run heavier checks only at commit, release, promotion, handoff, or explicit audit
-boundaries:
+## 查看现场
 
-| Boundary | Command |
-| --- | --- |
-| Workspace safety | `./scripts/check-workspace-safety` |
-| Async execution | `./scripts/check-async-execution` |
-| IDE-loop benchmark | `./scripts/benchmark-ide-loop` |
-| Waterflow scan | `./scripts/waterflow-scan --root . --compare-last` |
-| Waterflow verification | `./scripts/waterflow-verify` |
-| Waterflow stress | `./scripts/waterflow-stress --scale-paths 1200` |
-| Waterflow incident | `./scripts/waterflow-incident` |
-| Collaboration surfaces | `./scripts/check-collaboration` |
+```bash
+./scripts/lab status /path/to/repo
+./scripts/lab status --current-agent
+./scripts/lab status --json /path/to/repo
+```
 
-`docs/waterflow-speed-contract.md` defines why these are not default per-edit
-steps. Heavy harnesses prove boundaries; they should not slow ordinary work.
+`status` 只读取真实路径、分支、HEAD、tracked dirty 状态和 cmux workspace。
+Git 检查最多等待 2 秒，不扫描未跟踪文件；超时显示 `unknown`，不会阻塞开发。
+cmux 未安装或未运行不会影响 Git 状态。
 
-## Agents And Skills
+## 检查客户端
 
-Resident support agents:
+静态检查：
 
-- `foundation-amplifier`
-- `development-experience-auditor`
-- `third-party-large-agent-auditor`
-- `context-architect`
-- `handoff-summarizer`
-- `waterflow-auditor`
+```bash
+./scripts/lab doctor
+./scripts/lab doctor --json
+```
 
-Audit entrypoints:
+真实 Codex/Claude A/B：
 
-- `./scripts/development-experience-audit`
-- `./scripts/large-agent-readiness-audit`
+```bash
+./scripts/lab doctor --live
+```
 
-Lab skills live under `.agents/skills/`. Current sandbox skills are
-`secret-boundary-auditor`, `async-race-detector`, and
-`sandbox-artifact-hygiene`.
+`--live` 会在空目录和 Lab 根目录各运行三轮 Codex 与 Claude，共 12 次模型
+调用。结果保存到 `.tmp/native-parity/latest.json`。每个客户端由 Lab 增加的
+上下文不得超过 2048 tokens。
 
-## Reports
+在 cmux Shell 中比较 direct-Lab 基线：
 
-- Durable progress: `registry/current-progress.md`
-- Validation evidence: `registry/VALIDATION.md`
-- Agent registry: `registry/AGENT_REGISTRY.md`
-- Runtime compatibility: `outputs/shared/compatibility/runtime-compatibility.md`
-- Workspace safety: `outputs/shared/workspace-safety/workspace-safety.md`
-- Dashboard: `outputs/shared/dashboard/lab-dashboard.md`
-- Benchmark history: `outputs/shared/benchmarks/ide-loop/history.md`
+```bash
+./scripts/lab doctor --inside-cmux
+./scripts/lab doctor --inside-cmux --live
+```
 
-Reports are evidence stores, not root rules.
+cmux 可能提供命令 shim，因此路径可不同；客户端版本、配置指纹和 Skill
+清单必须一致。`--inside-cmux --live` 会在同一个 cmux Shell 中交错比较原生
+绝对路径和 shim 路径，共执行 12 次模型调用。
 
-## Boundaries
+## 直接使用原生客户端
 
-- Do not read, copy, print, or migrate secrets, auth files, tokens, cookies,
-  OTPs, API keys, provider config, or account sessions.
-- Do not mutate company repositories, branches, deployment config, or
-  TEST/UAT/PROD state without exact current authorization.
-- Jenkins is user-manual-only. Codex may only analyze user-supplied Jenkins
-  screenshots, copied logs, or status text.
-- Do not touch default App/Plus lane, API-relay auth, provider config,
-  LaunchAgents, or plugins unless the user names that exact local task.
+Lab 从来不是必经入口：
+
+```bash
+cd /path/to/repo
+codex
+```
+
+或：
+
+```bash
+cd /path/to/repo
+claude
+```
+
+如果 Lab 增加了等待、理解成本或能力限制，应直接绕过并运行
+`./scripts/lab doctor` 定位差异。
+
+## 本地验证
+
+```bash
+python3 -m unittest discover -s tests
+./scripts/check-lab
+./scripts/check-secrets
+./scripts/check-side-effects
+git diff --check
+```
+
+`workspaces/`、`.worktrees/` 和其中的公司仓库不属于 Lab 根修改范围。
