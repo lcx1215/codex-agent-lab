@@ -1,4 +1,3 @@
-import hashlib
 import json
 import os
 import shutil
@@ -53,11 +52,6 @@ class LabCliTests(unittest.TestCase):
             capture_output=True,
             check=False,
         )
-
-    @staticmethod
-    def marker(path: Path) -> str:
-        digest = hashlib.sha256(os.fsencode(str(path.resolve()))).hexdigest()
-        return "agent-lab:v1:" + digest
 
     def test_open_delegates_arguments_without_starting_clients(self):
         root = self.make_dir("lab-cli-open-")
@@ -122,16 +116,20 @@ class LabCliTests(unittest.TestCase):
             "if args == ['ping']:\n"
             "    print('PONG')\n"
             "elif args == ['--json', 'tree', '--all']:\n"
-            "    print(json.dumps({'windows': [{'workspaces': [{"
-            "'ref': 'workspace:7', 'title': 'project with spaces', "
-            "'description': os.environ['LAB_WORKSPACE_MARKER']"
+            "    print(json.dumps({'windows': [{'ref': 'window:1', 'workspaces': [{"
+            "'ref': 'workspace:7', 'title': 'project with spaces'"
             "}]}]}))\n"
+            "elif args == ['workspace', 'list', '--json', '--window', 'window:1']:\n"
+            "    print(json.dumps({'window_ref': 'window:1', 'workspaces': [{"
+            "'ref': 'workspace:7', 'title': 'project with spaces', "
+            "'current_directory': os.environ['LAB_WORKSPACE_CWD']"
+            "}]}))\n"
             "else:\n"
             "    raise SystemExit(2)\n",
             encoding="utf-8",
         )
         cmux.chmod(0o755)
-        env["LAB_WORKSPACE_MARKER"] = self.marker(target)
+        env["LAB_WORKSPACE_CWD"] = str(target.resolve())
 
         result = self.run_cli(
             cli,

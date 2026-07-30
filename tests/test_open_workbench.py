@@ -1,4 +1,3 @@
-import hashlib
 import json
 import os
 import shutil
@@ -83,6 +82,7 @@ if len(args) == 1 and pathlib.Path(args[0]).is_dir():
         "ref": f"workspace:{number}",
         "title": os.environ.get("FAKE_CMUX_BOOTSTRAP_TITLE", pathlib.Path(args[0]).name),
         "description": None,
+        "current_directory": str(pathlib.Path(args[0]).resolve()),
         "selected": True,
         "panes": [{
             "surfaces": [{
@@ -105,16 +105,33 @@ if args and args[0] == "--json":
     args = args[1:]
 
 if args and args[0] == "tree":
-    rows = state["workspaces"]
+    rows = [dict(row) for row in state["workspaces"]]
     if "--workspace" in args:
         target = option("--workspace")
         rows = [row for row in rows if target in (row["id"], row["ref"])]
+    for row in rows:
+        row.pop("current_directory", None)
     print(json.dumps({
         "windows": [{
             "id": "window-1",
             "ref": "window:1",
             "workspaces": rows,
         }]
+    }))
+    raise SystemExit(0)
+
+if args[:2] == ["workspace", "list"]:
+    print(json.dumps({
+        "window_ref": option("--window"),
+        "workspaces": [
+            {
+                "ref": row["ref"],
+                "title": row["title"],
+                "description": row.get("description"),
+                "current_directory": row.get("current_directory"),
+            }
+            for row in state["workspaces"]
+        ],
     }))
     raise SystemExit(0)
 
@@ -129,7 +146,8 @@ if args[:2] == ["workspace", "create"]:
         "id": f"uuid-{number}",
         "ref": f"workspace:{number}",
         "title": option("--name"),
-        "description": option("--description"),
+        "description": None,
+        "current_directory": option("--cwd"),
         "selected": True,
         "panes": panes_from_layout(layout, [number * 10]),
     }
@@ -214,17 +232,19 @@ class OpenWorkbenchTests(unittest.TestCase):
             check=False,
         )
 
-    @staticmethod
-    def marker(path: Path) -> str:
-        return "agent-lab:v1:" + hashlib.sha256(os.fsencode(str(path.resolve()))).hexdigest()
-
-    def healthy_workspace(self, path: Path, number: int = 3) -> dict:
+    def healthy_workspace(
+        self,
+        path: Path,
+        number: int = 3,
+        description: str | None = None,
+    ) -> dict:
         titles = ("Codex CLI", "Claude Code", "Shell")
         return {
             "id": f"uuid-{number}",
             "ref": f"workspace:{number}",
             "title": path.name,
-            "description": self.marker(path),
+            "description": description,
+            "current_directory": str(path.resolve()),
             "selected": True,
             "panes": [
                 {
@@ -275,11 +295,15 @@ class OpenWorkbenchTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("OK: created", result.stdout)
         self.assertEqual(titles, ["Codex CLI", "Claude Code", "Shell"])
-        self.assertEqual(workspace["description"], self.marker(repo))
+        self.assertIsNone(workspace["description"])
+        self.assertEqual(workspace["current_directory"], str(repo.resolve()))
         self.assertEqual(after, before)
         commands = [json.loads(line) for line in log_path.read_text().splitlines()]
         self.assertFalse(any("--help" in command for command in commands))
         self.assertFalse(any(command == ["--version"] for command in commands))
+        self.assertTrue(
+            any(command[:2] == ["workspace", "list"] for command in commands)
+        )
 
     def test_space_path_resolves_to_physical_directory(self):
         root = self.make_dir("workbench-space-")
@@ -295,7 +319,8 @@ class OpenWorkbenchTests(unittest.TestCase):
         workspace = state["workspaces"][0]
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(workspace["title"], physical.name)
-        self.assertEqual(workspace["description"], self.marker(physical))
+        self.assertEqual(workspace["current_directory"], str(physical.resolve()))
+        self.assertIsNone(workspace["description"])
 
     def test_dry_run_does_not_create_workspace(self):
         root = self.make_dir("workbench-dry-")
@@ -309,6 +334,7 @@ class OpenWorkbenchTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("workspace create", result.stdout)
         self.assertIn("--layout", result.stdout)
+        self.assertNotIn("--description", result.stdout)
         self.assertEqual(state["workspaces"], [])
 
     def test_missing_directory_fails_closed(self):
@@ -360,7 +386,11 @@ class OpenWorkbenchTests(unittest.TestCase):
 
         state = json.loads(state_path.read_text(encoding="utf-8"))
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(state["workspaces"][0]["description"], self.marker(agent))
+        self.assertEqual(
+            state["workspaces"][0]["current_directory"],
+            str(agent.resolve()),
+        )
+        self.assertIsNone(state["workspaces"][0]["description"])
 
     def test_current_agent_validation_failure_does_not_create_workspace(self):
         root = self.make_dir("workbench-current-fail-")
@@ -390,7 +420,7 @@ class OpenWorkbenchTests(unittest.TestCase):
         root = self.make_dir("workbench-reuse-")
         target = root / "target"
         target.mkdir()
-        existing = self.healthy_workspace(target)
+        existing = self.healthy_workspace(target, description="legacy marker")
         env, state_path, log_path = self.fake_cmux_env(root, workspaces=[existing])
 
         result = self.run_script([str(target)], cwd=root, env=env)
@@ -401,6 +431,25 @@ class OpenWorkbenchTests(unittest.TestCase):
         self.assertIn("OK: reused workspace:3", result.stdout)
         self.assertEqual(len(state["workspaces"]), 1)
         self.assertNotIn('"create"', log)
+
+    def test_same_title_in_different_directory_is_not_reused(self):
+        root = self.make_dir("workbench-same-title-")
+        target = root / "first" / "project"
+        other = root / "second" / "project"
+        target.mkdir(parents=True)
+        other.mkdir(parents=True)
+        existing = self.healthy_workspace(other)
+        env, state_path, _ = self.fake_cmux_env(root, workspaces=[existing])
+
+        result = self.run_script([str(target)], cwd=root, env=env)
+
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(len(state["workspaces"]), 2)
+        self.assertEqual(
+            state["workspaces"][1]["current_directory"],
+            str(target.resolve()),
+        )
 
     def test_check_mode_is_read_only(self):
         root = self.make_dir("workbench-check-")
@@ -432,7 +481,11 @@ class OpenWorkbenchTests(unittest.TestCase):
         state = json.loads(state_path.read_text(encoding="utf-8"))
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(len(state["workspaces"]), 1)
-        self.assertEqual(state["workspaces"][0]["description"], self.marker(target))
+        self.assertEqual(
+            state["workspaces"][0]["current_directory"],
+            str(target.resolve()),
+        )
+        self.assertIsNone(state["workspaces"][0]["description"])
         commands = [json.loads(line) for line in log_path.read_text().splitlines()]
         self.assertIn([str(target.resolve())], commands)
         self.assertTrue(any(command[:2] == ["workspace", "close"] for command in commands))
@@ -449,7 +502,11 @@ class OpenWorkbenchTests(unittest.TestCase):
         state = json.loads(state_path.read_text(encoding="utf-8"))
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(len(state["workspaces"]), 1)
-        self.assertEqual(state["workspaces"][0]["description"], self.marker(target))
+        self.assertEqual(
+            state["workspaces"][0]["current_directory"],
+            str(target.resolve()),
+        )
+        self.assertIsNone(state["workspaces"][0]["description"])
 
     def test_invalid_existing_workspace_is_focused_then_rejected(self):
         root = self.make_dir("workbench-drift-")
@@ -468,7 +525,7 @@ class OpenWorkbenchTests(unittest.TestCase):
         self.assertIn("focus-window", log)
         self.assertNotIn('"create"', log)
 
-    def test_duplicate_marker_fails_without_mutation(self):
+    def test_duplicate_directory_fails_without_mutation(self):
         root = self.make_dir("workbench-duplicate-")
         target = root / "target"
         target.mkdir()

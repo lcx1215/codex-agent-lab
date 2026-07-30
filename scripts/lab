@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import re
@@ -21,7 +20,6 @@ SCRIPTS_DIR = SCRIPT_PATH.parent
 GIT_TIMEOUT_SECONDS = 2
 COMMAND_TIMEOUT_SECONDS = 10
 MIN_CMUX_VERSION = (0, 64, 20)
-MARKER_PREFIX = "agent-lab:v1:"
 
 
 class LabError(RuntimeError):
@@ -60,11 +58,6 @@ def resolve_target(raw_target: str | None, current_agent: bool) -> Path:
         return target.resolve(strict=True)
     except OSError as exc:
         raise LabError(f"cannot resolve directory: {target}") from exc
-
-
-def workspace_marker(target: Path) -> str:
-    digest = hashlib.sha256(os.fsencode(str(target))).hexdigest()
-    return MARKER_PREFIX + digest
 
 
 def command_output(command: list[str], *, cwd: Path, timeout: int) -> str | None:
@@ -137,15 +130,55 @@ def git_status(target: Path) -> dict[str, Any]:
         }
 
 
-def flatten_workspaces(payload: dict[str, Any]) -> list[dict[str, Any]]:
+def merged_workspaces(cmux: str, payload: dict[str, Any]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for window in payload.get("windows") or []:
         if not isinstance(window, dict):
             continue
+        window_ref = window.get("ref") or window.get("id")
+        if not window_ref:
+            raise LabError("cmux tree window identifier is missing")
+        listed = run(
+            [cmux, "workspace", "list", "--json", "--window", str(window_ref)],
+            timeout=5,
+        )
+        if listed.returncode != 0:
+            raise LabError(
+                (listed.stderr or listed.stdout).strip()
+                or f"cmux workspace list failed for {window_ref}"
+            )
+        try:
+            listed_payload = json.loads(listed.stdout)
+        except json.JSONDecodeError as exc:
+            raise LabError("cmux workspace list returned invalid JSON") from exc
+        if not isinstance(listed_payload, dict):
+            raise LabError("cmux workspace list JSON is not an object")
+        listed_by_ref = {
+            str(item.get("ref") or item.get("id")): item
+            for item in listed_payload.get("workspaces") or []
+            if isinstance(item, dict) and (item.get("ref") or item.get("id"))
+        }
         for workspace in window.get("workspaces") or []:
             if isinstance(workspace, dict):
-                rows.append(workspace)
+                row = dict(workspace)
+                workspace_ref = row.get("ref") or row.get("id")
+                metadata = listed_by_ref.get(str(workspace_ref))
+                if metadata is not None:
+                    for key, value in metadata.items():
+                        if key not in row or key == "current_directory":
+                            row[key] = value
+                rows.append(row)
     return rows
+
+
+def workspace_directory(workspace: dict[str, Any]) -> Path | None:
+    value = workspace.get("current_directory")
+    if not value:
+        return None
+    try:
+        return Path(str(value)).expanduser().resolve()
+    except (OSError, RuntimeError):
+        return None
 
 
 def cmux_status(target: Path) -> dict[str, Any]:
@@ -194,18 +227,31 @@ def cmux_status(target: Path) -> dict[str, Any]:
             "matches": [],
             "error": "cmux returned invalid JSON",
         }
+    if not isinstance(payload, dict):
+        return {
+            "installed": True,
+            "running": True,
+            "matches": [],
+            "error": "cmux tree JSON is not an object",
+        }
 
-    marker = workspace_marker(target)
-    matches = []
-    for workspace in flatten_workspaces(payload):
-        if workspace.get("description") != marker:
-            continue
-        matches.append(
-            {
-                "ref": workspace.get("ref") or workspace.get("id"),
-                "title": workspace.get("title"),
-            }
-        )
+    try:
+        workspaces = merged_workspaces(cmux, payload)
+    except (LabError, subprocess.TimeoutExpired) as exc:
+        return {
+            "installed": True,
+            "running": True,
+            "matches": [],
+            "error": str(exc),
+        }
+    matches = [
+        {
+            "ref": workspace.get("ref") or workspace.get("id"),
+            "title": workspace.get("title"),
+        }
+        for workspace in workspaces
+        if workspace_directory(workspace) == target
+    ]
     return {
         "installed": True,
         "running": True,

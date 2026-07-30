@@ -163,11 +163,12 @@ constants = {
 required = {
     "workspace",
     "create",
+    "list",
     "--name",
-    "--description",
     "--cwd",
     "--layout",
     "--focus",
+    "--window",
     "--print-path",
 }
 missing = sorted(required - constants)
@@ -176,6 +177,7 @@ if missing:
 
 forbidden_literals = {
     "--command",
+    "--description",
     "--env",
     "--env-file",
     "send",
@@ -225,10 +227,18 @@ if not line.startswith(prefix):
 tokens = shlex.split(line[len(prefix):])
 if len(tokens) < 4 or tokens[1:4] != ["--json", "workspace", "create"]:
     raise SystemExit("dry-run does not use canonical workspace create")
-for required in ("--name", "--description", "--cwd", "--layout", "--focus"):
+for required in ("--name", "--cwd", "--layout", "--focus"):
     if required not in tokens:
         raise SystemExit(f"dry-run is missing {required}")
-for forbidden in ("--command", "--env", "--env-file", "send", "new-split", "hooks"):
+for forbidden in (
+    "--command",
+    "--description",
+    "--env",
+    "--env-file",
+    "send",
+    "new-split",
+    "hooks",
+):
     if forbidden in tokens:
         raise SystemExit(f"dry-run contains forbidden token {forbidden}")
 layout = json.loads(tokens[tokens.index("--layout") + 1])

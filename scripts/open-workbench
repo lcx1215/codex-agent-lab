@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import shlex
@@ -20,7 +19,6 @@ SCRIPT_PATH = Path(__file__).resolve()
 LAB_ROOT = SCRIPT_PATH.parents[1]
 SOCKET_WAIT_SECONDS = 10
 WORKSPACE_WAIT_SECONDS = 8
-MARKER_PREFIX = "agent-lab:v1:"
 EXPECTED_SURFACES = ("Codex CLI", "Claude Code", "Shell")
 TRANSPORT_FAILURES = (
     "failed to connect to socket",
@@ -116,11 +114,6 @@ def resolve_target(raw_target: str | None, current_agent: bool) -> Path:
         raise WorkbenchError(f"cannot resolve directory: {target}") from exc
 
 
-def workspace_marker(target: Path) -> str:
-    digest = hashlib.sha256(os.fsencode(str(target))).hexdigest()
-    return MARKER_PREFIX + digest
-
-
 def run_json(command: list[str]) -> dict[str, Any]:
     result = run(command)
     if result.returncode != 0:
@@ -154,6 +147,10 @@ def tree_workspace(cmux: str, workspace: str) -> dict[str, Any]:
     return run_json([cmux, "--json", "tree", "--workspace", workspace])
 
 
+def workspace_list(cmux: str, window: str) -> dict[str, Any]:
+    return run_json([cmux, "workspace", "list", "--json", "--window", window])
+
+
 def flatten_workspaces(tree: dict[str, Any]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for window in tree.get("windows") or []:
@@ -164,6 +161,36 @@ def flatten_workspaces(tree: dict[str, Any]) -> list[dict[str, Any]]:
             if not isinstance(workspace, dict):
                 continue
             row = dict(workspace)
+            row["_window_ref"] = window_ref
+            rows.append(row)
+    return rows
+
+
+def all_workspaces(cmux: str) -> list[dict[str, Any]]:
+    tree = tree_all(cmux)
+    rows: list[dict[str, Any]] = []
+    for window in tree.get("windows") or []:
+        if not isinstance(window, dict):
+            continue
+        window_ref = window.get("ref") or window.get("id")
+        if not window_ref:
+            raise WorkbenchError("cmux tree window identifier is missing")
+
+        listed = workspace_list(cmux, str(window_ref)).get("workspaces") or []
+        listed_by_ref = {
+            workspace_handle(item): item
+            for item in listed
+            if isinstance(item, dict) and workspace_handle(item) is not None
+        }
+        for workspace in window.get("workspaces") or []:
+            if not isinstance(workspace, dict):
+                continue
+            row = dict(workspace)
+            metadata = listed_by_ref.get(workspace_handle(workspace))
+            if metadata is not None:
+                for key, value in metadata.items():
+                    if key not in row or key == "current_directory":
+                        row[key] = value
             row["_window_ref"] = window_ref
             rows.append(row)
     return rows
@@ -239,20 +266,19 @@ def wait_for_workbench(cmux: str, workspace: str) -> dict[str, Any]:
 def is_bootstrap_workspace(workspace: dict[str, Any], target: Path) -> bool:
     if workspace.get("description") not in (None, ""):
         return False
+    current_directory = workspace.get("current_directory")
+    if not current_directory:
+        return False
+    try:
+        if Path(str(current_directory)).expanduser().resolve() != target:
+            return False
+    except OSError:
+        return False
+
     title = str(workspace.get("title") or "")
     if title != target.name:
         try:
             if Path(title).expanduser().resolve(strict=True) != target:
-                return False
-        except OSError:
-            return False
-
-    for key in ("cwd", "working_directory", "workingDirectory"):
-        value = workspace.get(key)
-        if not value:
-            continue
-        try:
-            if Path(str(value)).expanduser().resolve(strict=True) != target:
                 return False
         except OSError:
             return False
@@ -288,7 +314,7 @@ def launch_cmux(cmux: str, target: Path) -> dict[str, Any]:
     last_count = 0
     deadline = time.monotonic() + SOCKET_WAIT_SECONDS
     while time.monotonic() < deadline:
-        rows = flatten_workspaces(tree_all(cmux))
+        rows = all_workspaces(cmux)
         last_count = len(rows)
         if len(rows) == 1 and is_bootstrap_workspace(rows[0], target):
             return rows[0]
@@ -303,7 +329,6 @@ def launch_cmux(cmux: str, target: Path) -> dict[str, Any]:
 def create_workspace(
     cmux: str,
     target: Path,
-    marker: str,
 ) -> str:
     layout = json.dumps(WORKBENCH_LAYOUT, separators=(",", ":"))
     command = [
@@ -313,8 +338,6 @@ def create_workspace(
         "create",
         "--name",
         target.name,
-        "--description",
-        marker,
         "--cwd",
         str(target),
         "--layout",
@@ -362,15 +385,25 @@ def focus_workspace(cmux: str, workspace: dict[str, Any]) -> None:
         run([open_binary, "-a", "cmux"], timeout=10)
 
 
-def find_marker_matches(cmux: str, marker: str) -> list[dict[str, Any]]:
+def workspace_directory(workspace: dict[str, Any]) -> Path | None:
+    value = workspace.get("current_directory")
+    if not value:
+        return None
+    try:
+        return Path(str(value)).expanduser().resolve()
+    except (OSError, RuntimeError):
+        return None
+
+
+def find_directory_matches(cmux: str, target: Path) -> list[dict[str, Any]]:
     return [
         workspace
-        for workspace in flatten_workspaces(tree_all(cmux))
-        if workspace.get("description") == marker
+        for workspace in all_workspaces(cmux)
+        if workspace_directory(workspace) == target
     ]
 
 
-def creation_command(cmux: str, target: Path, marker: str) -> list[str]:
+def creation_command(cmux: str, target: Path) -> list[str]:
     return [
         cmux,
         "--json",
@@ -378,8 +411,6 @@ def creation_command(cmux: str, target: Path, marker: str) -> list[str]:
         "create",
         "--name",
         target.name,
-        "--description",
-        marker,
         "--cwd",
         str(target),
         "--layout",
@@ -414,11 +445,10 @@ def main() -> int:
     target: Path | None = None
     try:
         target = resolve_target(args.path, args.current_agent)
-        marker = workspace_marker(target)
         cmux = cmux_binary()
 
         if args.dry_run:
-            print("DRY-RUN:", shlex.join(creation_command(cmux, target, marker)))
+            print("DRY-RUN:", shlex.join(creation_command(cmux, target)))
             return 0
 
         ready, message = ping(cmux)
@@ -430,7 +460,14 @@ def main() -> int:
                 raise WorkbenchError(message or "cmux is unavailable")
             bootstrap = launch_cmux(cmux, target)
 
-        matches = find_marker_matches(cmux, marker)
+        matches = find_directory_matches(cmux, target)
+        if bootstrap is not None:
+            bootstrap_ref = workspace_handle(bootstrap)
+            matches = [
+                workspace
+                for workspace in matches
+                if workspace_handle(workspace) != bootstrap_ref
+            ]
         if len(matches) > 1:
             raise WorkbenchError(
                 f"multiple Agent Lab workspaces match this directory: {len(matches)}"
@@ -451,7 +488,7 @@ def main() -> int:
         if args.check:
             raise WorkbenchError("no Agent Lab workspace exists for this directory")
 
-        created = create_workspace(cmux, target, marker)
+        created = create_workspace(cmux, target)
         try:
             verified = wait_for_workbench(cmux, created)
         except WorkbenchError:
