@@ -1,7 +1,23 @@
 {
   "schema": "codex-claude-collaboration-assignments/v1",
-  "updated": "2026-06-30T17:05:00+08:00",
+  "updated": "2026-06-30T19:32:00+08:00",
   "assignments": [
+    {
+      "id": "collab-0005-harden-secret-gates",
+      "title": "Fix fail-open security gates when ripgrep is missing or errors",
+      "leader": "claude",
+      "workers": ["claude", "code-reviewer"],
+      "reviewer": "codex",
+      "status": "in_progress",
+      "handoff": null,
+      "artifacts": [
+        "scripts/check-secrets",
+        "scripts/check-sandbox",
+        "tests/test_gate_fail_closed.py"
+      ],
+      "note": "Claude found that check-secrets and check-sandbox failed open when rg was absent from PATH. Codex review found the same fail-open family still applied when rg existed but exited with a scanner error. This branch now probes for rg and treats rg status 0 as finding detected, status 1 as no match, and any other status as a hard gate failure. Scenario workspace fixes are intentionally out of scope for this tracked PR and remain local-only until promoted separately.",
+      "updated": "2026-06-30T19:24:00+08:00"
+    },
     {
       "id": "collab-0001-omc-team-bootstrap",
       "title": "OMC team run (security-reviewer, architect, verifier)",
