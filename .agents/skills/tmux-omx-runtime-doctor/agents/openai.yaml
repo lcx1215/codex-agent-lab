@@ -1,4 +1,0 @@
-interface:
-  display_name: "Tmux OMX Runtime Doctor"
-  short_description: "Diagnose OMX team and tmux worker runtime failures"
-  default_prompt: "Diagnose this OMX/tmux worker failure and produce a repair plan."

@@ -1,0 +1,687 @@
+#!/usr/bin/env python3
+"""Verify that Agent Lab preserves native Codex and Claude Code behavior."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import shutil
+import statistics
+import subprocess
+import sys
+import tempfile
+import time
+import tomllib
+from pathlib import Path
+from typing import Any
+
+
+SCRIPT_PATH = Path(__file__).resolve()
+LAB_ROOT = Path(os.environ.get("AGENT_LAB_ROOT", SCRIPT_PATH.parents[1])).resolve()
+HOME = Path(os.environ.get("HOME", str(Path.home()))).expanduser().resolve()
+RESULT_PATH = LAB_ROOT / ".tmp" / "native-parity" / "latest.json"
+TMP_WARNING_BYTES = 100 * 1024 * 1024
+CLI_RUNS = 5
+LIVE_RUNS = 3
+TIME_RATIO_LIMIT = 1.10
+CLI_ABSOLUTE_LIMIT_MS = 50.0
+MODEL_ABSOLUTE_LIMIT_SECONDS = 0.5
+CONTEXT_ABSOLUTE_LIMIT_TOKENS = 2048
+CMUX_CONTEXT_ABSOLUTE_LIMIT_TOKENS = 128
+EXPECTED_CODEX_FEATURES = ("memories", "multi_agent")
+
+
+class ParityError(RuntimeError):
+    pass
+
+
+def run(
+    command: list[str],
+    *,
+    cwd: Path,
+    env: dict[str, str] | None = None,
+    timeout: int = 30,
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        command,
+        cwd=cwd,
+        env=env,
+        text=True,
+        capture_output=True,
+        timeout=timeout,
+        check=False,
+    )
+
+
+def command_version(command: str) -> tuple[str | None, str | None]:
+    path = shutil.which(command)
+    if path is None:
+        return None, None
+    result = run([path, "--version"], cwd=LAB_ROOT)
+    if result.returncode != 0:
+        return path, None
+    return path, (result.stdout or result.stderr).strip().splitlines()[0]
+
+
+def directory_size(path: Path) -> int:
+    total = 0
+    if not path.exists():
+        return total
+    for root, _, files in os.walk(path):
+        for name in files:
+            try:
+                total += (Path(root) / name).stat().st_size
+            except OSError:
+                continue
+    return total
+
+
+def file_fingerprint(path: Path) -> str | None:
+    if not path.is_file():
+        return None
+    digest = hashlib.sha256()
+    try:
+        with path.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+    except OSError:
+        return None
+    return digest.hexdigest()
+
+
+def skill_inventory(path: Path) -> dict[str, Any]:
+    if not path.is_dir():
+        return {
+            "path": str(path),
+            "present": False,
+            "count": 0,
+            "paths_sha256": hashlib.sha256(b"").hexdigest(),
+        }
+    manifests = sorted(
+        str(item.relative_to(path))
+        for item in path.rglob("SKILL.md")
+        if item.is_file()
+    )
+    payload = "\n".join(manifests).encode("utf-8")
+    return {
+        "path": str(path),
+        "present": True,
+        "count": len(manifests),
+        "paths_sha256": hashlib.sha256(payload).hexdigest(),
+    }
+
+
+def git_dirty_count() -> int | None:
+    result = run(
+        ["git", "status", "--porcelain=v1", "-uall"],
+        cwd=LAB_ROOT,
+    )
+    if result.returncode != 0:
+        return None
+    return len([line for line in result.stdout.splitlines() if line])
+
+
+def load_claude_settings(errors: list[str]) -> dict[str, Any]:
+    path = HOME / ".claude" / "settings.json"
+    if not path.is_file():
+        errors.append(f"missing Claude settings: {path}")
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        errors.append(f"invalid Claude settings: {exc}")
+        return {}
+    if not isinstance(data, dict):
+        errors.append("Claude settings root is not an object")
+        return {}
+    return data
+
+
+def load_codex_config(errors: list[str]) -> dict[str, Any]:
+    path = HOME / ".codex" / "config.toml"
+    if not path.is_file():
+        errors.append(f"missing Codex config: {path}")
+        return {}
+    try:
+        data = tomllib.loads(path.read_text(encoding="utf-8"))
+    except (OSError, tomllib.TOMLDecodeError) as exc:
+        errors.append(f"invalid Codex config: {exc}")
+        return {}
+    if not isinstance(data, dict):
+        errors.append("Codex config root is not a table")
+        return {}
+    return data
+
+
+def static_report() -> dict[str, Any]:
+    errors: list[str] = []
+    warnings: list[str] = []
+    codex_path, codex_version = command_version("codex")
+    claude_path, claude_version = command_version("claude")
+    if codex_path is None or codex_version is None:
+        errors.append("native codex command is unavailable")
+    if claude_path is None or claude_version is None:
+        errors.append("native claude command is unavailable")
+
+    alternate_homes = [
+        name for name in ("CODEX_HOME", "CLAUDE_CONFIG_DIR") if os.environ.get(name)
+    ]
+    if alternate_homes:
+        errors.append("alternate native client homes are active: " + ", ".join(alternate_homes))
+
+    forbidden_paths = [
+        LAB_ROOT / ".codex",
+        LAB_ROOT / ".claude",
+        LAB_ROOT / ".agents",
+        LAB_ROOT / ".codex-home",
+        LAB_ROOT / ".cmux" / "cmux.json",
+    ]
+    present_forbidden = [str(path.relative_to(LAB_ROOT)) for path in forbidden_paths if path.exists()]
+    if present_forbidden:
+        errors.append("project client configuration present: " + ", ".join(present_forbidden))
+
+    parent_claude = HOME / "CLAUDE.md"
+    if parent_claude.exists():
+        errors.append(f"path-triggered parent Claude instructions present: {parent_claude}")
+
+    claude_settings = load_claude_settings(errors)
+    if "skillOverrides" in claude_settings:
+        errors.append("Claude skillOverrides suppress native Skills")
+    claude_hooks = claude_settings.get("hooks")
+    if claude_hooks:
+        warnings.append("Claude user hooks are enabled; verify they are native user-owned hooks")
+
+    codex_config = load_codex_config(errors)
+    features = codex_config.get("features")
+    features = features if isinstance(features, dict) else {}
+    for name in EXPECTED_CODEX_FEATURES:
+        if features.get(name) is not True:
+            errors.append(f"Codex native feature is not enabled: {name}")
+
+    instruction_files = {
+        "machine_codex": HOME / ".codex" / "AGENTS.md",
+        "machine_claude": HOME / ".claude" / "CLAUDE.md",
+        "lab_codex": LAB_ROOT / "AGENTS.md",
+        "lab_claude": LAB_ROOT / "CLAUDE.md",
+    }
+    instruction_bytes = {
+        name: path.stat().st_size if path.is_file() else None
+        for name, path in instruction_files.items()
+    }
+    missing_instructions = [name for name, size in instruction_bytes.items() if size is None]
+    if missing_instructions:
+        errors.append("missing instruction files: " + ", ".join(missing_instructions))
+
+    tmp_bytes = directory_size(LAB_ROOT / ".tmp")
+    if tmp_bytes > TMP_WARNING_BYTES:
+        warnings.append(f".tmp is large: {tmp_bytes} bytes")
+
+    inside_cmux = bool(os.environ.get("CMUX_WORKSPACE_ID"))
+    config_fingerprints = {
+        "codex_config": file_fingerprint(HOME / ".codex" / "config.toml"),
+        "claude_settings": file_fingerprint(HOME / ".claude" / "settings.json"),
+        "machine_codex": file_fingerprint(HOME / ".codex" / "AGENTS.md"),
+        "machine_claude": file_fingerprint(HOME / ".claude" / "CLAUDE.md"),
+    }
+    skills = {
+        "codex_user": skill_inventory(HOME / ".codex" / "skills"),
+        "shared_agents": skill_inventory(HOME / ".agents" / "skills"),
+        "codex_plugins": skill_inventory(HOME / ".codex" / "plugins" / "cache"),
+        "claude_user": skill_inventory(HOME / ".claude" / "skills"),
+    }
+    return {
+        "schema": "agent-lab.native-parity.v2",
+        "ok": not errors,
+        "inside_cmux": inside_cmux,
+        "errors": errors,
+        "warnings": warnings,
+        "clients": {
+            "codex": {"path": codex_path, "version": codex_version},
+            "claude": {"path": claude_path, "version": claude_version},
+        },
+        "claude": {
+            "settings_keys": sorted(claude_settings),
+            "skill_overrides_present": "skillOverrides" in claude_settings,
+            "hook_events": sorted(claude_hooks) if isinstance(claude_hooks, dict) else [],
+        },
+        "codex": {
+            "features": {name: features.get(name) for name in sorted(features)},
+            "mcp_server_count": len(codex_config.get("mcp_servers") or {}),
+        },
+        "instructions": instruction_bytes,
+        "native_fingerprint": {
+            "alternate_homes": alternate_homes,
+            "configs": config_fingerprints,
+            "skills": skills,
+        },
+        "lab": {
+            "dirty_count": git_dirty_count(),
+            "tmp_bytes": tmp_bytes,
+            "forbidden_paths": present_forbidden,
+        },
+    }
+
+
+def median_startup(command: str, cwd: Path, runs: int = CLI_RUNS) -> float:
+    path = shutil.which(command)
+    if path is None:
+        raise ParityError(f"{command} is unavailable")
+    samples: list[float] = []
+    for _ in range(runs):
+        started = time.perf_counter()
+        result = run([path, "--version"], cwd=cwd)
+        samples.append((time.perf_counter() - started) * 1000)
+        if result.returncode != 0:
+            raise ParityError(f"{command} --version failed")
+    return statistics.median(samples)
+
+
+def codex_environment() -> dict[str, str]:
+    env = os.environ.copy()
+    for name in ("CODEX_THREAD_ID", "CODEX_INTERNAL_ORIGINATOR_OVERRIDE", "CODEX_CI"):
+        env.pop(name, None)
+    return env
+
+
+def run_codex_probe(
+    cwd: Path,
+    marker: str,
+    executable: str = "codex",
+    env: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    command = [
+        executable,
+        "exec",
+        "--json",
+        "--ephemeral",
+        "--skip-git-repo-check",
+        "--sandbox",
+        "read-only",
+        "-c",
+        'approval_policy="never"',
+        f"Do not use tools. Reply exactly OK. Native parity marker: {marker}.",
+    ]
+    started = time.perf_counter()
+    result = run(
+        command,
+        cwd=cwd,
+        env=env if env is not None else codex_environment(),
+        timeout=240,
+    )
+    elapsed = time.perf_counter() - started
+    usage: dict[str, Any] | None = None
+    answer: str | None = None
+    for line in result.stdout.splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if event.get("type") == "turn.completed":
+            usage = event.get("usage")
+        if event.get("type") == "item.completed":
+            item = event.get("item") or {}
+            if item.get("type") == "agent_message":
+                answer = item.get("text")
+    if result.returncode != 0 or answer != "OK" or not isinstance(usage, dict):
+        raise ParityError("Codex live probe failed")
+    return {
+        "elapsed_seconds": elapsed,
+        "context_tokens": int(usage.get("input_tokens") or 0),
+        "usage": usage,
+    }
+
+
+def run_claude_probe(
+    cwd: Path,
+    marker: str,
+    executable: str = "claude",
+    env: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    command = [
+        executable,
+        "-p",
+        f"Do not use tools. Reply exactly OK. Native parity marker: {marker}.",
+        "--output-format",
+        "json",
+        "--tools",
+        "",
+        "--permission-mode",
+        "plan",
+        "--max-turns",
+        "1",
+        "--no-session-persistence",
+    ]
+    started = time.perf_counter()
+    result = run(command, cwd=cwd, env=env, timeout=240)
+    elapsed = time.perf_counter() - started
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise ParityError("Claude live probe returned invalid JSON") from exc
+    if result.returncode != 0 or payload.get("result") != "OK":
+        raise ParityError("Claude live probe failed")
+    usage = payload.get("usage") or {}
+    context_tokens = sum(
+        int(usage.get(name) or 0)
+        for name in ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens")
+    )
+    return {
+        "elapsed_seconds": elapsed,
+        "context_tokens": context_tokens,
+        "usage": usage,
+        "total_cost_usd": payload.get("total_cost_usd"),
+    }
+
+
+def summarize_probes(samples: list[dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "runs": len(samples),
+        "median_seconds": statistics.median(sample["elapsed_seconds"] for sample in samples),
+        "median_context_tokens": statistics.median(sample["context_tokens"] for sample in samples),
+        "samples": samples,
+    }
+
+
+def ratio(numerator: float, denominator: float) -> float | None:
+    if denominator <= 0:
+        return None
+    return numerator / denominator
+
+
+def performance_ok(lab: float, bare: float, absolute_limit: float) -> bool:
+    return lab <= max(bare * TIME_RATIO_LIMIT, bare + absolute_limit)
+
+
+def context_ok(lab_tokens: float, bare_tokens: float) -> bool:
+    return lab_tokens - bare_tokens <= CONTEXT_ABSOLUTE_LIMIT_TOKENS
+
+
+def cmux_context_ok(cmux_tokens: float, direct_tokens: float) -> bool:
+    return abs(cmux_tokens - direct_tokens) <= CMUX_CONTEXT_ABSOLUTE_LIMIT_TOKENS
+
+
+def write_result(report: dict[str, Any]) -> None:
+    RESULT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(
+        prefix=".latest.",
+        suffix=".json",
+        dir=RESULT_PATH.parent,
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            json.dump(report, handle, ensure_ascii=False, indent=2)
+            handle.write("\n")
+        os.replace(temporary, RESULT_PATH)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
+def direct_live_report(static: dict[str, Any]) -> dict[str, Any]:
+    bare_root = Path(tempfile.mkdtemp(prefix="agent-lab-native-bare-", dir="/tmp"))
+    results: dict[str, Any] = {
+        "mode": "direct",
+        "cli_startup": {},
+        "clients": {},
+        "checks": {},
+    }
+    for client in ("codex", "claude"):
+        bare_ms = median_startup(client, bare_root)
+        lab_ms = median_startup(client, LAB_ROOT)
+        results["cli_startup"][client] = {
+            "bare_ms": bare_ms,
+            "lab_ms": lab_ms,
+            "ratio": ratio(lab_ms, bare_ms),
+            "ok": performance_ok(lab_ms, bare_ms, CLI_ABSOLUTE_LIMIT_MS),
+        }
+
+    probes: dict[str, dict[str, list[dict[str, Any]]]] = {
+        client: {"bare": [], "lab": []} for client in ("codex", "claude")
+    }
+    functions = {"codex": run_codex_probe, "claude": run_claude_probe}
+    for index in range(LIVE_RUNS):
+        order = ("bare", "lab") if index % 2 == 0 else ("lab", "bare")
+        for client in ("codex", "claude"):
+            pair_marker = f"{client}-{index}-{time.time_ns()}"
+            for location in order:
+                cwd = bare_root if location == "bare" else LAB_ROOT
+                probes[client][location].append(
+                    functions[client](cwd, pair_marker)
+                )
+
+    for client in ("codex", "claude"):
+        bare = summarize_probes(probes[client]["bare"])
+        lab = summarize_probes(probes[client]["lab"])
+        time_ok = performance_ok(
+            lab["median_seconds"],
+            bare["median_seconds"],
+            MODEL_ABSOLUTE_LIMIT_SECONDS,
+        )
+        context_ratio = ratio(
+            lab["median_context_tokens"],
+            bare["median_context_tokens"],
+        )
+        context_delta = lab["median_context_tokens"] - bare["median_context_tokens"]
+        context_passed = context_ok(
+            lab["median_context_tokens"],
+            bare["median_context_tokens"],
+        )
+        results["clients"][client] = {
+            "bare": bare,
+            "lab": lab,
+            "time_ratio": ratio(lab["median_seconds"], bare["median_seconds"]),
+            "time_ok": time_ok,
+            "context_ratio": context_ratio,
+            "context_delta_tokens": context_delta,
+            "context_limit_tokens": CONTEXT_ABSOLUTE_LIMIT_TOKENS,
+            "context_ok": context_passed,
+        }
+
+    results["checks"] = {
+        "cli_startup_ok": all(item["ok"] for item in results["cli_startup"].values()),
+        "model_time_ok": all(item["time_ok"] for item in results["clients"].values()),
+        "context_ok": all(item["context_ok"] for item in results["clients"].values()),
+    }
+    results["ok"] = all(results["checks"].values())
+    return results
+
+
+def inside_cmux_report(static: dict[str, Any], live: bool) -> dict[str, Any]:
+    if not os.environ.get("CMUX_WORKSPACE_ID"):
+        raise ParityError("--inside-cmux must run inside a cmux terminal")
+    if not RESULT_PATH.is_file():
+        raise ParityError(f"missing direct baseline: {RESULT_PATH}")
+    baseline = json.loads(RESULT_PATH.read_text(encoding="utf-8"))
+    baseline_static = baseline.get("static") or {}
+    if baseline_static.get("schema") != "agent-lab.native-parity.v2":
+        raise ParityError("direct baseline schema is incompatible; rerun --live outside cmux")
+    report: dict[str, Any] = {
+        "mode": "inside-cmux",
+        "cli_startup": {},
+        "clients": {},
+        "native_equivalence": {},
+        "ok": True,
+    }
+    baseline_clients = baseline_static.get("clients") or {}
+    for client in ("codex", "claude"):
+        current_client = static["clients"].get(client) or {}
+        direct_client = baseline_clients.get(client) or {}
+        version_match = current_client.get("version") == direct_client.get("version")
+        report["native_equivalence"][client] = {
+            "version_match": version_match,
+            "path_match": current_client.get("path") == direct_client.get("path"),
+            "direct_path": direct_client.get("path"),
+            "cmux_path": current_client.get("path"),
+        }
+        report["ok"] = report["ok"] and version_match
+
+    fingerprint_match = (
+        static.get("native_fingerprint") == baseline_static.get("native_fingerprint")
+    )
+    report["native_equivalence"]["fingerprint_match"] = fingerprint_match
+    report["ok"] = report["ok"] and fingerprint_match
+
+    for client in ("codex", "claude"):
+        direct_path = (baseline_clients.get(client) or {}).get("path")
+        cmux_path = (static["clients"].get(client) or {}).get("path")
+        if not isinstance(direct_path, str) or not isinstance(cmux_path, str):
+            raise ParityError(f"native executable path missing for {client}")
+        direct_ms = median_startup(direct_path, LAB_ROOT)
+        current_ms = median_startup(cmux_path, LAB_ROOT)
+        item = {
+            "native_ms": direct_ms,
+            "cmux_ms": current_ms,
+            "ratio": ratio(current_ms, direct_ms),
+            "ok": performance_ok(current_ms, direct_ms, CLI_ABSOLUTE_LIMIT_MS),
+        }
+        report["cli_startup"][client] = item
+        report["ok"] = report["ok"] and item["ok"]
+
+    if live:
+        functions = {"codex": run_codex_probe, "claude": run_claude_probe}
+        probes: dict[str, dict[str, list[dict[str, Any]]]] = {
+            client: {"native": [], "cmux": []} for client in ("codex", "claude")
+        }
+        for index in range(LIVE_RUNS):
+            order = ("native", "cmux") if index % 2 == 0 else ("cmux", "native")
+            for client in ("codex", "claude"):
+                direct_path = str((baseline_clients.get(client) or {}).get("path") or "")
+                cmux_path = str((static["clients"].get(client) or {}).get("path") or "")
+                if not direct_path or not cmux_path:
+                    raise ParityError(f"native executable path missing for {client}")
+                pair_marker = f"{client}-{index}-{time.time_ns()}"
+                for mode in order:
+                    executable = direct_path if mode == "native" else cmux_path
+                    probe_env = None
+                    if client == "codex" and mode == "native":
+                        probe_env = codex_environment()
+                        for name in list(probe_env):
+                            if name.startswith("CMUX_"):
+                                probe_env.pop(name, None)
+                        probe_env.pop("TERMINFO", None)
+                    probes[client][mode].append(
+                        functions[client](
+                            LAB_ROOT,
+                            pair_marker,
+                            executable,
+                            probe_env,
+                        )
+                    )
+
+        for client in ("codex", "claude"):
+            native = summarize_probes(probes[client]["native"])
+            current = summarize_probes(probes[client]["cmux"])
+            time_ok = performance_ok(
+                current["median_seconds"],
+                native["median_seconds"],
+                MODEL_ABSOLUTE_LIMIT_SECONDS,
+            )
+            context_delta = (
+                current["median_context_tokens"] - native["median_context_tokens"]
+            )
+            context_passed = cmux_context_ok(
+                current["median_context_tokens"],
+                native["median_context_tokens"],
+            )
+            report["clients"][client] = {
+                "native": native,
+                "cmux": current,
+                "time_ratio": ratio(
+                    current["median_seconds"],
+                    native["median_seconds"],
+                ),
+                "time_ok": time_ok,
+                "context_delta_tokens": context_delta,
+                "context_limit_tokens": CMUX_CONTEXT_ABSOLUTE_LIMIT_TOKENS,
+                "context_ok": context_passed,
+            }
+            report["ok"] = report["ok"] and time_ok and context_passed
+    return report
+
+
+def print_human(report: dict[str, Any]) -> None:
+    static = report["static"]
+    status = "OK" if static["ok"] else "FAIL"
+    print(f"{status}: native client structure")
+    for client, item in static["clients"].items():
+        print(f"{client}: {item['path']} ({item['version']})")
+    print(
+        "instructions:"
+        f" codex={static['instructions']['lab_codex']}"
+        f" claude={static['instructions']['lab_claude']} bytes"
+    )
+    print(
+        f"lab: dirty={static['lab']['dirty_count']}"
+        f" tmp={static['lab']['tmp_bytes']} bytes"
+    )
+    for warning in static["warnings"]:
+        print(f"WARN: {warning}")
+    for error in static["errors"]:
+        print(f"FAIL: {error}")
+
+    live = report.get("live")
+    if not live:
+        return
+    print(f"{'OK' if live['ok'] else 'FAIL'}: {live['mode']} performance")
+    for client, item in live["cli_startup"].items():
+        if live["mode"] == "direct":
+            print(
+                f"{client} startup: bare={item['bare_ms']:.1f}ms"
+                f" lab={item['lab_ms']:.1f}ms"
+            )
+        else:
+            print(
+                f"{client} startup: native={item['native_ms']:.1f}ms"
+                f" cmux={item['cmux_ms']:.1f}ms"
+            )
+    for client, item in live.get("clients", {}).items():
+        if live["mode"] == "direct":
+            print(
+                f"{client} model: bare={item['bare']['median_seconds']:.2f}s"
+                f" lab={item['lab']['median_seconds']:.2f}s"
+                f" context_delta={item['context_delta_tokens']:+g}"
+                f" context_ok={item['context_ok']}"
+            )
+        else:
+            print(
+                f"{client} model: native={item['native']['median_seconds']:.2f}s"
+                f" cmux={item['cmux']['median_seconds']:.2f}s"
+                f" context_delta={item['context_delta_tokens']:+g}"
+            )
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--json", action="store_true", dest="json_output")
+    parser.add_argument("--live", action="store_true")
+    parser.add_argument("--inside-cmux", action="store_true")
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    static = static_report()
+    report: dict[str, Any] = {"static": static}
+    try:
+        if args.inside_cmux:
+            report["live"] = inside_cmux_report(static, args.live)
+        elif args.live:
+            report["live"] = direct_live_report(static)
+            write_result(report)
+    except (ParityError, OSError, subprocess.TimeoutExpired, json.JSONDecodeError) as exc:
+        static["errors"].append(str(exc))
+        static["ok"] = False
+
+    overall_ok = static["ok"] and (report.get("live", {}).get("ok", True))
+    report["ok"] = overall_ok
+    if args.json_output:
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+    else:
+        print_human(report)
+    return 0 if overall_ok else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

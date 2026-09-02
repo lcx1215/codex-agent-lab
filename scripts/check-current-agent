@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+lab_root="$(cd "$script_dir/.." && pwd)"
+pointer_file="$lab_root/.current-agent"
+print_path=false
+
+case "${1:-}" in
+  "")
+    ;;
+  --print-path)
+    print_path=true
+    ;;
+  *)
+    printf 'Usage: %s [--print-path]\n' "$0" >&2
+    exit 2
+    ;;
+esac
+
+fail() {
+  printf 'FAIL: %s\n' "$*" >&2
+  exit 1
+}
+
+pass() {
+  printf 'OK: %s\n' "$*"
+}
+
+resolve_agent_dir() {
+  local candidate="${CURRENT_AGENT_DIR:-}"
+  if [[ -z "$candidate" && -f "$pointer_file" ]]; then
+    candidate="$(
+      sed -n '1{s/\r$//;s/^[[:space:]]*//;s/[[:space:]]*$//;p;}' \
+        "$pointer_file"
+    )"
+  fi
+  if [[ -z "$candidate" ]]; then
+    fail "no current Agent configured; set CURRENT_AGENT_DIR or create $pointer_file"
+  fi
+
+  case "$candidate" in
+    /*)
+      ;;
+    *)
+      candidate="$lab_root/$candidate"
+      ;;
+  esac
+
+  test -d "$candidate" || fail "current Agent directory missing: $candidate"
+  (cd "$candidate" && pwd -P)
+}
+
+agent_dir="$(resolve_agent_dir)"
+expected_branch="${CURRENT_AGENT_BRANCH:-}"
+expected_remote_pattern="${CURRENT_AGENT_REMOTE_PATTERN:-clink-merchant-assistant.git}"
+start_script="${CURRENT_AGENT_START_SCRIPT:-deploy/start.sh}"
+entrypoint="${CURRENT_AGENT_ENTRYPOINT:-services/gateway/src/server.mjs}"
+
+test -d "$agent_dir/.git" || fail "current Agent repo missing: $agent_dir"
+test -f "$agent_dir/$start_script" || fail "missing $start_script"
+test -f "$agent_dir/$entrypoint" || fail "missing $entrypoint"
+test -f "$agent_dir/package-lock.json" || fail "missing package-lock.json"
+
+branch="$(git -C "$agent_dir" branch --show-current)"
+if [[ -n "$expected_branch" && "$branch" != "$expected_branch" ]]; then
+  fail "current Agent branch is '$branch', expected '$expected_branch'"
+fi
+
+remote="$(git -C "$agent_dir" remote get-url origin 2>/dev/null || true)"
+case "$remote" in
+  *"$expected_remote_pattern"*)
+    ;;
+  *)
+    fail "unexpected Agent origin remote: ${remote:-<missing>}"
+    ;;
+esac
+
+if [[ "$print_path" == true ]]; then
+  printf '%s\n' "$agent_dir"
+else
+  pass "current Agent repo: $agent_dir"
+  pass "branch: $branch"
+  pass "entrypoint: $start_script -> $entrypoint"
+fi
